@@ -1,0 +1,21 @@
+{
+  "name": "nelna-fg-digital-recording-system",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nelna FG Digital Recording System — Finished Goods and QA digital recording for Nelna Farm",
+  "author": "Chinthaka Jayaweera",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "dev:web": "pnpm --filter @nelna/web dev",
+    "dev:api": "pnpm --filter @nelna/api dev",
+    "build": "pnpm --filter @nelna/shared build && pnpm --filter @nelna/ui build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build && pnpm --filter @nelna/web build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "format:check": "pnpm -r run format:check --if-present"
+  }
+}

@@ -1,0 +1,34 @@
+:root {
+  --nelna-primary: #27743a;
+  --nelna-primary-light: #46af53;
+  --nelna-primary-dark: #0d3013;
+  --nelna-gold: #d8c76b;
+  --nelna-cream: #ebe9da;
+  --nelna-dark: #251b25;
+  --nelna-surface: #ffffff;
+  --nelna-surface-muted: #f7f6f0;
+  --nelna-border: #d9d5c4;
+  --nelna-danger: #b42318;
+  --nelna-danger-bg: #fef3f2;
+  --nelna-success: #27743a;
+  --nelna-success-bg: #e8f5eb;
+  --nelna-text: #1a1a1a;
+  --nelna-text-muted: #5c5c5c;
+  --nelna-focus: #27743a;
+  --nelna-radius: 12px;
+  --nelna-touch-min: 48px;
+  --nelna-font-sans: "Source Sans 3", "Segoe UI", sans-serif;
+  --nelna-font-display: "Fraunces", "Georgia", serif;
+}
+
+.nelna-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

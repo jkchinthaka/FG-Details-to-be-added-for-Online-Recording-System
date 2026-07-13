@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nelna-fg-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: nelna
+      POSTGRES_PASSWORD: nelna
+      POSTGRES_DB: nelna_fg
+    volumes:
+      - nelna_fg_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nelna -d nelna_fg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nelna_fg_pgdata:
