@@ -9,4 +9,7 @@
 | System Administrator | Users, roles, templates, master data |
 | Auditor | Read-only history, reports and audit logs |
 
-Role-based access control is enforced on the API in later phases. Phase 1 focuses on the operator recording UX and shared domain contracts.
+Role-based (and fine-grained permission-based) access control is enforced on
+every API route via `RolesGuard`/`PermissionsGuard` — see
+[`docs/AUTHENTICATION.md`](./AUTHENTICATION.md) for the full auth strategy,
+endpoint list and the role → navigation mapping used by the web app.

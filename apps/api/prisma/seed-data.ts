@@ -10,8 +10,10 @@ import {
   DOCUMENT_CODES,
   FG_CLEANING_ITEMS,
   FREEZER_TRUCK_CHECK_ITEMS,
+  PERMISSIONS,
   USER_ROLES,
   USER_ROLE_LABELS,
+  type PermissionKey,
   type UserRole,
 } from "@nelna/shared";
 
@@ -19,23 +21,12 @@ import {
 // Permissions & roles
 // ---------------------------------------------------------------------------
 
-export const PERMISSIONS = [
-  "users:manage",
-  "roles:manage",
-  "templates:manage",
-  "templates:publish",
-  "master_data:manage",
-  "records:create",
-  "records:read",
-  "records:check",
-  "records:verify",
-  "corrective_actions:manage",
-  "corrective_actions:read",
-  "reports:read",
-  "audit:read",
-] as const;
-
-export type PermissionKey = (typeof PERMISSIONS)[number];
+// Canonical permission keys now live in @nelna/shared (see permissions.ts) so
+// the API's auth guards and this seed can never drift apart. Re-exported here
+// so existing imports of `PERMISSIONS`/`PermissionKey` from this module keep
+// working unchanged.
+export { PERMISSIONS };
+export type { PermissionKey };
 
 export type RoleSeedDefinition = {
   name: UserRole;

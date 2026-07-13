@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode, type SVGProps } from "react";
-import { Drawer, IconButton, ToastProvider, useToast } from "@nelna/ui";
+import { Drawer, IconButton, LoadingState, ToastProvider, useToast } from "@nelna/ui";
+import { USER_ROLE_LABELS } from "@nelna/shared";
+import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
+import { filterNavItemsByRole } from "@/lib/auth/nav-config";
+import { buildLoginRedirectUrl } from "@/lib/auth/session";
 
 type NavItem = {
   href: string;
@@ -22,37 +26,80 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/profile", label: "Profile", icon: ProfileIcon },
 ];
 
-const PRIMARY_NAV_ITEMS = NAV_ITEMS.slice(0, 4);
-const MORE_NAV_ITEMS = NAV_ITEMS.slice(4);
-
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const LOGIN_PATH = "/login";
+
 /** Responsive application shell: bottom nav on mobile, sidebar from tablet up. */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      <ShellLayout>{children}</ShellLayout>
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <ShellLayout>{children}</ShellLayout>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 
 function ShellLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+
+  // The login page renders its own full-bleed, chrome-free layout.
+  if (pathname === LOGIN_PATH) {
+    return <div className="nelna-app-shell min-h-dvh">{children}</div>;
+  }
+
+  return <AuthenticatedShell pathname={pathname}>{children}</AuthenticatedShell>;
+}
+
+function AuthenticatedShell({
+  children,
+  pathname,
+}: {
+  children: ReactNode;
+  pathname: string;
+}) {
+  const router = useRouter();
+  const auth = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    if (auth.status === "unauthenticated") {
+      router.replace(buildLoginRedirectUrl(pathname, "session-expired"));
+    }
+  }, [auth.status, pathname, router]);
+
+  if (auth.status !== "authenticated") {
+    return (
+      <div className="nelna-app-shell flex min-h-dvh items-center justify-center">
+        <LoadingState message="Checking your session…" />
+      </div>
+    );
+  }
+
+  const roles = auth.user?.roles ?? [];
+  const visibleNavItems = filterNavItemsByRole(NAV_ITEMS, roles);
+  const primaryNavItems = visibleNavItems.slice(0, 4);
+  const moreNavItems = visibleNavItems.slice(4);
 
   return (
     <div className="nelna-app-shell flex min-h-dvh flex-col">
       <TopHeader />
       <div className="flex flex-1">
-        <Sidebar pathname={pathname} />
+        <Sidebar pathname={pathname} items={visibleNavItems} />
         <main className="min-w-0 flex-1 px-4 pb-28 pt-5 sm:px-6 md:pb-10 lg:px-8">
           <div className="mx-auto w-full max-w-5xl">{children}</div>
         </main>
       </div>
-      <BottomNav pathname={pathname} onMore={() => setMoreOpen(true)} />
+      <BottomNav
+        pathname={pathname}
+        items={primaryNavItems}
+        hasMore={moreNavItems.length > 0}
+        onMore={() => setMoreOpen(true)}
+      />
       <Drawer
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
@@ -60,7 +107,7 @@ function ShellLayout({ children }: { children: ReactNode }) {
         side="bottom"
       >
         <ul className="grid gap-1">
-          {MORE_NAV_ITEMS.map((item) => (
+          {moreNavItems.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
@@ -81,7 +128,10 @@ function ShellLayout({ children }: { children: ReactNode }) {
 
 function TopHeader() {
   const { showToast } = useToast();
+  const router = useRouter();
+  const auth = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,6 +144,19 @@ function TopHeader() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [menuOpen]);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await auth.logout();
+    } finally {
+      setSigningOut(false);
+      setMenuOpen(false);
+      router.replace(LOGIN_PATH);
+    }
+  }
+
+  const primaryRole = auth.user?.roles[0];
 
   return (
     <header className="nelna-topbar sticky top-0 z-30">
@@ -144,9 +207,20 @@ function TopHeader() {
             {menuOpen ? (
               <div
                 role="menu"
-                className="absolute right-0 top-[calc(100%+0.5rem)] w-56 rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-white p-2"
+                className="absolute right-0 top-[calc(100%+0.5rem)] w-60 rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-white p-2"
                 style={{ boxShadow: "var(--nelna-shadow-md)" }}
               >
+                <div className="px-3 py-2">
+                  <p className="truncate text-sm font-bold text-nelna-primary-dark">
+                    {auth.user?.fullName ?? "Signed in"}
+                  </p>
+                  {primaryRole ? (
+                    <p className="truncate text-xs" style={{ color: "var(--nelna-text-secondary)" }}>
+                      {USER_ROLE_LABELS[primaryRole]}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="my-1 border-t border-[var(--nelna-border)]" />
                 <Link
                   href="/profile"
                   role="menuitem"
@@ -155,14 +229,16 @@ function TopHeader() {
                 >
                   Profile
                 </Link>
-                <span
+                <button
+                  type="button"
                   role="menuitem"
-                  aria-disabled="true"
-                  className="flex min-h-11 items-center rounded-[var(--nelna-radius-sm)] px-3 text-sm font-semibold"
-                  style={{ color: "var(--nelna-disabled)" }}
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="flex min-h-11 w-full items-center rounded-[var(--nelna-radius-sm)] px-3 text-left text-sm font-semibold hover:bg-[var(--nelna-surface-muted)] disabled:opacity-60"
+                  style={{ color: "var(--nelna-danger)" }}
                 >
-                  Sign out (Phase 2)
-                </span>
+                  {signingOut ? "Signing out…" : "Sign out"}
+                </button>
               </div>
             ) : null}
           </div>
@@ -172,11 +248,11 @@ function TopHeader() {
   );
 }
 
-function Sidebar({ pathname }: { pathname: string }) {
+function Sidebar({ pathname, items }: { pathname: string; items: NavItem[] }) {
   return (
     <aside className="hidden shrink-0 border-r border-[var(--nelna-border)] bg-white md:flex md:w-20 md:flex-col md:gap-1 md:p-3 lg:w-64 lg:p-4">
       <nav aria-label="Primary" className="flex flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
@@ -199,9 +275,13 @@ function Sidebar({ pathname }: { pathname: string }) {
 
 function BottomNav({
   pathname,
+  items,
+  hasMore,
   onMore,
 }: {
   pathname: string;
+  items: NavItem[];
+  hasMore: boolean;
   onMore: () => void;
 }) {
   return (
@@ -210,8 +290,8 @@ function BottomNav({
       className="nelna-bottom-nav fixed inset-x-0 bottom-0 z-40 md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className="grid grid-cols-5">
-        {PRIMARY_NAV_ITEMS.map((item) => {
+      <ul className={hasMore ? "grid grid-cols-5" : "grid" } style={hasMore ? undefined : { gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}>
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href}>
@@ -227,17 +307,19 @@ function BottomNav({
             </li>
           );
         })}
-        <li>
-          <button
-            type="button"
-            onClick={onMore}
-            aria-label="More navigation options"
-            className="nelna-bottom-nav-link nelna-focusable w-full"
-          >
-            <MoreIcon width={20} height={20} aria-hidden />
-            <span>More</span>
-          </button>
-        </li>
+        {hasMore ? (
+          <li>
+            <button
+              type="button"
+              onClick={onMore}
+              aria-label="More navigation options"
+              className="nelna-bottom-nav-link nelna-focusable w-full"
+            >
+              <MoreIcon width={20} height={20} aria-hidden />
+              <span>More</span>
+            </button>
+          </li>
+        ) : null}
       </ul>
     </nav>
   );

@@ -124,6 +124,16 @@ model User {
   email        String?     @unique
   passwordHash String
   status       UserStatus  @default(ACTIVE)
+
+  /**
+   * Failed-login protection: an attempt counter with a timed lockout.
+   * Reset to 0 / null on every successful password verification.
+   * See docs/AUTHENTICATION.md for the exact policy.
+   */
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   sectionId    String?
