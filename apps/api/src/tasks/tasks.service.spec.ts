@@ -35,6 +35,7 @@ describe("TasksService", () => {
           templateCode: "NMS/PPU/CL/24",
           areaLabel: "Finished Goods + Changing Room",
           status: "ASSIGNED",
+          recordId: null,
           shift: { name: "Morning" },
         },
       ]);
@@ -49,7 +50,7 @@ describe("TasksService", () => {
         status: "ASSIGNED",
         bucket: "pending",
         action: "START",
-        href: "/records/cleaning",
+        href: "/records/cleaning?assignmentId=assign-1",
       });
       expect(result.summary).toEqual({
         completed: 0,
@@ -60,6 +61,25 @@ describe("TasksService", () => {
       });
     });
 
+    it("links straight to the in-progress record once the assignment has one", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.taskAssignment.findMany.mockResolvedValue([
+        {
+          id: "assign-3",
+          templateCode: "NMS/PPU/CL/24",
+          areaLabel: "Finished Goods + Changing Room",
+          status: "IN_PROGRESS",
+          recordId: "rec-99",
+          shift: { name: "Morning" },
+        },
+      ]);
+      const service = buildService(prismaMock);
+
+      const result = await service.getTodaysTasks(buildUser());
+
+      expect(result.tasks[0]).toMatchObject({ href: "/records/cleaning/rec-99" });
+    });
+
     it("buckets a rejected assignment as attention-required with a Continue action", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.taskAssignment.findMany.mockResolvedValue([
@@ -68,6 +88,7 @@ describe("TasksService", () => {
           templateCode: "NMS/PPU/CL/30",
           areaLabel: "Dispatch bay",
           status: "REJECTED",
+          recordId: null,
           shift: null,
         },
       ]);
@@ -75,7 +96,11 @@ describe("TasksService", () => {
 
       const result = await service.getTodaysTasks(buildUser());
 
-      expect(result.tasks[0]).toMatchObject({ bucket: "attention", action: "CONTINUE", href: "/records/freezer-truck" });
+      expect(result.tasks[0]).toMatchObject({
+        bucket: "attention",
+        action: "CONTINUE",
+        href: "/records/freezer-truck?assignmentId=assign-2",
+      });
       expect(result.summary.attentionRequired).toBe(1);
     });
 
@@ -207,7 +232,7 @@ describe("TasksService", () => {
     it("unions widgets for every role the user holds", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.taskAssignment.findMany.mockResolvedValue([
-        { id: "assign-1", templateCode: "NMS/PPU/CL/24", areaLabel: "FG", status: "ASSIGNED", shift: null },
+        { id: "assign-1", templateCode: "NMS/PPU/CL/24", areaLabel: "FG", status: "ASSIGNED", recordId: null, shift: null },
       ]);
       const service = buildService(prismaMock);
 

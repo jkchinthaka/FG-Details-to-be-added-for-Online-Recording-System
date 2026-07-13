@@ -1,5 +1,6 @@
 import type { EvidencePhoto } from "@nelna/shared";
 import { EvidenceUploader } from "./EvidenceUploader";
+import { QuickChoiceField } from "./QuickChoiceField";
 import { Textarea } from "./Textarea";
 
 export type FailureDetailPanelProps = {
@@ -16,6 +17,16 @@ export type FailureDetailPanelProps = {
   correctiveActionError?: string;
   evidenceError?: string;
   disabled?: boolean;
+  /** Quick-choice categorized reason for the failure — omitted (no quick
+   *  picker shown) when `issueReasonOptions` isn't provided. */
+  issueReason?: string;
+  onIssueReasonChange?: (value: string) => void;
+  issueReasonOptions?: readonly string[];
+  /** Quick-choice immediate correction already taken, distinct from the
+   *  longer-form `correctiveAction` follow-up. */
+  correction?: string;
+  onCorrectionChange?: (value: string) => void;
+  correctionOptions?: readonly string[];
 };
 
 /**
@@ -38,6 +49,12 @@ export function FailureDetailPanel({
   correctiveActionError,
   evidenceError,
   disabled = false,
+  issueReason,
+  onIssueReasonChange,
+  issueReasonOptions,
+  correction,
+  onCorrectionChange,
+  correctionOptions,
 }: FailureDetailPanelProps) {
   return (
     <div
@@ -51,6 +68,15 @@ export function FailureDetailPanel({
         background: "var(--nelna-danger-bg)",
       }}
     >
+      {issueReasonOptions && onIssueReasonChange ? (
+        <QuickChoiceField
+          label="What's the issue?"
+          value={issueReason ?? ""}
+          options={issueReasonOptions}
+          onChange={onIssueReasonChange}
+          disabled={disabled}
+        />
+      ) : null}
       <Textarea
         label={`What failed?${remarkRequired ? " (required)" : ""}`}
         value={remark}
@@ -59,6 +85,15 @@ export function FailureDetailPanel({
         error={remarkError}
         disabled={disabled}
       />
+      {correctionOptions && onCorrectionChange ? (
+        <QuickChoiceField
+          label="Immediate correction taken"
+          value={correction ?? ""}
+          options={correctionOptions}
+          onChange={onCorrectionChange}
+          disabled={disabled}
+        />
+      ) : null}
       <Textarea
         label={`Corrective action${correctiveActionRequired ? " (required)" : " (optional)"}`}
         value={correctiveAction}

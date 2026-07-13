@@ -1,7 +1,10 @@
 import type { ChangeEvent } from "react";
 import {
   CHECKLIST_ITEM_TYPE_META,
+  FAILURE_CORRECTION_OPTIONS,
+  FAILURE_ISSUE_REASON_OPTIONS,
   isFailureResponse,
+  isStatusItemType,
   type ChecklistItemDefinition,
   type ChecklistItemResponse,
   type ChecklistItemValue,
@@ -96,6 +99,17 @@ export function ChecklistItemCard({
   function setEvidence(evidence: EvidencePhoto[]) {
     onChange({ ...current, evidence });
   }
+  function setIssueReason(issueReason: string) {
+    onChange({ ...current, issueReason });
+  }
+  function setCorrection(correction: string) {
+    onChange({ ...current, correction });
+  }
+
+  // Quick-choice reason/correction pickers only make sense for the
+  // segmented Pass/Fail-style items — free text/number/etc. responses have
+  // no well-defined "issue reason" vocabulary.
+  const showQuickChoices = isStatusItemType(item.itemType);
 
   return (
     <div
@@ -148,6 +162,12 @@ export function ChecklistItemCard({
           correctiveActionError={correctiveActionError}
           evidenceError={evidenceError}
           disabled={disabled}
+          issueReason={current.issueReason}
+          onIssueReasonChange={showQuickChoices ? setIssueReason : undefined}
+          issueReasonOptions={showQuickChoices ? FAILURE_ISSUE_REASON_OPTIONS : undefined}
+          correction={current.correction}
+          onCorrectionChange={showQuickChoices ? setCorrection : undefined}
+          correctionOptions={showQuickChoices ? FAILURE_CORRECTION_OPTIONS : undefined}
         />
       ) : null}
 

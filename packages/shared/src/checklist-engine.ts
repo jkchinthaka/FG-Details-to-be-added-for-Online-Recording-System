@@ -189,11 +189,46 @@ export type ChecklistItemResponse = {
   itemId: string;
   value: ChecklistItemValue | null;
   remark?: string;
+  /** Quick-selected (or free-typed "Other") categorized reason the response
+   *  failed, e.g. "Dirt / residue" — see `FAILURE_ISSUE_REASON_OPTIONS`. */
+  issueReason?: string;
+  /** Quick-selected (or free-typed "Other") immediate action already taken,
+   *  e.g. "Cleaned immediately" — see `FAILURE_CORRECTION_OPTIONS`. */
+  correction?: string;
   correctiveAction?: string;
   evidence?: EvidencePhoto[];
 };
 
 export type ChecklistResponseMap = Record<string, ChecklistItemResponse>;
+
+/** Predefined quick-choice reasons for a failing status response — speeds up
+ *  failure data entry versus always free-typing. "Other" reveals a free-text
+ *  field instead of being stored literally (see `QuickChoiceField` in
+ *  `@nelna/ui`). */
+export const FAILURE_ISSUE_REASON_OPTIONS = [
+  "Dirt / residue",
+  "Water",
+  "Damage",
+  "Smell",
+  "Pest",
+  "Cleaning incomplete",
+  "Equipment not ready",
+  "Other",
+] as const;
+export type FailureIssueReasonOption = (typeof FAILURE_ISSUE_REASON_OPTIONS)[number];
+
+/** Predefined quick-choice immediate corrections taken for a failing status
+ *  response. Distinct from `correctiveAction`, which is the longer-form
+ *  follow-up action tracked via a `CorrectiveAction` record. */
+export const FAILURE_CORRECTION_OPTIONS = [
+  "Cleaned immediately",
+  "Isolated",
+  "Supervisor informed",
+  "Maintenance requested",
+  "Re-inspection",
+  "Other",
+] as const;
+export type FailureCorrectionOption = (typeof FAILURE_CORRECTION_OPTIONS)[number];
 
 export const RESPONSE_STATUSES = ["UNANSWERED", "PASS", "FAIL", "NOT_APPLICABLE"] as const;
 export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];

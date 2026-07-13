@@ -103,6 +103,7 @@ export class TasksService {
         templateCode: string;
         areaLabel: string;
         status: string;
+        recordId: string | null;
         shift: { name: string } | null;
       }>,
       "today's own task assignments",
@@ -125,7 +126,7 @@ export class TasksService {
         status,
         bucket: bucketForOwnTaskStatus(status),
         action: actionForOwnTaskStatus(status),
-        href: hrefForRecordType(recordType),
+        href: hrefForRecordType(recordType, { assignmentId: assignment.id, recordId: assignment.recordId }),
       } satisfies TaskCard;
     });
   }

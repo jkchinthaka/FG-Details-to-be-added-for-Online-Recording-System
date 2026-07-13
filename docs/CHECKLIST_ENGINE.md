@@ -200,14 +200,16 @@ Both pages share `apps/web/src/components/ChecklistTemplatePreview.tsx` and
 the routes above). Responses in these preview pages are local/in-memory only
 — nothing is submitted.
 
-`DailyCleaningForm`/`FreezerTruckForm` (the existing NMS/PPU/CL/24 and
-NMS/PPU/CL/30 pages) are intentionally left as-is: they already work end to
-end against `@nelna/shared`'s static cleaning-item constants and local-draft
-storage, and record submission isn't wired to the API yet in this phase. The
-preview pages instead prove the engine can already represent both reference
-templates end-to-end from seeded API data; migrating the record pages
-themselves to submit through the engine is the natural next phase once record
-submission endpoints exist.
+`/records/cleaning` (NMS/PPU/CL/24) now runs entirely on this engine end to
+end: `InspectionRecordWorkspace` (`apps/web/src/components/records/`) creates
+or resumes today's draft via the `inspection-records` API, renders it through
+the same `ChecklistRenderer` as the preview pages, autosaves responses
+(API + a localStorage backup), and walks the operator through Mark All
+Acceptable → Review → Submit. The same component doubles as the record
+detail view at `/records/cleaning/[id]` — read-only once the record is no
+longer editable (submitted/checked/verified, or someone else's record).
+`FreezerTruckForm` (NMS/PPU/CL/30) has not been migrated yet and still uses
+the legacy static-item/local-draft approach.
 
 ## Adding a new checklist template
 

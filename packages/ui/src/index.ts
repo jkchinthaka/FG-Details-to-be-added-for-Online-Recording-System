@@ -75,3 +75,5 @@ export { ClearAllBar } from "./ClearAllBar";
 export type { ClearAllBarProps } from "./ClearAllBar";
 export { ChecklistRenderer } from "./ChecklistRenderer";
 export type { ChecklistRendererProps } from "./ChecklistRenderer";
+export { QuickChoiceField } from "./QuickChoiceField";
+export type { QuickChoiceFieldProps } from "./QuickChoiceField";

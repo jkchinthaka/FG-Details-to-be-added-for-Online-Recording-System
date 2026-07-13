@@ -145,14 +145,37 @@ export function actionForOwnTaskStatus(status: TaskStatus): TaskCardAction {
 
 /** Route an operator's task card should link to, based on the checklist
  *  template/record type it represents. Falls back to the records list for
- *  any type the mobile forms don't have a dedicated route for yet. */
-export function hrefForRecordType(recordType: RecordType | null): string {
-  switch (recordType) {
-    case "DAILY_CLEANING_VERIFICATION":
-      return "/records/cleaning";
-    case "FREEZER_TRUCK_INSPECTION":
-      return "/records/freezer-truck";
-    default:
-      return "/records";
+ *  any type the mobile forms don't have a dedicated route for yet.
+ *
+ *  When `linkContext.recordId` is set (the assignment already has an
+ *  in-progress/submitted InspectionRecord), links straight to that record's
+ *  detail/continue view instead of the generic "start a new one" form.
+ *  Otherwise, `linkContext.assignmentId` (when present) is passed through as
+ *  a query param so the recording form can auto-populate its header and link
+ *  itself back to the originating TaskAssignment on submit. */
+export function hrefForRecordType(
+  recordType: RecordType | null,
+  linkContext?: { assignmentId?: string | null; recordId?: string | null },
+): string {
+  if (linkContext?.recordId) {
+    return recordType === "DAILY_CLEANING_VERIFICATION"
+      ? `/records/cleaning/${linkContext.recordId}`
+      : `/records/${linkContext.recordId}`;
   }
+
+  const base = (() => {
+    switch (recordType) {
+      case "DAILY_CLEANING_VERIFICATION":
+        return "/records/cleaning";
+      case "FREEZER_TRUCK_INSPECTION":
+        return "/records/freezer-truck";
+      default:
+        return "/records";
+    }
+  })();
+
+  if (linkContext?.assignmentId) {
+    return `${base}?assignmentId=${encodeURIComponent(linkContext.assignmentId)}`;
+  }
+  return base;
 }

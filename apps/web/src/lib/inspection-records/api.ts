@@ -1,0 +1,85 @@
+import type {
+  ChecklistValidationError,
+  CreateCleaningDraftInput,
+  InspectionRecordDetail,
+  SaveDraftResponsesInput,
+  SubmitInspectionRecordInput,
+  SubmitRecordResult,
+} from "@nelna/shared";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+export class InspectionRecordApiError extends Error {
+  readonly status: number;
+  /** Populated only for a 400 from `/submit` that failed checklist validation
+   *  (see `RecordValidationException`) — lets the UI jump straight back into
+   *  the form instead of just showing a generic error toast. */
+  readonly validationErrors?: ChecklistValidationError[];
+
+  constructor(status: number, message: string, validationErrors?: ChecklistValidationError[]) {
+    super(message);
+    this.name = "InspectionRecordApiError";
+    this.status = status;
+    this.validationErrors = validationErrors;
+  }
+}
+
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+  } catch {
+    throw new InspectionRecordApiError(0, "Could not reach the server. Check your connection and try again.");
+  }
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    let validationErrors: ChecklistValidationError[] | undefined;
+    try {
+      const body = (await response.json()) as { message?: string; errors?: ChecklistValidationError[] };
+      if (body.message) message = body.message;
+      if (body.errors) validationErrors = body.errors;
+    } catch {
+      // Non-JSON error body — fall back to the generic message above.
+    }
+    throw new InspectionRecordApiError(response.status, message, validationErrors);
+  }
+
+  return (await response.json()) as T;
+}
+
+/** Creates (or resumes) today's Daily Cleaning Verification draft for the current operator. */
+export function createCleaningDraft(input: CreateCleaningDraftInput): Promise<InspectionRecordDetail> {
+  return apiFetch<InspectionRecordDetail>("/inspection-records/cleaning/draft", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Retrieves a record's header, template version and current responses. */
+export function fetchInspectionRecord(id: string): Promise<InspectionRecordDetail> {
+  return apiFetch<InspectionRecordDetail>(`/inspection-records/${encodeURIComponent(id)}`);
+}
+
+/** Autosaves/saves the current draft responses without submitting. */
+export function saveInspectionDraft(id: string, input: SaveDraftResponsesInput): Promise<InspectionRecordDetail> {
+  return apiFetch<InspectionRecordDetail>(`/inspection-records/${encodeURIComponent(id)}/draft`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Validates and submits a record, locking it from further operator edits. */
+export function submitInspectionRecord(
+  id: string,
+  input: SubmitInspectionRecordInput,
+): Promise<SubmitRecordResult> {
+  return apiFetch<SubmitRecordResult>(`/inspection-records/${encodeURIComponent(id)}/submit`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
