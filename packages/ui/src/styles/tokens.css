@@ -1,25 +1,76 @@
+/**
+ * Nelna design tokens.
+ *
+ * This file is the single source of truth for colour, shape and motion
+ * values across @nelna/ui and the apps that consume it. Components must
+ * reference these CSS variables (or the utility classes below) instead of
+ * hard-coded hex values.
+ */
+
 :root {
-  --nelna-primary: #27743a;
-  --nelna-primary-light: #46af53;
-  --nelna-primary-dark: #0d3013;
+  /* ---- Brand palette — raw hex values live only here ---- */
+  --nelna-primary-green: #27743a;
+  --nelna-light-green: #46af53;
+  --nelna-dark-green: #0d3013;
   --nelna-gold: #d8c76b;
   --nelna-cream: #ebe9da;
-  --nelna-dark: #251b25;
-  --nelna-surface: #ffffff;
-  --nelna-surface-muted: #f7f6f0;
+  --nelna-dark-background: #251b25;
+  --nelna-white: #ffffff;
+  --nelna-ink: #1a1a1a;
+
+  /* ---- Semantic tokens ---- */
+  --nelna-background: var(--nelna-cream);
+  --nelna-surface: var(--nelna-white);
+  --nelna-primary: var(--nelna-primary-green);
+  --nelna-primary-hover: #1f5f30;
+  --nelna-primary-active: var(--nelna-dark-green);
+  --nelna-text-primary: var(--nelna-ink);
+  --nelna-text-secondary: #5c5c5c;
   --nelna-border: #d9d5c4;
+  --nelna-success: var(--nelna-primary-green);
+  --nelna-warning: #a56a00;
   --nelna-danger: #b42318;
-  --nelna-danger-bg: #fef3f2;
-  --nelna-success: #27743a;
+  --nelna-information: #1c5f8a;
+  --nelna-disabled: #9c9c93;
+
+  /* ---- Tinted status surfaces ---- */
   --nelna-success-bg: #e8f5eb;
-  --nelna-text: #1a1a1a;
-  --nelna-text-muted: #5c5c5c;
-  --nelna-focus: #27743a;
+  --nelna-warning-bg: #fdf1d6;
+  --nelna-danger-bg: #fef3f2;
+  --nelna-information-bg: #e7f1f8;
+  --nelna-disabled-bg: #ecebe4;
+  --nelna-surface-muted: #f7f6f0;
+  --nelna-overlay: rgba(37, 27, 37, 0.48);
+
+  /* ---- Legacy aliases kept so existing components keep working ---- */
+  --nelna-primary-light: var(--nelna-light-green);
+  --nelna-primary-dark: var(--nelna-dark-green);
+  --nelna-dark: var(--nelna-dark-background);
+  --nelna-text: var(--nelna-text-primary);
+  --nelna-text-muted: var(--nelna-text-secondary);
+  --nelna-focus: var(--nelna-primary);
+
+  /* ---- Shape & sizing ---- */
+  --nelna-radius-sm: 8px;
   --nelna-radius: 12px;
+  --nelna-radius-lg: 18px;
   --nelna-touch-min: 48px;
+  --nelna-touch-comfortable: 44px;
+
+  /* ---- Typography ---- */
   --nelna-font-sans: "Source Sans 3", "Segoe UI", sans-serif;
   --nelna-font-display: "Fraunces", "Georgia", serif;
+
+  /* ---- Elevation (kept deliberately subtle) ---- */
+  --nelna-shadow-sm: 0 1px 2px rgba(37, 27, 37, 0.08);
+  --nelna-shadow-md: 0 4px 14px rgba(37, 27, 37, 0.1);
+
+  --nelna-transition-fast: 120ms ease;
 }
+
+/* ---------------------------------------------------------------- */
+/* Utilities                                                         */
+/* ---------------------------------------------------------------- */
 
 .nelna-sr-only {
   position: absolute;
@@ -31,4 +82,587 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.nelna-focusable:focus-visible {
+  outline: 3px solid var(--nelna-focus);
+  outline-offset: 2px;
+}
+
+@keyframes nelna-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nelna-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Button                                                             */
+/* ---------------------------------------------------------------- */
+
+.nelna-btn {
+  font-family: var(--nelna-font-sans);
+  font-weight: 600;
+  border-radius: var(--nelna-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  line-height: 1.2;
+  transition:
+    background-color var(--nelna-transition-fast),
+    border-color var(--nelna-transition-fast),
+    color var(--nelna-transition-fast);
+}
+
+.nelna-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.nelna-btn-primary {
+  background: var(--nelna-primary);
+  border: 2px solid var(--nelna-primary);
+  color: #fff;
+}
+.nelna-btn-primary:hover:not(:disabled) {
+  background: var(--nelna-primary-hover);
+  border-color: var(--nelna-primary-hover);
+}
+.nelna-btn-primary:active:not(:disabled) {
+  background: var(--nelna-primary-active);
+  border-color: var(--nelna-primary-active);
+}
+
+.nelna-btn-secondary {
+  background: var(--nelna-surface);
+  border: 2px solid var(--nelna-border);
+  color: var(--nelna-primary-active);
+}
+.nelna-btn-secondary:hover:not(:disabled) {
+  background: var(--nelna-surface-muted);
+}
+
+.nelna-btn-ghost {
+  background: transparent;
+  border: 2px solid transparent;
+  color: var(--nelna-primary-active);
+}
+.nelna-btn-ghost:hover:not(:disabled) {
+  background: var(--nelna-surface-muted);
+}
+
+.nelna-btn-danger {
+  background: var(--nelna-danger);
+  border: 2px solid var(--nelna-danger);
+  color: #fff;
+}
+.nelna-btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.nelna-btn-gold {
+  background: var(--nelna-gold);
+  border: 2px solid var(--nelna-gold);
+  color: var(--nelna-dark-background);
+}
+.nelna-btn-gold:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.nelna-btn-md {
+  min-height: var(--nelna-touch-min);
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+}
+.nelna-btn-lg {
+  min-height: 52px;
+  padding: 0.9rem 1.5rem;
+  font-size: 1.05rem;
+}
+.nelna-btn-full {
+  width: 100%;
+}
+
+/* Icon button */
+.nelna-icon-btn {
+  font-family: var(--nelna-font-sans);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--nelna-touch-min);
+  min-height: var(--nelna-touch-min);
+  border-radius: var(--nelna-radius);
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--nelna-primary-active);
+  cursor: pointer;
+  transition:
+    background-color var(--nelna-transition-fast),
+    color var(--nelna-transition-fast);
+}
+.nelna-icon-btn:hover:not(:disabled) {
+  background: var(--nelna-surface-muted);
+}
+.nelna-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.nelna-icon-btn-solid {
+  background: var(--nelna-primary);
+  color: #fff;
+}
+.nelna-icon-btn-solid:hover:not(:disabled) {
+  background: var(--nelna-primary-hover);
+}
+
+/* ---------------------------------------------------------------- */
+/* Form fields                                                        */
+/* ---------------------------------------------------------------- */
+
+.nelna-field {
+  display: grid;
+  gap: 0.4rem;
+  font-family: var(--nelna-font-sans);
+}
+
+.nelna-field-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--nelna-text-primary);
+}
+
+.nelna-field-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--nelna-text-secondary);
+}
+
+.nelna-field-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--nelna-danger);
+  font-weight: 600;
+}
+
+.nelna-control {
+  width: 100%;
+  min-height: var(--nelna-touch-min);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--nelna-radius-sm);
+  border: 2px solid var(--nelna-border);
+  background: var(--nelna-surface);
+  color: var(--nelna-text-primary);
+  font-family: var(--nelna-font-sans);
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color var(--nelna-transition-fast);
+}
+
+.nelna-control:hover:not(:disabled) {
+  border-color: var(--nelna-primary-light);
+}
+
+.nelna-control:focus-visible {
+  outline: 3px solid var(--nelna-focus);
+  outline-offset: 1px;
+  border-color: var(--nelna-primary);
+}
+
+.nelna-control:disabled {
+  background: var(--nelna-disabled-bg);
+  color: var(--nelna-text-secondary);
+  cursor: not-allowed;
+}
+
+.nelna-control-invalid {
+  border-color: var(--nelna-danger);
+}
+
+textarea.nelna-control {
+  min-height: 96px;
+  resize: vertical;
+}
+
+select.nelna-control {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--nelna-text-secondary) 50%),
+    linear-gradient(135deg, var(--nelna-text-secondary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) calc(1.1em),
+    calc(100% - 15px) calc(1.1em);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2.5rem;
+}
+
+/* Checkbox */
+.nelna-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--nelna-touch-comfortable);
+  font-family: var(--nelna-font-sans);
+  font-size: 1rem;
+  color: var(--nelna-text-primary);
+  cursor: pointer;
+}
+
+.nelna-checkbox input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--nelna-primary);
+  cursor: pointer;
+}
+
+.nelna-checkbox input:disabled {
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- */
+/* Segmented status selector                                         */
+/* ---------------------------------------------------------------- */
+
+.nelna-segmented {
+  display: grid;
+  gap: 0.5rem;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+.nelna-segmented-option {
+  min-height: var(--nelna-touch-min);
+  border-radius: var(--nelna-radius);
+  border: 2px solid var(--nelna-border);
+  background: var(--nelna-surface);
+  color: var(--nelna-text-primary);
+  font-family: var(--nelna-font-sans);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    background-color var(--nelna-transition-fast),
+    border-color var(--nelna-transition-fast);
+}
+
+.nelna-segmented-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.nelna-segmented-option[aria-pressed="true"].nelna-tone-success {
+  background: var(--nelna-success-bg);
+  border-color: var(--nelna-success);
+  color: var(--nelna-primary-active);
+}
+.nelna-segmented-option[aria-pressed="true"].nelna-tone-danger {
+  background: var(--nelna-danger-bg);
+  border-color: var(--nelna-danger);
+  color: var(--nelna-danger);
+}
+.nelna-segmented-option[aria-pressed="true"].nelna-tone-warning {
+  background: var(--nelna-warning-bg);
+  border-color: var(--nelna-warning);
+  color: var(--nelna-warning);
+}
+.nelna-segmented-option[aria-pressed="true"].nelna-tone-neutral {
+  background: var(--nelna-surface-muted);
+  border-color: var(--nelna-primary);
+  color: var(--nelna-primary-active);
+}
+
+/* ---------------------------------------------------------------- */
+/* Card                                                               */
+/* ---------------------------------------------------------------- */
+
+.nelna-card {
+  background: var(--nelna-surface);
+  border: 1px solid var(--nelna-border);
+  border-radius: var(--nelna-radius);
+  padding: 1rem;
+}
+.nelna-card-padded-lg {
+  padding: 1.5rem;
+}
+.nelna-card-muted {
+  background: var(--nelna-surface-muted);
+}
+.nelna-card-interactive {
+  cursor: pointer;
+  transition:
+    border-color var(--nelna-transition-fast),
+    box-shadow var(--nelna-transition-fast);
+}
+.nelna-card-interactive:hover {
+  border-color: var(--nelna-primary-light);
+  box-shadow: var(--nelna-shadow-sm);
+}
+
+/* ---------------------------------------------------------------- */
+/* Badge                                                              */
+/* ---------------------------------------------------------------- */
+
+.nelna-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-family: var(--nelna-font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.nelna-badge-neutral {
+  background: var(--nelna-cream);
+  color: var(--nelna-primary-active);
+}
+.nelna-badge-primary {
+  background: var(--nelna-primary);
+  color: #fff;
+}
+.nelna-badge-success {
+  background: var(--nelna-success-bg);
+  color: var(--nelna-primary);
+}
+.nelna-badge-warning {
+  background: var(--nelna-warning-bg);
+  color: var(--nelna-warning);
+}
+.nelna-badge-danger {
+  background: var(--nelna-danger-bg);
+  color: var(--nelna-danger);
+}
+.nelna-badge-information {
+  background: var(--nelna-information-bg);
+  color: var(--nelna-information);
+}
+.nelna-badge-gold {
+  background: var(--nelna-gold);
+  color: var(--nelna-dark-background);
+}
+
+/* ---------------------------------------------------------------- */
+/* Alert                                                              */
+/* ---------------------------------------------------------------- */
+
+.nelna-alert {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: var(--nelna-radius);
+  border: 1px solid var(--nelna-border);
+  font-family: var(--nelna-font-sans);
+  font-size: 0.95rem;
+}
+.nelna-alert-success {
+  background: var(--nelna-success-bg);
+  border-color: var(--nelna-success);
+  color: var(--nelna-primary-active);
+}
+.nelna-alert-warning {
+  background: var(--nelna-warning-bg);
+  border-color: var(--nelna-warning);
+  color: #6b4a00;
+}
+.nelna-alert-danger {
+  background: var(--nelna-danger-bg);
+  border-color: var(--nelna-danger);
+  color: var(--nelna-danger);
+}
+.nelna-alert-information {
+  background: var(--nelna-information-bg);
+  border-color: var(--nelna-information);
+  color: var(--nelna-information);
+}
+
+/* ---------------------------------------------------------------- */
+/* Modal & Drawer                                                     */
+/* ---------------------------------------------------------------- */
+
+.nelna-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--nelna-overlay);
+  display: flex;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.nelna-modal {
+  background: var(--nelna-surface);
+  border-radius: var(--nelna-radius-lg);
+  margin: auto;
+  width: min(480px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding: 1.5rem;
+  box-shadow: var(--nelna-shadow-md);
+}
+
+.nelna-drawer {
+  background: var(--nelna-surface);
+  height: 100%;
+  width: min(360px, 88vw);
+  margin-left: auto;
+  padding: 1.5rem;
+  overflow-y: auto;
+  box-shadow: var(--nelna-shadow-md);
+  border-radius: var(--nelna-radius-lg) 0 0 var(--nelna-radius-lg);
+}
+
+.nelna-drawer-bottom {
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - 2rem);
+  margin: auto 0 0;
+  border-radius: var(--nelna-radius-lg) var(--nelna-radius-lg) 0 0;
+}
+
+/* ---------------------------------------------------------------- */
+/* Toast                                                              */
+/* ---------------------------------------------------------------- */
+
+.nelna-toast-viewport {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: grid;
+  gap: 0.5rem;
+  width: min(420px, calc(100vw - 2rem));
+}
+
+.nelna-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--nelna-radius);
+  background: var(--nelna-dark-background);
+  color: #fff;
+  font-family: var(--nelna-font-sans);
+  font-size: 0.9rem;
+  box-shadow: var(--nelna-shadow-md);
+}
+.nelna-toast-success {
+  background: var(--nelna-primary-active);
+}
+.nelna-toast-danger {
+  background: var(--nelna-danger);
+}
+.nelna-toast-warning {
+  background: #6b4a00;
+}
+.nelna-toast-information {
+  background: var(--nelna-information);
+}
+
+/* ---------------------------------------------------------------- */
+/* Skeleton                                                           */
+/* ---------------------------------------------------------------- */
+
+.nelna-skeleton {
+  border-radius: var(--nelna-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--nelna-surface-muted) 25%,
+    var(--nelna-border) 37%,
+    var(--nelna-surface-muted) 63%
+  );
+  background-size: 400% 100%;
+  animation: nelna-shimmer 1.4s ease infinite;
+}
+
+/* ---------------------------------------------------------------- */
+/* Progress indicator                                                 */
+/* ---------------------------------------------------------------- */
+
+.nelna-progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--nelna-surface-muted);
+  border: 1px solid var(--nelna-border);
+  overflow: hidden;
+}
+.nelna-progress-fill {
+  height: 100%;
+  background: var(--nelna-primary);
+  border-radius: 999px;
+  transition: width var(--nelna-transition-fast);
+}
+
+/* ---------------------------------------------------------------- */
+/* App shell                                                          */
+/* ---------------------------------------------------------------- */
+
+.nelna-app-shell {
+  min-height: 100dvh;
+  background: var(--nelna-background);
+}
+
+.nelna-topbar {
+  background: var(--nelna-surface);
+  border-bottom: 1px solid var(--nelna-border);
+}
+
+.nelna-bottom-nav {
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid var(--nelna-border);
+  backdrop-filter: blur(6px);
+}
+
+.nelna-bottom-nav-link {
+  display: flex;
+  min-height: 56px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-family: var(--nelna-font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--nelna-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.nelna-bottom-nav-link[aria-current="page"] {
+  color: var(--nelna-primary);
+  box-shadow: inset 0 3px 0 var(--nelna-gold);
+}
+
+.nelna-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--nelna-touch-min);
+  padding: 0 0.85rem;
+  border-radius: var(--nelna-radius);
+  font-family: var(--nelna-font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--nelna-text-secondary);
+}
+.nelna-sidebar-link:hover {
+  background: var(--nelna-surface-muted);
+}
+.nelna-sidebar-link[aria-current="page"] {
+  background: var(--nelna-success-bg);
+  color: var(--nelna-primary-active);
+  box-shadow: inset 3px 0 0 var(--nelna-gold);
 }

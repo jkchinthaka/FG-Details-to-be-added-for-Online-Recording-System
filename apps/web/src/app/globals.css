@@ -2,25 +2,22 @@
 @import "@nelna/ui/styles.css";
 
 @theme {
-  --color-nelna-primary: #27743a;
-  --color-nelna-primary-light: #46af53;
-  --color-nelna-primary-dark: #0d3013;
-  --color-nelna-gold: #d8c76b;
-  --color-nelna-cream: #ebe9da;
-  --color-nelna-dark: #251b25;
-  --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
+  --color-nelna-primary: var(--nelna-primary);
+  --color-nelna-primary-light: var(--nelna-primary-light);
+  --color-nelna-primary-dark: var(--nelna-primary-dark);
+  --color-nelna-gold: var(--nelna-gold);
+  --color-nelna-cream: var(--nelna-cream);
+  --color-nelna-dark: var(--nelna-dark);
+  --font-sans: var(--nelna-font-sans);
+  --font-display: var(--nelna-font-display);
 }
 
 html,
 body {
   margin: 0;
   min-height: 100%;
-  background:
-    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(70, 175, 83, 0.12), transparent 50%),
-    radial-gradient(ellipse 80% 60% at 100% 0%, rgba(216, 199, 107, 0.18), transparent 45%),
-    linear-gradient(180deg, var(--nelna-cream) 0%, #ffffff 42%, var(--nelna-cream) 100%);
-  color: var(--nelna-text);
+  background: var(--nelna-background);
+  color: var(--nelna-text-primary);
   font-family: var(--nelna-font-sans);
 }
 
