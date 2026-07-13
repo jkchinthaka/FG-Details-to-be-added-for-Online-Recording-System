@@ -9,13 +9,18 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm run --parallel dev",
+    "dev": "pnpm run --parallel --filter @nelna/web --filter @nelna/api dev",
     "dev:web": "pnpm --filter @nelna/web dev",
     "dev:api": "pnpm --filter @nelna/api dev",
     "build": "pnpm --filter @nelna/shared build && pnpm --filter @nelna/ui build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build && pnpm --filter @nelna/web build",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
-    "format:check": "pnpm -r run format:check --if-present"
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11"
   }
 }

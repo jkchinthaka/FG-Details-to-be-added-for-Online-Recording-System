@@ -14,10 +14,12 @@ describe("HealthController", () => {
     controller = module.get<HealthController>(HealthController);
   });
 
-  it("returns ok status for Nelna FG API", () => {
+  it("returns a structured healthy response for Nelna FG API", () => {
     const result = controller.getHealth();
-    expect(result.status).toBe("ok");
+    expect(result.status).toBe("healthy");
     expect(result.service).toBe("nelna-fg-api");
     expect(result.product).toContain("Nelna FG");
+    expect(result.checks.api).toBe("up");
+    expect(result.timestamp).toBeTruthy();
   });
 });

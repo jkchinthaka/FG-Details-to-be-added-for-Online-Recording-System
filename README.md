@@ -1,60 +1,64 @@
 # Nelna FG Digital Recording System
 
-Professional, mobile-first Progressive Web App for digitising Finished Goods (FG) and Quality Assurance records at **Nelna Farm**.
+**Developer:** Chinthaka Jayaweera
+**Repository:** https://github.com/jkchinthaka/FG-Details-to-be-added-for-Online-Recording-System.git
 
-Replaces paper checklists with a low-click, exception-based workflow:
+## Project overview
 
-**Open assigned task → Mark All Acceptable → Modify only failed items → Submit**
+Nelna FG Digital Recording System is a professional, mobile-first Progressive Web App for digitising Finished Goods (FG) and Quality Assurance records at Nelna Farm. It replaces paper checklists with a low-click, exception-based digital workflow.
 
-## Developer
+## Business problem
 
-**Chinthaka Jayaweera**
+Daily cleaning verification and freezer truck inspections are still captured on paper. That slows operators, weakens traceability, and makes QA review harder. The system must let a normal daily record be completed in roughly **3â€“5 actions** on a phone.
 
-Repository: [FG-Details-to-be-added-for-Online-Recording-System](https://github.com/jkchinthaka/FG-Details-to-be-added-for-Online-Recording-System.git)
+**Target workflow:** Open assigned task â†’ Mark All Acceptable â†’ Modify only failed items â†’ Submit
 
-## Phase 1 status
+## Core features (planned)
 
-Foundation monorepo with:
+- Authentication and role-based access
+- Todayâ€™s Tasks operator dashboard
+- Daily Cleaning Verification (`NMS/PPU/CL/24`)
+- Freezer Truck Inspection Before Loading (`NMS/PPU/CL/30`)
+- Dynamic checklist template engine
+- Corrective actions, verification, reports, audit logs
+- Offline-friendly draft autosave and PWA support
 
-- Next.js web app (Today’s Tasks, Daily Cleaning Verification, Freezer Truck Inspection, About, PWA manifest)
-- NestJS API (health endpoint, OpenAPI/Swagger, Prisma schema)
-- Shared domain types and Zod validation for NMS/PPU/CL/24 and NMS/PPU/CL/30
-- Nelna UI components (Mark All Acceptable, checklist toggles, sticky submit)
-- Local draft autosave in the browser
-- Docker Compose PostgreSQL service
+## Technology stack
 
-Authentication, persisted task assignment and server-side record submit land in later phases.
+| Layer | Stack |
+| --- | --- |
+| Frontend | Next.js, TypeScript, Tailwind CSS, React Hook Form, Zod |
+| Backend | NestJS, TypeScript, REST, OpenAPI/Swagger |
+| Database | PostgreSQL, Prisma ORM |
+| Packages | Shared domain types, UI design system, shared config |
+| Tooling | pnpm workspaces, ESLint, Vitest/Jest |
 
-## Monorepo layout
+## Monorepo structure
 
 ```
 apps/
-  web/     Next.js + TypeScript + Tailwind (mobile-first PWA UI)
-  api/     NestJS + Prisma + PostgreSQL REST API
+  web/          Next.js mobile-first PWA
+  api/          NestJS REST API + Prisma
 packages/
-  shared/  Domain types, Zod schemas, brand constants
-  ui/      Nelna design tokens and inspection components
-  config/  Shared TypeScript bases
-docs/      Architecture and operations documentation
+  ui/           Nelna design system components
+  shared/       Domain types, Zod schemas, brand constants
+  config/       Shared TypeScript bases
+docs/           Product and engineering documentation
 ```
 
-## Prerequisites
+## Local setup
 
-- Node.js 20+
-- pnpm 9+
-- Docker (optional, for PostgreSQL)
-
-## Quick start
+Prerequisites: Node.js 20+, pnpm 9+, Docker (optional for PostgreSQL).
 
 ```bash
 pnpm install
 pnpm --filter @nelna/shared build
 pnpm --filter @nelna/ui build
 
-# Terminal A — web
+# Web
 pnpm dev:web
 
-# Terminal B — API
+# API
 cp apps/api/.env.example apps/api/.env
 pnpm --filter @nelna/api prisma:generate
 pnpm dev:api
@@ -66,42 +70,59 @@ docker compose up -d
 - Web: http://localhost:3000
 - API health: http://localhost:3001/health
 - Swagger: http://localhost:3001/api/docs
+- System status (dev): http://localhost:3000/system-status
 
-## Scripts
+## Environment configuration
+
+Copy example files only. Never commit real secrets.
+
+| File | Purpose |
+| --- | --- |
+| `.env.example` | Root reference variables |
+| `apps/api/.env.example` | API / database |
+| `apps/web/.env.example` | Public API URL |
+
+Local demo database credentials in Docker Compose are for development only.
+
+## Development commands
 
 | Command | Description |
 | --- | --- |
-| `pnpm dev:web` | Start Next.js on port 3000 |
-| `pnpm dev:api` | Start NestJS on port 3001 |
+| `pnpm dev` | Start web and API in parallel |
+| `pnpm dev:web` | Next.js on port 3000 |
+| `pnpm dev:api` | NestJS on port 3001 |
 | `pnpm lint` | Lint all packages |
 | `pnpm typecheck` | TypeScript check all packages |
 | `pnpm test` | Unit tests |
 | `pnpm build` | Production build |
+| `pnpm format` | Format with Prettier |
 
-## Brand colours
+## Git workflow
 
-| Token | Hex |
-| --- | --- |
-| Primary Green | `#27743A` |
-| Light Green | `#46AF53` |
-| Dark Green | `#0D3013` |
-| Gold | `#D8C76B` |
-| Cream | `#EBE9DA` |
-| Dark Background | `#251B25` |
+- Develop on `develop`
+- Do not force-push
+- Verify lint, typecheck, tests and build before every commit
+- Push with `git push origin develop`
 
-## Reference records
+## Developer attribution
 
-1. **Daily Cleaning Verification** — `NMS/PPU/CL/24`
-   FG: Wall, Floor, Drainage Line, Foot Bath, Weighing Machine 1 & 2, Cold Room 1 & 2
-   Changing Room: Wall, Floor, Locker
+Built by **Chinthaka Jayaweera** for Nelna Farm Finished Goods and QA operations.
 
-2. **Inspection of Freezer Truck Before Loading** — `NMS/PPU/CL/30`
-   Truck identity, cleanliness and physical checks, corrective action, loading decision
+## Current project status
 
-## Documentation
+**Foundation (Prompt 1):** Monorepo, NestJS health API, Next.js landing/system status, shared packages, documentation and verification scripts.
 
-See [`docs/`](./docs/) for architecture, roles, development setup and security notes.
+Subsequent phases add design system, database domain, authentication, checklist engine and operational workflows.
 
-## License
+## Security note
 
-Proprietary — Nelna Farm / Chinthaka Jayaweera. All rights reserved.
+- Do not commit `.env` files containing secrets
+- Do not hard-code production passwords
+- Prefer environment-controlled seed credentials for development users only
+- Keep auditability and least-privilege access in mind for every feature
+
+## Screenshots
+
+Screenshots of the operator and QA experience will be added here as workflows land.
+
+_Placeholder â€” no screenshots yet._
