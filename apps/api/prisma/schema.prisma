@@ -104,6 +104,26 @@ enum AttachmentKind {
   GENERAL
 }
 
+/**
+ * Response type a ChecklistItem collects. Drives which control the dynamic
+ * checklist renderer shows and which validation rules are meaningful for
+ * the item (see docs/CHECKLIST_ENGINE.md).
+ */
+enum ChecklistItemType {
+  PASS_FAIL_NA
+  ACCEPTABLE_UNACCEPTABLE_NA
+  YES_NO_NA
+  SHORT_TEXT
+  LONG_TEXT
+  NUMBER
+  TEMPERATURE
+  DATE
+  TIME
+  SINGLE_SELECT
+  PHOTO_EVIDENCE
+  SIGNATURE
+}
+
 enum NotificationType {
   TASK_ASSIGNED
   RECORD_REJECTED
@@ -118,12 +138,12 @@ enum NotificationType {
 // ---------------------------------------------------------------------------
 
 model User {
-  id           String      @id @default(cuid())
-  employeeCode String      @unique
+  id           String     @id @default(cuid())
+  employeeCode String     @unique
   fullName     String
-  email        String?     @unique
+  email        String?    @unique
   passwordHash String
-  status       UserStatus  @default(ACTIVE)
+  status       UserStatus @default(ACTIVE)
 
   /**
    * Failed-login protection: an attempt counter with a timed lockout.
@@ -336,17 +356,39 @@ model ChecklistSection {
 }
 
 model ChecklistItem {
-  id                     String           @id @default(cuid())
-  sectionId              String
-  section                ChecklistSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  label                  String
-  helpText               String?
-  sortOrder              Int
-  isRequired             Boolean          @default(true)
-  allowNotApplicable     Boolean          @default(false)
-  requiresEvidenceOnFail Boolean          @default(false)
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  id         String            @id @default(cuid())
+  sectionId  String
+  section    ChecklistSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  label      String
+  helpText   String?
+  sortOrder  Int
+  itemType   ChecklistItemType @default(ACCEPTABLE_UNACCEPTABLE_NA)
+  isRequired Boolean           @default(true)
+
+  /**
+   * Configurable validation/behaviour rules (see docs/CHECKLIST_ENGINE.md):
+   * - allowNotApplicable: item may be answered N/A.
+   * - requiresEvidenceOnFail: a photo is required when the response is a failure.
+   * - isCriticalFailure: a failing response on this item marks the whole
+   * record as a critical failure (surfaced prominently, blocks low-click
+   * "mark all acceptable" from silently covering it).
+   * - remarkRequiredOnFail / correctiveActionRequiredOnFail: extra text is
+   * mandatory once a failing response is recorded.
+   * - minValue/maxValue: inclusive numeric bounds for NUMBER/TEMPERATURE items.
+   * - defaultResponse: pre-filled value (e.g. a default PASS) an operator can
+   * still override; never auto-applied over an existing manual answer.
+   */
+  allowNotApplicable             Boolean @default(false)
+  requiresEvidenceOnFail         Boolean @default(false)
+  isCriticalFailure              Boolean @default(false)
+  remarkRequiredOnFail           Boolean @default(false)
+  correctiveActionRequiredOnFail Boolean @default(false)
+  minValue                       Float?
+  maxValue                       Float?
+  defaultResponse                String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   options           ChecklistItemOption[]
   inspectionResults InspectionResult[]

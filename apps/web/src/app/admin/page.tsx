@@ -30,6 +30,24 @@ export default function AdminPage() {
           ))}
         </div>
       </Card>
+      <Card>
+        <h2
+          className="text-lg text-nelna-primary-dark"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
+          Checklist templates
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
+          Preview NMS/PPU/CL/24, NMS/PPU/CL/30 and future checklist templates — draft or published — through the
+          dynamic checklist engine.
+        </p>
+        <Link
+          href="/admin/templates/preview"
+          className="mt-3 inline-block font-semibold text-nelna-primary"
+        >
+          Open template preview →
+        </Link>
+      </Card>
       <Card muted>
         <h2
           className="text-lg text-nelna-primary-dark"

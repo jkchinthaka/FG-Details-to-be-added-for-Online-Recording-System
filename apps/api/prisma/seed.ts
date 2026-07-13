@@ -9,7 +9,7 @@
  * Run with: pnpm --filter @nelna/api exec prisma db seed
  */
 import bcrypt from "bcrypt";
-import { PrismaClient, TemplateStatus } from "../generated/prisma-client";
+import { PrismaClient, TemplateStatus, type ChecklistItemType } from "../generated/prisma-client";
 import {
   CHECKLIST_TEMPLATE_SEEDS,
   DEPARTMENT_SEEDS,
@@ -135,8 +135,14 @@ async function seedChecklistTemplate(template: ChecklistTemplateSeed) {
               label: item.label,
               helpText: item.helpText,
               sortOrder: itemIndex,
+              itemType: (item.itemType ?? "ACCEPTABLE_UNACCEPTABLE_NA") as ChecklistItemType,
               allowNotApplicable: item.allowNotApplicable ?? false,
               requiresEvidenceOnFail: item.requiresEvidenceOnFail ?? false,
+              isCriticalFailure: item.isCriticalFailure ?? false,
+              remarkRequiredOnFail: item.remarkRequiredOnFail ?? false,
+              correctiveActionRequiredOnFail: item.correctiveActionRequiredOnFail ?? false,
+              minValue: item.minValue,
+              maxValue: item.maxValue,
             })),
           },
         })),

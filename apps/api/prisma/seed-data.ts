@@ -13,6 +13,7 @@ import {
   PERMISSIONS,
   USER_ROLES,
   USER_ROLE_LABELS,
+  type ChecklistItemType,
   type PermissionKey,
   type UserRole,
 } from "@nelna/shared";
@@ -101,8 +102,14 @@ export const SHIFT_SEEDS = [
 export type ChecklistItemSeed = {
   label: string;
   helpText?: string;
+  itemType?: ChecklistItemType;
   allowNotApplicable?: boolean;
   requiresEvidenceOnFail?: boolean;
+  isCriticalFailure?: boolean;
+  remarkRequiredOnFail?: boolean;
+  correctiveActionRequiredOnFail?: boolean;
+  minValue?: number;
+  maxValue?: number;
 };
 
 export type ChecklistSectionSeed = {
@@ -128,14 +135,21 @@ export const DAILY_CLEANING_TEMPLATE_SEED: ChecklistTemplateSeed = {
       name: "Finished Goods",
       items: FG_CLEANING_ITEMS.map((item) => ({
         label: item.label,
+        itemType: "ACCEPTABLE_UNACCEPTABLE_NA" as ChecklistItemType,
         requiresEvidenceOnFail: true,
+        remarkRequiredOnFail: true,
+        // Cold storage failures directly risk product safety — always critical.
+        isCriticalFailure: item.id === "fg_cold_room_1" || item.id === "fg_cold_room_2",
+        correctiveActionRequiredOnFail: item.id === "fg_cold_room_1" || item.id === "fg_cold_room_2",
       })),
     },
     {
       name: "Changing Room",
       items: CHANGING_ROOM_CLEANING_ITEMS.map((item) => ({
         label: item.label,
+        itemType: "ACCEPTABLE_UNACCEPTABLE_NA" as ChecklistItemType,
         requiresEvidenceOnFail: true,
+        remarkRequiredOnFail: true,
       })),
     },
   ],
@@ -151,7 +165,13 @@ export const FREEZER_TRUCK_TEMPLATE_SEED: ChecklistTemplateSeed = {
       name: "Truck Check",
       items: FREEZER_TRUCK_CHECK_ITEMS.map((item) => ({
         label: item.label,
+        itemType: "PASS_FAIL_NA" as ChecklistItemType,
         requiresEvidenceOnFail: true,
+        remarkRequiredOnFail: true,
+        // Insect presence and a broken door lock both compromise product
+        // integrity in transit — always treated as a critical failure.
+        isCriticalFailure: item.id === "insects" || item.id === "door_lock",
+        correctiveActionRequiredOnFail: item.id === "insects" || item.id === "door_lock",
       })),
     },
   ],

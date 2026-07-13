@@ -59,3 +59,19 @@ export { MarkAllAcceptableBar } from "./MarkAllAcceptableBar";
 export type { MarkAllAcceptableBarProps } from "./MarkAllAcceptableBar";
 export { TaskStatusBadge } from "./TaskStatusBadge";
 export type { TaskStatusBadgeProps } from "./TaskStatusBadge";
+
+// Dynamic checklist engine renderer (Prompt 5)
+export { EvidenceUploader } from "./EvidenceUploader";
+export type { EvidenceUploaderProps } from "./EvidenceUploader";
+export { FailureDetailPanel } from "./FailureDetailPanel";
+export type { FailureDetailPanelProps } from "./FailureDetailPanel";
+export { ChecklistItemCard } from "./ChecklistItemCard";
+export type { ChecklistItemCardProps } from "./ChecklistItemCard";
+export { ChecklistSectionView } from "./ChecklistSectionView";
+export type { ChecklistSectionViewProps } from "./ChecklistSectionView";
+export { ChecklistValidationSummary } from "./ChecklistValidationSummary";
+export type { ChecklistValidationSummaryProps } from "./ChecklistValidationSummary";
+export { ClearAllBar } from "./ClearAllBar";
+export type { ClearAllBarProps } from "./ClearAllBar";
+export { ChecklistRenderer } from "./ChecklistRenderer";
+export type { ChecklistRendererProps } from "./ChecklistRenderer";
