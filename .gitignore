@@ -34,6 +34,7 @@ temp/
 # Prisma
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
+apps/api/generated/
 
 # PWA generated
 apps/web/public/sw.js

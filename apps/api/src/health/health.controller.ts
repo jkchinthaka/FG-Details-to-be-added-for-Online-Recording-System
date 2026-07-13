@@ -10,7 +10,7 @@ export class HealthController {
   @Get()
   @ApiOperation({ summary: "API health check for Nelna FG Digital Recording System" })
   @ApiOkResponse({ description: "Service is healthy" })
-  getHealth(): HealthResponse {
+  getHealth(): Promise<HealthResponse> {
     return this.healthService.getHealth();
   }
 }

@@ -1,5 +1,13 @@
+// Node 24 fix: the default two-package output (`.prisma/client` + `@prisma/client`)
+// relies on a private `#main-entry-point` subpath import that fails to resolve when
+// nested inside pnpm's content-addressable store (ERR_PACKAGE_IMPORT_NOT_DEFINED).
+// Generating into a single self-contained folder and importing it directly avoids
+// that broken resolution path entirely while keeping the classic (non-driver-adapter)
+// Prisma Client API. See docs/DATABASE_DESIGN.md for details.
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  output     = "../generated/prisma-client"
+  engineType = "library"
 }
 
 datasource db {
@@ -7,157 +15,606 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  FG_OPERATOR
-  FG_SUPERVISOR
-  QA_EXECUTIVE
-  FOOD_SAFETY_TEAM_LEADER
-  SYSTEM_ADMINISTRATOR
-  AUDITOR
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_ACTIVATION
 }
 
-enum WorkShift {
-  MORNING
-  AFTERNOON
-  NIGHT
-}
-
-enum RecordType {
-  DAILY_CLEANING_VERIFICATION
-  FREEZER_TRUCK_INSPECTION
-}
-
-enum TaskStatus {
-  ASSIGNED
-  IN_PROGRESS
+/**
+ * Lifecycle of an operational record. Verified records are never physically deleted.
+ */
+enum RecordStatus {
+  DRAFT
   SUBMITTED
+  CHECKED
   VERIFIED
   REJECTED
+  ARCHIVED
 }
 
-enum CheckItemResult {
+/**
+ * Unified result vocabulary shared by cleaning checklists (Acceptable/Unacceptable/N/A)
+ * and truck checklists (Pass/Fail/N/A). A single enum keeps InspectionResult generic
+ * across checklist template types; each ChecklistItem only ever surfaces the subset
+ * relevant to its template in the UI/seed layer.
+ */
+enum ResultStatus {
   ACCEPTABLE
+  UNACCEPTABLE
+  NOT_APPLICABLE
+  PASS
   FAIL
 }
 
-enum LoadingDecision {
+enum ApprovalType {
+  CHECK
+  VERIFY
+  LOADING_DECISION
+  CORRECTIVE_ACTION_VERIFICATION
+  TEMPLATE_PUBLISH
+}
+
+enum ApprovalDecision {
+  PENDING
   APPROVED
   REJECTED
 }
 
+enum CorrectiveActionStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  VERIFIED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+/**
+ * A ChecklistTemplate always has exactly one template overall; each
+ * ChecklistTemplateVersion carries its own status so published versions stay
+ * historically stable once records reference them.
+ */
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttachmentKind {
+  EVIDENCE
+  CORRECTIVE_ACTION
+  GENERAL
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  RECORD_REJECTED
+  RECORD_VERIFIED
+  CORRECTIVE_ACTION_ASSIGNED
+  CORRECTIVE_ACTION_DUE
+  SYSTEM
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
 model User {
-  id           String   @id @default(cuid())
-  employeeCode String   @unique
+  id           String      @id @default(cuid())
+  employeeCode String      @unique
   fullName     String
-  email        String?  @unique
-  role         UserRole
+  email        String?     @unique
+  passwordHash String
+  status       UserStatus  @default(ACTIVE)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  sectionId    String?
+  section      Section?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  userRoles                  UserRole[]
+  refreshTokens              RefreshToken[]
+  createdRecords             InspectionRecord[]         @relation("RecordCreatedBy")
+  checkedRecords             InspectionRecord[]         @relation("RecordCheckedBy")
+  verifiedRecords            InspectionRecord[]         @relation("RecordVerifiedBy")
+  uploadedAttachments        InspectionAttachment[]
+  decidedApprovals           ApprovalRecord[]           @relation("ApprovalDecidedBy")
+  createdCorrectiveActions   CorrectiveAction[]         @relation("CorrectiveActionCreatedBy")
+  assignedCorrectiveActions  CorrectiveAction[]         @relation("CorrectiveActionAssignee")
+  verifiedCorrectiveActions  CorrectiveAction[]         @relation("CorrectiveActionVerifiedBy")
+  uploadedCorrectiveEvidence CorrectiveActionEvidence[]
+  publishedTemplateVersions  ChecklistTemplateVersion[] @relation("TemplateVersionPublishedBy")
+  createdTemplates           ChecklistTemplate[]        @relation("TemplateCreatedBy")
+  decidedTruckLoadings       TruckInspectionDetail[]    @relation("TruckLoadingDecidedBy")
+  notifications              Notification[]
+  auditLogs                  AuditLog[]
+
+  @@index([status])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId     String
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  assignedAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+/**
+ * Refresh-token backed sessions (JWT access token + rotating refresh token).
+ */
+model RefreshToken {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash         String    @unique
+  issuedAt          DateTime  @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  replacedByTokenId String?
+  userAgent         String?
+  ipAddress         String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Organization
+// ---------------------------------------------------------------------------
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections Section[]
+  users    User[]
+}
+
+model Section {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  name         String
+  code         String     @unique
+  description  String?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  users   User[]
+  records InspectionRecord[]
+
+  @@unique([departmentId, name])
+}
+
+model Shift {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  records InspectionRecord[]
+}
+
+// ---------------------------------------------------------------------------
+// Checklist management (versioned)
+// ---------------------------------------------------------------------------
+
+/**
+ * The stable, addressable checklist definition (e.g. NMS/PPU/CL/24). Individual
+ * versions carry the actual sections/items; the template groups them and tracks
+ * which version is currently published.
+ */
+model ChecklistTemplate {
+  id               String                    @id @default(cuid())
+  code             String                    @unique
+  title            String
+  description      String?
+  isActive         Boolean                   @default(true)
+  currentVersionId String?                   @unique
+  currentVersion   ChecklistTemplateVersion? @relation("TemplateCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdBy        User?                     @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  versions ChecklistTemplateVersion[] @relation("TemplateVersions")
+}
+
+/**
+ * Immutable once published: InspectionRecord always references the exact version
+ * it was recorded against so historical records remain interpretable even after
+ * the template evolves.
+ */
+model ChecklistTemplateVersion {
+  id            String            @id @default(cuid())
+  templateId    String
+  template      ChecklistTemplate @relation("TemplateVersions", fields: [templateId], references: [id], onDelete: Restrict)
+  versionNumber Int
+  status        TemplateStatus    @default(DRAFT)
+  notes         String?
+  publishedById String?
+  publishedBy   User?             @relation("TemplateVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  sections           ChecklistSection[]
+  inspectionRecords  InspectionRecord[]
+  currentForTemplate ChecklistTemplate? @relation("TemplateCurrentVersion")
+
+  @@unique([templateId, versionNumber])
+  @@index([templateId, status])
+}
+
+model ChecklistSection {
+  id                String                   @id @default(cuid())
+  templateVersionId String
+  templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Cascade)
+  name              String
+  sortOrder         Int
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  items ChecklistItem[]
+
+  @@unique([templateVersionId, sortOrder])
+}
+
+model ChecklistItem {
+  id                     String           @id @default(cuid())
+  sectionId              String
+  section                ChecklistSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  label                  String
+  helpText               String?
+  sortOrder              Int
+  isRequired             Boolean          @default(true)
+  allowNotApplicable     Boolean          @default(false)
+  requiresEvidenceOnFail Boolean          @default(false)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  options           ChecklistItemOption[]
+  inspectionResults InspectionResult[]
+
+  @@unique([sectionId, sortOrder])
+}
+
+/**
+ * Optional preset reason/option list attached to a checklist item, e.g. a
+ * dropdown of standard failure reasons. Not required for the basic
+ * Acceptable/Unacceptable/N/A flow.
+ */
+model ChecklistItemOption {
+  id        String        @id @default(cuid())
+  itemId    String
+  item      ChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  value     String
+  label     String
+  sortOrder Int           @default(0)
+
+  @@unique([itemId, value])
+}
+
+// ---------------------------------------------------------------------------
+// Operational records
+// ---------------------------------------------------------------------------
+
+/**
+ * One completed (or in-progress) checklist submission against an exact
+ * ChecklistTemplateVersion. Soft lifecycle only — verified records are never
+ * physically deleted; use `status = ARCHIVED` and `archivedAt`.
+ */
+model InspectionRecord {
+  id                String                   @id @default(cuid())
+  templateVersionId String
+  templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  documentCode      String
+  status            RecordStatus             @default(DRAFT)
+  recordDate        DateTime                 @db.Date
+  shiftId           String?
+  shift             Shift?                   @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  sectionId         String?
+  section           Section?                 @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  areaLabel         String?
+
+  createdById  String
+  createdBy    User    @relation("RecordCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  checkedById  String?
+  checkedBy    User?   @relation("RecordCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+  verifiedById String?
+  verifiedBy   User?   @relation("RecordVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  submittedAt DateTime?
+  checkedAt   DateTime?
+  verifiedAt  DateTime?
+  archivedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  results           InspectionResult[]
+  attachments       InspectionAttachment[]
+  approvals         ApprovalRecord[]
+  correctiveActions CorrectiveAction[]
+  truckDetail       TruckInspectionDetail?
+
+  @@index([documentCode, recordDate])
+  @@index([status])
+  @@index([templateVersionId])
+}
+
+model InspectionResult {
+  id       String           @id @default(cuid())
+  recordId String
+  record   InspectionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     ChecklistItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  status   ResultStatus
+
+  /**
+   * Why the item failed. Required at the application layer when status is
+   * UNACCEPTABLE/FAIL.
+   */
+  issueReason      String?
+  correction       String?
+  correctiveAction String?
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachments       InspectionAttachment[]
+  correctiveActions CorrectiveAction[]
+
+  @@unique([recordId, itemId])
+  @@index([itemId, status])
+}
+
+model InspectionAttachment {
+  id           String            @id @default(cuid())
+  recordId     String
+  record       InspectionRecord  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  resultId     String?
+  result       InspectionResult? @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  kind         AttachmentKind    @default(EVIDENCE)
+  fileUrl      String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  uploadedBy   User              @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  uploadedAt   DateTime          @default(now())
+
+  @@index([recordId])
+  @@index([resultId])
+}
+
+// ---------------------------------------------------------------------------
+// Truck
+// ---------------------------------------------------------------------------
+
+model Transporter {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  contactPhone String?
+  contactEmail String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  assignedTasks     TaskAssignment[] @relation("TaskAssignee")
-  checkedRecords    FgRecord[]       @relation("RecordCheckedBy")
-  verifiedRecords   FgRecord[]       @relation("RecordVerifiedBy")
-  auditLogs         AuditLog[]
+  vehicles Vehicle[]
+  drivers  Driver[]
 }
 
 model Vehicle {
-  id                String   @id @default(cuid())
-  freezerTruckNumber String  @unique
-  vehicleNumber     String
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String        @id @default(cuid())
+  vehicleNumber      String        @unique
+  freezerTruckNumber String?       @unique
+  status             VehicleStatus @default(ACTIVE)
+  transporterId      String?
+  transporter        Transporter?  @relation(fields: [transporterId], references: [id], onDelete: SetNull)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  inspections FreezerTruckInspection[]
+  inspections TruckInspectionDetail[]
 }
 
-model TaskAssignment {
-  id          String     @id @default(cuid())
-  recordType  RecordType
-  status      TaskStatus @default(ASSIGNED)
-  shift       WorkShift
-  workDate    DateTime   @db.Date
-  areaLabel   String
-  assigneeId  String
-  assignee    User       @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  recordId    String?    @unique
-  record      FgRecord?  @relation(fields: [recordId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+model Driver {
+  id            String       @id @default(cuid())
+  fullName      String
+  licenseNumber String       @unique
+  phone         String?
+  isActive      Boolean      @default(true)
+  transporterId String?
+  transporter   Transporter? @relation(fields: [transporterId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  @@index([workDate, assigneeId, status])
+  inspections TruckInspectionDetail[]
 }
 
-model FgRecord {
-  id           String     @id @default(cuid())
-  recordType   RecordType
-  documentCode String
-  shift        WorkShift
-  recordedAt   DateTime
-  status       TaskStatus @default(SUBMITTED)
-  checkedById  String?
-  checkedBy    User?      @relation("RecordCheckedBy", fields: [checkedById], references: [id])
-  verifiedById String?
-  verifiedBy   User?      @relation("RecordVerifiedBy", fields: [verifiedById], references: [id])
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  task                     TaskAssignment?
-  cleaningVerification     DailyCleaningVerification?
-  freezerTruckInspection   FreezerTruckInspection?
-}
-
-model DailyCleaningVerification {
-  id       String   @id @default(cuid())
-  recordId String   @unique
-  record   FgRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  lines    CleaningCheckLine[]
-}
-
-model CleaningCheckLine {
-  id               String                    @id @default(cuid())
-  verificationId   String
-  verification     DailyCleaningVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
-  itemId           String
-  label            String
-  area             String
-  result           CheckItemResult
-  failureNote      String?
-  correctiveAction String?
-
-  @@unique([verificationId, itemId])
-}
-
-model FreezerTruckInspection {
+/**
+ * One-to-one extension of InspectionRecord for freezer-truck-before-loading
+ * inspections (NMS/PPU/CL/30) carrying truck/driver identifiers and the
+ * final loading decision.
+ */
+model TruckInspectionDetail {
   id                 String           @id @default(cuid())
   recordId           String           @unique
-  record             FgRecord         @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  record             InspectionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
   vehicleId          String?
-  vehicle            Vehicle?         @relation(fields: [vehicleId], references: [id])
+  vehicle            Vehicle?         @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  driverId           String?
+  driver             Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
   freezerTruckNumber String
   vehicleNumber      String
-  correctiveAction   String?
-  loadingDecision    LoadingDecision
-  lines              FreezerTruckCheckLine[]
+  temperatureReading Float?
+  loadingDecision    ApprovalDecision @default(PENDING)
+  decidedById        String?
+  decidedBy          User?            @relation("TruckLoadingDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt          DateTime?
+  remarks            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model FreezerTruckCheckLine {
-  id           String                 @id @default(cuid())
-  inspectionId String
-  inspection   FreezerTruckInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  itemId       String
-  label        String
-  result       CheckItemResult
-  failureNote  String?
+// ---------------------------------------------------------------------------
+// Workflow
+// ---------------------------------------------------------------------------
 
-  @@unique([inspectionId, itemId])
+model ApprovalRecord {
+  id           String           @id @default(cuid())
+  recordId     String
+  record       InspectionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  approvalType ApprovalType
+  decision     ApprovalDecision @default(PENDING)
+  decidedById  String?
+  decidedBy    User?            @relation("ApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+  comments     String?
+  createdAt    DateTime         @default(now())
+
+  @@index([recordId, approvalType])
+}
+
+model CorrectiveAction {
+  id          String                 @id @default(cuid())
+  recordId    String?
+  record      InspectionRecord?      @relation(fields: [recordId], references: [id], onDelete: SetNull)
+  resultId    String?
+  result      InspectionResult?      @relation(fields: [resultId], references: [id], onDelete: SetNull)
+  title       String
+  description String
+  status      CorrectiveActionStatus @default(OPEN)
+  priority    Priority               @default(MEDIUM)
+
+  createdById  String
+  createdBy    User    @relation("CorrectiveActionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  assignedToId String?
+  assignedTo   User?   @relation("CorrectiveActionAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  verifiedById String?
+  verifiedBy   User?   @relation("CorrectiveActionVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  dueDate     DateTime?
+  completedAt DateTime?
+  verifiedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidence CorrectiveActionEvidence[]
+
+  @@index([status, priority])
+  @@index([assignedToId, status])
+}
+
+model CorrectiveActionEvidence {
+  id                 String           @id @default(cuid())
+  correctiveActionId String
+  correctiveAction   CorrectiveAction @relation(fields: [correctiveActionId], references: [id], onDelete: Cascade)
+  fileUrl            String
+  fileName           String
+  mimeType           String
+  sizeBytes          Int
+  notes              String?
+  uploadedById       String
+  uploadedBy         User             @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  uploadedAt         DateTime         @default(now())
+
+  @@index([correctiveActionId])
+}
+
+// ---------------------------------------------------------------------------
+// System
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              NotificationType
+  title             String
+  body              String
+  isRead            Boolean          @default(false)
+  readAt            DateTime?
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt         DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id])
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
   action     String
   entityType String
   entityId   String?
