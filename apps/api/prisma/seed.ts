@@ -13,9 +13,12 @@ import { PrismaClient, TemplateStatus, type ChecklistItemType } from "../generat
 import {
   CHECKLIST_TEMPLATE_SEEDS,
   DEPARTMENT_SEEDS,
+  DRIVER_SEEDS,
   PERMISSIONS,
   ROLE_DEFINITIONS,
   SHIFT_SEEDS,
+  TRANSPORTER_SEEDS,
+  VEHICLE_SEEDS,
   buildTodaysTaskAssignmentSeeds,
   resolveAllSeedUsers,
   type ChecklistTemplateSeed,
@@ -165,6 +168,52 @@ async function seedChecklistTemplates() {
   }
 }
 
+async function seedFleet() {
+  for (const transporter of TRANSPORTER_SEEDS) {
+    await prisma.transporter.upsert({
+      where: { name: transporter.name },
+      create: { name: transporter.name, contactPhone: transporter.contactPhone },
+      update: { contactPhone: transporter.contactPhone },
+    });
+  }
+
+  for (const vehicle of VEHICLE_SEEDS) {
+    const transporter = await prisma.transporter.findUnique({ where: { name: vehicle.transporterName } });
+    await prisma.vehicle.upsert({
+      where: { vehicleNumber: vehicle.vehicleNumber },
+      create: {
+        vehicleNumber: vehicle.vehicleNumber,
+        freezerTruckNumber: vehicle.freezerTruckNumber,
+        transporterId: transporter?.id,
+      },
+      update: {
+        freezerTruckNumber: vehicle.freezerTruckNumber,
+        transporterId: transporter?.id,
+      },
+    });
+  }
+
+  for (const driver of DRIVER_SEEDS) {
+    const transporter = await prisma.transporter.findUnique({ where: { name: driver.transporterName } });
+    await prisma.driver.upsert({
+      where: { licenseNumber: driver.licenseNumber },
+      create: {
+        fullName: driver.fullName,
+        licenseNumber: driver.licenseNumber,
+        transporterId: transporter?.id,
+      },
+      update: {
+        fullName: driver.fullName,
+        transporterId: transporter?.id,
+      },
+    });
+  }
+
+  console.log(
+    `Seeded ${TRANSPORTER_SEEDS.length} transporters, ${VEHICLE_SEEDS.length} vehicles and ${DRIVER_SEEDS.length} drivers`,
+  );
+}
+
 async function seedSampleUsers() {
   const users = resolveAllSeedUsers(process.env);
 
@@ -264,6 +313,7 @@ async function main() {
   await seedRoles();
   await seedOrganization();
   await seedChecklistTemplates();
+  await seedFleet();
   await seedSampleUsers();
   await seedTaskAssignments();
 }

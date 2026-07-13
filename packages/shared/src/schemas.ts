@@ -94,7 +94,7 @@ export const freezerTruckInspectionSchema = z
         path: ["correctiveAction"],
       });
     }
-    if (hasFail && data.loadingDecision === "APPROVED") {
+    if (hasFail && data.loadingDecision === "APPROVED_FOR_LOADING") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Cannot approve loading while failed checks remain",

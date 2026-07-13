@@ -4,15 +4,31 @@ import {
   type ChecklistItemType as SharedChecklistItemType,
   type ChecklistResponseMap,
   type InspectionRecordHeader,
+  type LoadingDecision,
   type NormalizedStatusValue,
   type RecordStatus as SharedRecordStatus,
+  type TruckInspectionDetailPayload,
 } from "@nelna/shared";
 import type { ChecklistItemType, Prisma, ResultStatus } from "../../generated/prisma-client";
 import { ResultStatus as ResultStatusEnum } from "../../generated/prisma-client";
+import { toDriverSummary, toTransporterSummary, toVehicleSummary } from "../vehicles/vehicles.mappers";
+
+export const TRUCK_DETAIL_INCLUDE = {
+  vehicle: { include: { transporter: true } },
+  driver: true,
+  transporter: true,
+  decidedBy: true,
+} satisfies Prisma.TruckInspectionDetailInclude;
+
+export type TruckDetailWithRelations = Prisma.TruckInspectionDetailGetPayload<{
+  include: typeof TRUCK_DETAIL_INCLUDE;
+}>;
 
 export const RECORD_HEADER_INCLUDE = {
   createdBy: true,
   shift: true,
+  truckDetail: { include: TRUCK_DETAIL_INCLUDE },
+  reinspectionOf: true,
 } satisfies Prisma.InspectionRecordInclude;
 
 export type RecordWithHeaderRelations = Prisma.InspectionRecordGetPayload<{
@@ -111,6 +127,47 @@ export function toResponseMap(results: ResultWithAttachments[]): ChecklistRespon
     map[result.itemId] = response;
   }
   return map;
+}
+
+/** Maps a record's optional `truckDetail` relation onto the shared
+ *  `TruckInspectionDetailPayload` — `null` for every non-truck document
+ *  code (e.g. Daily Cleaning Verification never has a `truckDetail`). */
+export function toTruckDetail(record: RecordWithHeaderRelations): TruckInspectionDetailPayload | null {
+  const detail = record.truckDetail;
+  if (!detail) return null;
+
+  return {
+    vehicle: detail.vehicle ? toVehicleSummary(detail.vehicle) : null,
+    driver: detail.driver ? toDriverSummary(detail.driver) : null,
+    transporter: detail.transporter ? toTransporterSummary(detail.transporter) : null,
+    freezerTruckNumber: detail.freezerTruckNumber,
+    vehicleNumber: detail.vehicleNumber,
+    loadingReference: detail.loadingReference,
+    productCategory: detail.productCategory,
+    temperature: {
+      current: detail.temperatureCurrent,
+      min: detail.temperatureMin,
+      max: detail.temperatureMax,
+      acceptable: detail.temperatureAcceptable,
+    },
+    recommendedDecision: (detail.recommendedDecision as LoadingDecision | null) ?? null,
+    loadingDecision: detail.loadingDecision as LoadingDecision,
+    decidedBy: detail.decidedBy
+      ? { id: detail.decidedBy.id, fullName: detail.decidedBy.fullName, employeeCode: detail.decidedBy.employeeCode }
+      : null,
+    decidedAt: detail.decidedAt ? detail.decidedAt.toISOString() : null,
+    remarks: detail.remarks,
+    reinspectionOf: record.reinspectionOf
+      ? {
+          recordId: record.reinspectionOf.id,
+          recordNumber: formatRecordNumber(
+            record.reinspectionOf.documentCode,
+            toDateOnlyString(record.reinspectionOf.recordDate),
+            record.reinspectionOf.id,
+          ),
+        }
+      : null,
+  };
 }
 
 /** Photo evidence is currently stored as opaque data URLs (mirrors

@@ -115,27 +115,68 @@ export const ALL_CLEANING_ITEMS = [
 
 export type CleaningItemId = (typeof ALL_CLEANING_ITEMS)[number]["id"];
 
-/** Freezer truck inspection checkpoints — NMS/PPU/CL/30 */
+/** Freezer truck pre-loading inspection areas — NMS/PPU/CL/30 */
 export const FREEZER_TRUCK_CHECK_ITEMS = [
-  { id: "cleanliness", label: "Cleanliness of freezer truck" },
-  { id: "physical_condition", label: "Truck physical condition" },
-  { id: "pallets", label: "Pallets" },
+  { id: "overall_cleanliness", label: "Overall cleanliness" },
+  { id: "pallet", label: "Pallet" },
   { id: "floor", label: "Floor" },
-  { id: "side_walls", label: "Side walls" },
-  { id: "curtains", label: "Curtains" },
+  { id: "side_wall", label: "Side wall" },
+  { id: "curtain", label: "Curtain" },
+  { id: "door", label: "Door" },
   { id: "door_lock", label: "Door lock" },
-  { id: "insects", label: "Presence of insects or signs" },
+  { id: "sealing", label: "Sealing" },
+  { id: "freezer_unit_operational", label: "Freezer unit operational" },
+  { id: "insects_presence", label: "Presence of insects" },
+  { id: "insect_signs", label: "Signs of insects" },
+  { id: "bad_smell", label: "Bad smell" },
+  { id: "contamination_evidence", label: "Evidence of contamination" },
 ] as const;
 
 export type FreezerTruckCheckId =
   (typeof FREEZER_TRUCK_CHECK_ITEMS)[number]["id"];
 
-export const LOADING_DECISIONS = ["APPROVED", "REJECTED"] as const;
+/**
+ * Final freezer-truck-before-loading decision vocabulary (mirrors the
+ * Prisma `LoadingDecisionStatus` enum). `PENDING` only applies before an
+ * operator has submitted the inspection; every other value is either the
+ * system-computed recommendation or the supervisor/QA final decision — see
+ * `computeRecommendedLoadingDecision` and docs/records.md.
+ */
+export const LOADING_DECISIONS = [
+  "PENDING",
+  "APPROVED_FOR_LOADING",
+  "CONDITIONALLY_APPROVED",
+  "LOADING_BLOCKED",
+  "REJECTED",
+] as const;
 export type LoadingDecision = (typeof LOADING_DECISIONS)[number];
 
+/** The subset of `LOADING_DECISIONS` a supervisor/QA may record as the
+ *  *final* decision — `PENDING` is never a valid final decision. */
+export const FINAL_LOADING_DECISIONS = [
+  "APPROVED_FOR_LOADING",
+  "CONDITIONALLY_APPROVED",
+  "LOADING_BLOCKED",
+  "REJECTED",
+] as const;
+export type FinalLoadingDecision = (typeof FINAL_LOADING_DECISIONS)[number];
+
 export const LOADING_DECISION_LABELS: Record<LoadingDecision, string> = {
-  APPROVED: "Approved for loading",
-  REJECTED: "Not approved for loading",
+  PENDING: "Pending decision",
+  APPROVED_FOR_LOADING: "Approved for loading",
+  CONDITIONALLY_APPROVED: "Conditionally approved",
+  LOADING_BLOCKED: "Loading temporarily blocked",
+  REJECTED: "Rejected",
+};
+
+/** Compact tone for badges/status chips, mirroring `RECORD_STATUS_LABELS`'s
+ *  sibling usage across the dashboard/detail views. */
+export const LOADING_DECISION_TONES: Record<LoadingDecision, "neutral" | "success" | "warning" | "danger"> = {
+  PENDING: "neutral",
+  APPROVED_FOR_LOADING: "success",
+  CONDITIONALLY_APPROVED: "warning",
+  LOADING_BLOCKED: "danger",
+  REJECTED: "danger",
 };
 
 export const WORK_SHIFTS = ["MORNING", "AFTERNOON", "NIGHT"] as const;

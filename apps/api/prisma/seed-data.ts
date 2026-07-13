@@ -53,9 +53,25 @@ function rolePermissions(role: UserRole): PermissionKey[] {
     case "FG_OPERATOR":
       return ["records:create", "records:read"];
     case "FG_SUPERVISOR":
-      return ["records:create", "records:read", "records:check", "corrective_actions:manage", "corrective_actions:read"];
+      return [
+        "records:create",
+        "records:read",
+        "records:check",
+        "corrective_actions:manage",
+        "corrective_actions:read",
+        "loading_decisions:approve",
+        "vehicles:manual_entry",
+      ];
     case "QA_EXECUTIVE":
-      return ["records:read", "records:verify", "corrective_actions:manage", "corrective_actions:read", "reports:read"];
+      return [
+        "records:read",
+        "records:verify",
+        "corrective_actions:manage",
+        "corrective_actions:read",
+        "reports:read",
+        "loading_decisions:approve",
+        "vehicles:manual_entry",
+      ];
     case "FOOD_SAFETY_TEAM_LEADER":
       return [
         "records:read",
@@ -64,6 +80,8 @@ function rolePermissions(role: UserRole): PermissionKey[] {
         "corrective_actions:read",
         "reports:read",
         "templates:publish",
+        "loading_decisions:approve",
+        "vehicles:manual_entry",
       ];
     case "SYSTEM_ADMINISTRATOR":
       return [...PERMISSIONS];
@@ -96,6 +114,40 @@ export const SHIFT_SEEDS = [
   { code: "AFTERNOON", name: "Afternoon", startTime: "14:00", endTime: "22:00" },
   { code: "NIGHT", name: "Night", startTime: "22:00", endTime: "06:00" },
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Fleet master data — transporters, vehicles, drivers
+// ---------------------------------------------------------------------------
+
+export const TRANSPORTER_SEEDS = [
+  { name: "Lanka Cold Logistics", contactPhone: "+94 11 234 5678" },
+  { name: "Nelna Fleet Services", contactPhone: "+94 11 876 5432" },
+] as const;
+
+export type VehicleSeed = {
+  vehicleNumber: string;
+  freezerTruckNumber: string;
+  transporterName: string;
+};
+
+/** Sample freezer trucks that make the vehicle search/selector usable out
+ *  of the box in a fresh dev environment. */
+export const VEHICLE_SEEDS: VehicleSeed[] = [
+  { vehicleNumber: "WP CAB-1234", freezerTruckNumber: "FT-01", transporterName: "Lanka Cold Logistics" },
+  { vehicleNumber: "WP CAC-5678", freezerTruckNumber: "FT-02", transporterName: "Lanka Cold Logistics" },
+  { vehicleNumber: "WP KL-9012", freezerTruckNumber: "FT-03", transporterName: "Nelna Fleet Services" },
+];
+
+export type DriverSeed = {
+  fullName: string;
+  licenseNumber: string;
+  transporterName: string;
+};
+
+export const DRIVER_SEEDS: DriverSeed[] = [
+  { fullName: "Sunil Perera", licenseNumber: "B1234567", transporterName: "Lanka Cold Logistics" },
+  { fullName: "Kamal Silva", licenseNumber: "B7654321", transporterName: "Nelna Fleet Services" },
+];
 
 // ---------------------------------------------------------------------------
 // Checklist templates
@@ -157,6 +209,18 @@ export const DAILY_CLEANING_TEMPLATE_SEED: ChecklistTemplateSeed = {
   ],
 };
 
+/** Checkpoints whose failure directly compromises product safety in
+ *  transit — always a critical failure that automatically blocks loading
+ *  and can never be operator- or supervisor-overridden to "approved". */
+const FREEZER_TRUCK_CRITICAL_ITEM_IDS: readonly string[] = [
+  "door_lock",
+  "sealing",
+  "freezer_unit_operational",
+  "insects_presence",
+  "insect_signs",
+  "contamination_evidence",
+];
+
 /** NMS/PPU/CL/30 — Inspection of Freezer Truck Before Loading. */
 export const FREEZER_TRUCK_TEMPLATE_SEED: ChecklistTemplateSeed = {
   code: DOCUMENT_CODES.FREEZER_TRUCK,
@@ -165,16 +229,17 @@ export const FREEZER_TRUCK_TEMPLATE_SEED: ChecklistTemplateSeed = {
   sections: [
     {
       name: "Truck Check",
-      items: FREEZER_TRUCK_CHECK_ITEMS.map((item) => ({
-        label: item.label,
-        itemType: "PASS_FAIL_NA" as ChecklistItemType,
-        requiresEvidenceOnFail: true,
-        remarkRequiredOnFail: true,
-        // Insect presence and a broken door lock both compromise product
-        // integrity in transit — always treated as a critical failure.
-        isCriticalFailure: item.id === "insects" || item.id === "door_lock",
-        correctiveActionRequiredOnFail: item.id === "insects" || item.id === "door_lock",
-      })),
+      items: FREEZER_TRUCK_CHECK_ITEMS.map((item) => {
+        const isCritical = FREEZER_TRUCK_CRITICAL_ITEM_IDS.includes(item.id);
+        return {
+          label: item.label,
+          itemType: "PASS_FAIL_NA" as ChecklistItemType,
+          requiresEvidenceOnFail: true,
+          remarkRequiredOnFail: true,
+          isCriticalFailure: isCritical,
+          correctiveActionRequiredOnFail: isCritical,
+        };
+      }),
     },
   ],
 };

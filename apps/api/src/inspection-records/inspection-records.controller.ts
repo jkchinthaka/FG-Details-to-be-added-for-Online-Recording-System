@@ -3,8 +3,11 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { InspectionRecordDetail, SubmitRecordResult } from "@nelna/shared";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
+import { Roles } from "../auth/decorators/roles.decorator";
 import type { RequestUser } from "../auth/auth.types";
 import { CreateCleaningDraftDto } from "./dto/create-cleaning-draft.dto";
+import { CreateTruckDraftDto } from "./dto/create-truck-draft.dto";
+import { LoadingDecisionDto } from "./dto/loading-decision.dto";
 import { SaveDraftDto } from "./dto/save-draft.dto";
 import { SubmitRecordDto } from "./dto/submit-record.dto";
 import { InspectionRecordsService } from "./inspection-records.service";
@@ -24,6 +27,33 @@ export class InspectionRecordsController {
     @CurrentUser() user: RequestUser,
   ): Promise<InspectionRecordDetail> {
     return this.service.createCleaningDraft(user, dto);
+  }
+
+  @Post("truck/draft")
+  @RequirePermissions("records:create")
+  @ApiOperation({
+    summary: "Create (or resume) a Freezer Truck Inspection Before Loading draft for the selected vehicle",
+  })
+  createTruckDraft(
+    @Body() dto: CreateTruckDraftDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.createTruckDraft(user, dto);
+  }
+
+  @Post(":id/loading-decision")
+  @Roles("FG_SUPERVISOR", "QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "SYSTEM_ADMINISTRATOR")
+  @RequirePermissions("loading_decisions:approve")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Record the final freezer truck loading decision (supervisor/QA only; a critical block cannot be overridden)",
+  })
+  approveLoadingDecision(
+    @Param("id") id: string,
+    @Body() dto: LoadingDecisionDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.approveLoadingDecision(user, id, dto);
   }
 
   @Get(":id")

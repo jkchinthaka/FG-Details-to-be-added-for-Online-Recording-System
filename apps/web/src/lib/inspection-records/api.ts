@@ -1,7 +1,9 @@
 import type {
   ChecklistValidationError,
   CreateCleaningDraftInput,
+  CreateTruckDraftInput,
   InspectionRecordDetail,
+  LoadingDecisionInput,
   SaveDraftResponsesInput,
   SubmitInspectionRecordInput,
   SubmitRecordResult,
@@ -55,6 +57,25 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 /** Creates (or resumes) today's Daily Cleaning Verification draft for the current operator. */
 export function createCleaningDraft(input: CreateCleaningDraftInput): Promise<InspectionRecordDetail> {
   return apiFetch<InspectionRecordDetail>("/inspection-records/cleaning/draft", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Creates (or resumes) a Freezer Truck Inspection Before Loading draft for the selected/manually-entered vehicle. */
+export function createTruckDraft(input: CreateTruckDraftInput): Promise<InspectionRecordDetail> {
+  return apiFetch<InspectionRecordDetail>("/inspection-records/truck/draft", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Records the final freezer truck loading decision (supervisor/QA only). */
+export function recordLoadingDecision(
+  id: string,
+  input: LoadingDecisionInput,
+): Promise<InspectionRecordDetail> {
+  return apiFetch<InspectionRecordDetail>(`/inspection-records/${encodeURIComponent(id)}/loading-decision`, {
     method: "POST",
     body: JSON.stringify(input),
   });

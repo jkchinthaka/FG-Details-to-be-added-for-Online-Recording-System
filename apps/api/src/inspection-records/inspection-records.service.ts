@@ -3,12 +3,16 @@ import {
   DOCUMENT_CODES,
   checklistItemResponseSchema,
   computeRecordCounts,
+  computeRecommendedLoadingDecision,
   createCleaningDraftSchema,
+  createTruckDraftSchema,
   detectWorkShiftForHour,
   flattenItems,
   formatRecordNumber,
   isFailureResponse,
+  isOverrideToApprovedAllowed,
   isRecordEditable,
+  loadingDecisionInputSchema,
   nextResponsibleRoleForStatus,
   resolveDraftDuplicate,
   saveDraftResponsesSchema,
@@ -18,28 +22,38 @@ import {
   type ChecklistItemResponse,
   type ChecklistResponseMap,
   type InspectionRecordDetail,
+  type LoadingDecision,
+  type PermissionKey,
   type RecordStatus as SharedRecordStatus,
   type SubmitRecordResult,
   type WorkShift,
 } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RequestUser } from "../auth/auth.types";
-import { RecordStatus, TemplateStatus } from "../../generated/prisma-client";
+import { LoadingDecisionStatus, RecordStatus, TemplateStatus } from "../../generated/prisma-client";
 import {
   VERSION_WITH_CONTENT_INCLUDE,
   mapVersionToDefinition,
   type VersionWithContent,
 } from "../checklist-templates/checklist-templates.mappers";
+import { VEHICLE_WITH_TRANSPORTER_INCLUDE } from "../vehicles/vehicles.mappers";
 import type { CreateCleaningDraftDto } from "./dto/create-cleaning-draft.dto";
+import type { CreateTruckDraftDto } from "./dto/create-truck-draft.dto";
+import type { LoadingDecisionDto } from "./dto/loading-decision.dto";
 import type { SaveDraftDto } from "./dto/save-draft.dto";
 import type { SubmitRecordDto } from "./dto/submit-record.dto";
 import {
+  CriticalFailureOverrideException,
   DuplicateRecordException,
   InvalidRecordPayloadException,
+  LoadingDecisionForbiddenException,
+  ManualVehicleEntryForbiddenException,
+  NotATruckInspectionException,
   PublishedTemplateNotFoundException,
   RecordLockedException,
   RecordNotFoundException,
   RecordValidationException,
+  VehicleNotFoundException,
 } from "./inspection-records.errors";
 import {
   RECORD_HEADER_INCLUDE,
@@ -49,13 +63,29 @@ import {
   resultStatusFromNormalized,
   toHeader,
   toResponseMap,
+  toTruckDetail,
   type RecordWithHeaderRelations,
 } from "./inspection-records.mappers";
 
 const DEFAULT_CLEANING_AREA_LABEL = "Finished Goods + Changing Room";
+const DEFAULT_TRUCK_AREA_LABEL = "Dispatch / Loading Bay";
+
+/** Roles allowed to record the final freezer-truck loading decision — the
+ *  "requires correct role (supervisor/QA)" business rule. Checked here in
+ *  addition to the `@Roles()` guard so the rule holds even if a controller
+ *  is ever wired up without it. */
+const LOADING_DECISION_ROLES = ["FG_SUPERVISOR", "QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "SYSTEM_ADMINISTRATOR"];
 
 function hasOnlyRole(roles: string[], role: string): boolean {
   return roles.length > 0 && roles.every((r) => r === role);
+}
+
+function hasAnyRole(roles: string[], allowed: string[]): boolean {
+  return allowed.some((role) => roles.includes(role));
+}
+
+function hasPermission(user: RequestUser, permission: PermissionKey): boolean {
+  return user.permissions.includes(permission);
 }
 
 @Injectable()
@@ -115,6 +145,84 @@ export class InspectionRecordsService {
           shiftId: shift?.id,
           areaLabel,
           createdById: user.id,
+        },
+        include: RECORD_HEADER_INCLUDE,
+      });
+    }
+
+    if (parsed.data.taskAssignmentId) {
+      await this.linkTaskAssignment(parsed.data.taskAssignmentId, record.id, user.id);
+    }
+
+    return this.buildDetail(record, user);
+  }
+
+  /** Starts (or resumes) a Freezer Truck Inspection Before Loading draft
+   *  (NMS/PPU/CL/30). Duplicate-prevention is scoped to the *same vehicle*
+   *  for the date/shift, rather than the whole area — several different
+   *  trucks are routinely inspected in the same shift/loading bay. */
+  async createTruckDraft(user: RequestUser, dto: CreateTruckDraftDto): Promise<InspectionRecordDetail> {
+    const parsed = createTruckDraftSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
+    }
+
+    const recordDate = parsed.data.recordDate ?? todayDateString();
+    const recordDateAtMidnight = dateOnlyToUtcMidnight(recordDate);
+    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(new Date().getUTCHours());
+    const areaLabel = parsed.data.areaLabel ?? DEFAULT_TRUCK_AREA_LABEL;
+    const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
+
+    const resolvedVehicle = await this.resolveVehicleForTruckDraft(user, parsed.data);
+
+    const existing = await this.prisma.inspectionRecord.findFirst({
+      where: {
+        documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+        recordDate: recordDateAtMidnight,
+        shiftId: shift?.id ?? null,
+        truckDetail: { vehicleNumber: resolvedVehicle.vehicleNumber },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const resolution = resolveDraftDuplicate(
+      existing ? { id: existing.id, status: existing.status as SharedRecordStatus, createdById: existing.createdById } : null,
+      user.id,
+    );
+
+    let record: RecordWithHeaderRelations;
+    if (resolution.outcome === "conflict") {
+      throw new DuplicateRecordException(resolution.reason);
+    } else if (resolution.outcome === "resume") {
+      record = await this.prisma.inspectionRecord.findUniqueOrThrow({
+        where: { id: resolution.recordId },
+        include: RECORD_HEADER_INCLUDE,
+      });
+    } else {
+      const templateVersion = await this.findPublishedTemplateVersion(DOCUMENT_CODES.FREEZER_TRUCK);
+      const reinspectionOfId = await this.resolveReinspectionTarget(parsed.data.reinspectionOfRecordId);
+
+      record = await this.prisma.inspectionRecord.create({
+        data: {
+          templateVersionId: templateVersion.id,
+          documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+          status: RecordStatus.DRAFT,
+          recordDate: recordDateAtMidnight,
+          shiftId: shift?.id,
+          areaLabel,
+          createdById: user.id,
+          reinspectionOfId,
+          truckDetail: {
+            create: {
+              vehicleId: resolvedVehicle.vehicleId,
+              driverId: parsed.data.driverId,
+              transporterId: parsed.data.transporterId ?? resolvedVehicle.transporterId,
+              freezerTruckNumber: resolvedVehicle.freezerTruckNumber,
+              vehicleNumber: resolvedVehicle.vehicleNumber,
+              loadingReference: parsed.data.loadingReference,
+              productCategory: parsed.data.productCategory,
+            },
+          },
         },
         include: RECORD_HEADER_INCLUDE,
       });
@@ -212,6 +320,11 @@ export class InspectionRecordsService {
       data: { status: "SUBMITTED" },
     });
 
+    let loadingDecision: LoadingDecision | null = null;
+    if (record.documentCode === DOCUMENT_CODES.FREEZER_TRUCK) {
+      loadingDecision = await this.recordLoadingDecisionRecommendation(record, items, responseMap, user.id);
+    }
+
     const counts = computeRecordCounts(items, responseMap);
     const status: SharedRecordStatus = "SUBMITTED";
 
@@ -225,7 +338,107 @@ export class InspectionRecordsService {
       hasCriticalFailure: validation.hasCriticalFailure,
       correctiveActionsCreated,
       nextResponsibleRole: nextResponsibleRoleForStatus(status),
+      loadingDecision,
     } satisfies SubmitRecordResult;
+  }
+
+  // -------------------------------------------------------------------------
+  // Freezer truck loading decision
+  // -------------------------------------------------------------------------
+
+  /** Computes and persists the operator-submit-time recommended loading
+   *  decision (`computeRecommendedLoadingDecision`) — this becomes both
+   *  `recommendedDecision` (frozen forever) and the initial `loadingDecision`
+   *  (which a supervisor/QA may later change via `approveLoadingDecision`). */
+  private async recordLoadingDecisionRecommendation(
+    record: RecordWithHeaderRelations,
+    items: ChecklistItemDefinition[],
+    responseMap: ChecklistResponseMap,
+    userId: string,
+  ): Promise<LoadingDecision> {
+    const { decision } = computeRecommendedLoadingDecision(items, responseMap);
+
+    await this.prisma.truckInspectionDetail.update({
+      where: { recordId: record.id },
+      data: {
+        recommendedDecision: decision as LoadingDecisionStatus,
+        loadingDecision: decision as LoadingDecisionStatus,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: userId,
+        action: "LOADING_DECISION_RECOMMENDED",
+        entityType: "TruckInspectionDetail",
+        entityId: record.truckDetail?.id ?? null,
+        metadata: { recordId: record.id, decision },
+      },
+    });
+
+    return decision;
+  }
+
+  /** Role-gated final loading decision (`POST /inspection-records/:id/loading-decision`).
+   *  A critical-failure recommendation can never be overridden to an
+   *  "approved" outcome — see `isOverrideToApprovedAllowed`. Every change is
+   *  preserved in `AuditLog` and mirrored into an `ApprovalRecord`. */
+  async approveLoadingDecision(user: RequestUser, id: string, dto: LoadingDecisionDto): Promise<InspectionRecordDetail> {
+    if (!hasAnyRole(user.roles, LOADING_DECISION_ROLES)) {
+      throw new LoadingDecisionForbiddenException();
+    }
+
+    const parsed = loadingDecisionInputSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
+    }
+
+    const record = await this.findRecordOrThrow(id);
+    if (!record.truckDetail) {
+      throw new NotATruckInspectionException(id);
+    }
+
+    const recommended = record.truckDetail.recommendedDecision as LoadingDecision | null;
+    const isApprovedOutcome = parsed.data.decision === "APPROVED_FOR_LOADING" || parsed.data.decision === "CONDITIONALLY_APPROVED";
+    if (isApprovedOutcome && !isOverrideToApprovedAllowed(recommended)) {
+      throw new CriticalFailureOverrideException();
+    }
+
+    const previousDecision = record.truckDetail.loadingDecision as LoadingDecision;
+    const decidedAt = new Date();
+
+    await this.prisma.truckInspectionDetail.update({
+      where: { recordId: record.id },
+      data: {
+        loadingDecision: parsed.data.decision as LoadingDecisionStatus,
+        decidedById: user.id,
+        decidedAt,
+        remarks: parsed.data.remarks ?? record.truckDetail.remarks,
+      },
+    });
+
+    await this.prisma.approvalRecord.create({
+      data: {
+        recordId: record.id,
+        approvalType: "LOADING_DECISION",
+        decision: isApprovedOutcome ? "APPROVED" : "REJECTED",
+        decidedById: user.id,
+        decidedAt,
+        comments: parsed.data.remarks,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: "LOADING_DECISION_CHANGED",
+        entityType: "TruckInspectionDetail",
+        entityId: record.truckDetail.id,
+        metadata: { recordId: record.id, from: previousDecision, to: parsed.data.decision, remarks: parsed.data.remarks ?? null },
+      },
+    });
+
+    return this.getById(user, id);
   }
 
   // -------------------------------------------------------------------------
@@ -258,6 +471,57 @@ export class InspectionRecordsService {
     const record = await this.prisma.inspectionRecord.findUnique({ where: { id }, include: RECORD_HEADER_INCLUDE });
     if (!record) throw new RecordNotFoundException(id);
     return record;
+  }
+
+  /** Resolves a truck draft's vehicle identity — either the selected
+   *  `vehicleId` (denormalizing its truck/vehicle numbers + transporter onto
+   *  the new `TruckInspectionDetail`) or the manual fallback, which is only
+   *  permitted for users holding `vehicles:manual_entry`. */
+  private async resolveVehicleForTruckDraft(
+    user: RequestUser,
+    data: { vehicleId?: string; freezerTruckNumber?: string; vehicleNumber?: string },
+  ): Promise<{ vehicleId: string | null; freezerTruckNumber: string; vehicleNumber: string; transporterId: string | null }> {
+    if (data.vehicleId) {
+      const vehicle = await this.prisma.vehicle.findUnique({
+        where: { id: data.vehicleId },
+        include: VEHICLE_WITH_TRANSPORTER_INCLUDE,
+      });
+      if (!vehicle) {
+        throw new VehicleNotFoundException(data.vehicleId);
+      }
+      if (!vehicle.freezerTruckNumber) {
+        throw new InvalidRecordPayloadException("Selected vehicle has no freezer truck number on file");
+      }
+      return {
+        vehicleId: vehicle.id,
+        freezerTruckNumber: vehicle.freezerTruckNumber,
+        vehicleNumber: vehicle.vehicleNumber,
+        transporterId: vehicle.transporterId,
+      };
+    }
+
+    if (!hasPermission(user, "vehicles:manual_entry")) {
+      throw new ManualVehicleEntryForbiddenException();
+    }
+
+    return {
+      vehicleId: null,
+      freezerTruckNumber: data.freezerTruckNumber!,
+      vehicleNumber: data.vehicleNumber!,
+      transporterId: null,
+    };
+  }
+
+  /** Validates a `reinspectionOfRecordId` (when supplied) resolves to a real
+   *  record before linking — a malformed id must never silently break draft
+   *  creation, but it also must never silently create a fake link. */
+  private async resolveReinspectionTarget(reinspectionOfRecordId: string | undefined): Promise<string | undefined> {
+    if (!reinspectionOfRecordId) return undefined;
+    const prior = await this.prisma.inspectionRecord.findUnique({ where: { id: reinspectionOfRecordId } });
+    if (!prior) {
+      throw new RecordNotFoundException(reinspectionOfRecordId);
+    }
+    return prior.id;
   }
 
   /** Pure operators may only ever see their own records; every other role
@@ -309,6 +573,7 @@ export class InspectionRecordsService {
       version: versionDefinition,
       responses: toResponseMap(results),
       editable: isRecordEditable(record.status as SharedRecordStatus) && record.createdById === user.id,
+      truck: toTruckDetail(record),
     };
   }
 

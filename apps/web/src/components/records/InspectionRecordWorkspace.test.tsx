@@ -76,6 +76,7 @@ function makeDetail(overrides: DetailOverrides = {}): InspectionRecordDetail {
     version: makeVersion(),
     responses: {},
     editable: true,
+    truck: null,
     ...overrides,
     header,
   };
@@ -92,6 +93,7 @@ function makeSubmitResult(overrides: Partial<SubmitRecordResult> = {}): SubmitRe
     hasCriticalFailure: false,
     correctiveActionsCreated: 0,
     nextResponsibleRole: "FG_SUPERVISOR",
+    loadingDecision: null,
     ...overrides,
   };
 }

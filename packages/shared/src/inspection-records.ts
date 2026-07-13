@@ -14,8 +14,9 @@ import {
   type ChecklistResponseMap,
   type ChecklistTemplateVersionDefinition,
 } from "./checklist-engine";
-import { RECORD_STATUSES, WORK_SHIFTS, type RecordStatus, type WorkShift } from "./records";
+import { RECORD_STATUSES, WORK_SHIFTS, type LoadingDecision, type RecordStatus, type WorkShift } from "./records";
 import type { UserRole } from "./roles";
+import type { TruckInspectionDetailPayload } from "./truck-inspection";
 
 // ---------------------------------------------------------------------------
 // Wire schemas (API request bodies / web form payloads)
@@ -123,6 +124,9 @@ export type InspectionRecordDetail = {
   /** True while the current user may still change responses (DRAFT, or
    *  REJECTED via the returned-correction workflow) — see `isRecordEditable`. */
   editable: boolean;
+  /** Present only for freezer-truck-before-loading records (NMS/PPU/CL/30);
+   *  `null` for every other document code, e.g. Daily Cleaning Verification. */
+  truck: TruckInspectionDetailPayload | null;
 };
 
 export type RecordCounts = {
@@ -143,6 +147,9 @@ export type SubmitRecordResult = {
   hasCriticalFailure: boolean;
   correctiveActionsCreated: number;
   nextResponsibleRole: UserRole | null;
+  /** The freshly-computed recommended loading decision for a freezer truck
+   *  inspection; `null` for every other document code. */
+  loadingDecision: LoadingDecision | null;
 };
 
 // ---------------------------------------------------------------------------

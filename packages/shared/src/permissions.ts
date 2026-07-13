@@ -19,6 +19,8 @@ export const PERMISSIONS = [
   "corrective_actions:read",
   "reports:read",
   "audit:read",
+  "loading_decisions:approve",
+  "vehicles:manual_entry",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[number];

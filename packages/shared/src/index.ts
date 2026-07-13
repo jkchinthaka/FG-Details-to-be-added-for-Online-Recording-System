@@ -7,3 +7,4 @@ export * from "./auth";
 export * from "./checklist-engine";
 export * from "./dashboard";
 export * from "./inspection-records";
+export * from "./truck-inspection";

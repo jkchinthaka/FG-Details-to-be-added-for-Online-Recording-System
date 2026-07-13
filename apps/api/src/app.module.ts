@@ -6,6 +6,7 @@ import { InspectionRecordsModule } from "./inspection-records/inspection-records
 import { PrismaModule } from "./prisma/prisma.module";
 import { RecordsModule } from "./records/records.module";
 import { TasksModule } from "./tasks/tasks.module";
+import { VehiclesModule } from "./vehicles/vehicles.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TasksModule } from "./tasks/tasks.module";
     TasksModule,
     RecordsModule,
     InspectionRecordsModule,
+    VehiclesModule,
   ],
 })
 export class AppModule {}

@@ -42,6 +42,48 @@ export class InvalidRecordPayloadException extends BadRequestException {
   }
 }
 
+/** Thrown when a vehicle id supplied on a truck draft doesn't resolve to a
+ *  known Vehicle. */
+export class VehicleNotFoundException extends NotFoundException {
+  constructor(id: string) {
+    super(`Vehicle "${id}" was not found`);
+  }
+}
+
+/** Thrown when manual freezer truck/vehicle number entry is attempted by a
+ *  user without the `vehicles:manual_entry` permission. */
+export class ManualVehicleEntryForbiddenException extends ForbiddenException {
+  constructor() {
+    super("You do not have permission to enter a vehicle manually — select one from the vehicle list instead.");
+  }
+}
+
+/** Thrown by the loading-decision approval endpoint for a record that isn't
+ *  a freezer truck inspection (no `truckDetail`). */
+export class NotATruckInspectionException extends BadRequestException {
+  constructor(id: string) {
+    super(`Inspection record "${id}" is not a freezer truck inspection`);
+  }
+}
+
+/** Thrown when the requesting user holds none of the roles allowed to
+ *  record a final loading decision (defense-in-depth alongside the
+ *  `@Roles()` guard). */
+export class LoadingDecisionForbiddenException extends ForbiddenException {
+  constructor() {
+    super("Only a supervisor or QA executive may record the final loading decision");
+  }
+}
+
+/** Thrown when attempting to override a critical-failure recommendation
+ *  (`LOADING_BLOCKED`) with an "approved" outcome — the one business rule
+ *  no human, including a supervisor/QA, may override. */
+export class CriticalFailureOverrideException extends ConflictException {
+  constructor() {
+    super("A critical failure was recorded — loading cannot be approved until it is resolved and re-inspected.");
+  }
+}
+
 /** Thrown on submit when required items are unanswered, a remark/evidence/
  *  corrective-action requirement isn't met, etc. Carries the full
  *  `ChecklistValidationError[]` so the client can show exactly which items

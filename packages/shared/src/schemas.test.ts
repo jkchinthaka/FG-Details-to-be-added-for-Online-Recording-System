@@ -43,7 +43,7 @@ describe("freezerTruckInspectionSchema", () => {
       freezerTruckNumber: "FT-12",
       vehicleNumber: "WP CAB-1234",
       lines: markAllFreezerTruckAcceptable(),
-      loadingDecision: "APPROVED",
+      loadingDecision: "APPROVED_FOR_LOADING",
     });
 
     expect(result.success).toBe(true);
@@ -52,7 +52,7 @@ describe("freezerTruckInspectionSchema", () => {
   it("blocks loading approval when any check fails", () => {
     const lines = markAllFreezerTruckAcceptable();
     lines[0] = {
-      itemId: "cleanliness",
+      itemId: "overall_cleanliness",
       result: "FAIL",
       failureNote: "Residue on floor",
     };
@@ -65,7 +65,7 @@ describe("freezerTruckInspectionSchema", () => {
       vehicleNumber: "WP CAB-1234",
       lines,
       correctiveAction: "Reclean before loading",
-      loadingDecision: "APPROVED",
+      loadingDecision: "APPROVED_FOR_LOADING",
     });
 
     expect(result.success).toBe(false);

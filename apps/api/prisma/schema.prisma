@@ -88,6 +88,22 @@ enum VehicleStatus {
 }
 
 /**
+ * Final freezer-truck-before-loading decision vocabulary (NMS/PPU/CL/30).
+ * `PENDING` is the only state before an operator has submitted the
+ * inspection; `APPROVED_FOR_LOADING`/`CONDITIONALLY_APPROVED` are the two
+ * "may load" outcomes, `LOADING_BLOCKED` is the automatic, non-overridable
+ * outcome of a critical failure, and `REJECTED` is a supervisor/QA decision
+ * that the truck must not be used at all. See docs/records.md.
+ */
+enum LoadingDecisionStatus {
+  PENDING
+  APPROVED_FOR_LOADING
+  CONDITIONALLY_APPROVED
+  LOADING_BLOCKED
+  REJECTED
+}
+
+/**
  * A ChecklistTemplate always has exactly one template overall; each
  * ChecklistTemplateVersion carries its own status so published versions stay
  * historically stable once records reference them.
@@ -456,6 +472,16 @@ model InspectionRecord {
   verifiedById String?
   verifiedBy   User?   @relation("RecordVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
 
+  /**
+   * When this record is a re-inspection (e.g. after a freezer truck was
+   * temporarily blocked from loading and corrective action was taken),
+   * points back at the original record so the two stay traceably linked —
+   * see the "re-inspection creates traceable history" business rule.
+   */
+  reinspectionOfId String?
+  reinspectionOf   InspectionRecord?  @relation("RecordReinspection", fields: [reinspectionOfId], references: [id], onDelete: SetNull)
+  reinspections    InspectionRecord[] @relation("RecordReinspection")
+
   submittedAt DateTime?
   checkedAt   DateTime?
   verifiedAt  DateTime?
@@ -474,6 +500,7 @@ model InspectionRecord {
   @@index([documentCode, recordDate])
   @@index([status])
   @@index([templateVersionId])
+  @@index([reinspectionOfId])
 }
 
 /**
@@ -569,8 +596,9 @@ model Transporter {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  vehicles Vehicle[]
-  drivers  Driver[]
+  vehicles          Vehicle[]
+  drivers           Driver[]
+  truckInspections  TruckInspectionDetail[]
 }
 
 model Vehicle {
@@ -613,14 +641,38 @@ model TruckInspectionDetail {
   vehicle            Vehicle?         @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   driverId           String?
   driver             Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  transporterId      String?
+  transporter        Transporter?     @relation(fields: [transporterId], references: [id], onDelete: SetNull)
   freezerTruckNumber String
   vehicleNumber      String
-  temperatureReading Float?
-  loadingDecision    ApprovalDecision @default(PENDING)
-  decidedById        String?
-  decidedBy          User?            @relation("TruckLoadingDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
-  decidedAt          DateTime?
-  remarks            String?
+  /** Free-text loading/dispatch reference (e.g. a delivery order/loading
+   *  plan number) and the product category being loaded, when applicable —
+   *  both optional since not every inspection is tied to a specific load. */
+  loadingReference String?
+  productCategory  String?
+
+  /** Reserved structure for a future temperature-logging phase — current
+   *  reading plus the acceptable min/max band and a computed acceptability
+   *  flag. Entirely optional; no current checklist item requires it. */
+  temperatureCurrent    Float?
+  temperatureMin        Float?
+  temperatureMax        Float?
+  temperatureAcceptable Boolean?
+
+  /** System-computed recommendation from `computeRecommendedLoadingDecision`
+   *  at operator-submit time — never overwritten afterwards, so the
+   *  original recommendation (and whether it reflected a critical failure)
+   *  stays visible even after a supervisor/QA records the final decision. */
+  recommendedDecision LoadingDecisionStatus?
+  /** The current/final decision. Starts as the operator's recommendation on
+   *  submit and can only be changed via the role-gated approval endpoint —
+   *  a critical-failure recommendation (`LOADING_BLOCKED`) can never be
+   *  overridden to an "approved" outcome. */
+  loadingDecision LoadingDecisionStatus @default(PENDING)
+  decidedById     String?
+  decidedBy       User?                 @relation("TruckLoadingDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt       DateTime?
+  remarks         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
