@@ -16,6 +16,7 @@ import {
   PERMISSIONS,
   ROLE_DEFINITIONS,
   SHIFT_SEEDS,
+  buildTodaysTaskAssignmentSeeds,
   resolveAllSeedUsers,
   type ChecklistTemplateSeed,
 } from "./seed-data";
@@ -204,12 +205,67 @@ async function seedSampleUsers() {
   }
 }
 
+/**
+ * Sample "Today's Tasks" for every seeded FG Operator — env-controlled (only
+ * runs for the operators seedSampleUsers() actually created) and idempotent:
+ * upserts on the (assignedToId, templateCode, dueDate) unique constraint, so
+ * re-running the seed on the same day never duplicates or resets progress
+ * an operator has already made on today's assignments.
+ */
+async function seedTaskAssignments() {
+  const users = resolveAllSeedUsers(process.env);
+  const operatorCodes = users.filter((user) => user.role === "FG_OPERATOR").map((user) => user.employeeCode);
+
+  if (operatorCodes.length === 0) {
+    console.log("No seeded FG Operator accounts — skipping Today's Tasks sample assignments");
+    return;
+  }
+
+  const assignmentSeeds = buildTodaysTaskAssignmentSeeds(new Date());
+  let created = 0;
+
+  for (const employeeCode of operatorCodes) {
+    const operator = await prisma.user.findUnique({ where: { employeeCode } });
+    if (!operator) continue;
+
+    for (const assignment of assignmentSeeds) {
+      const shift = await prisma.shift.findUnique({ where: { code: assignment.shiftCode } });
+
+      await prisma.taskAssignment.upsert({
+        where: {
+          assignedToId_templateCode_dueDate: {
+            assignedToId: operator.id,
+            templateCode: assignment.templateCode,
+            dueDate: assignment.dueDate,
+          },
+        },
+        create: {
+          assignedToId: operator.id,
+          templateCode: assignment.templateCode,
+          areaLabel: assignment.areaLabel,
+          shiftId: shift?.id,
+          dueDate: assignment.dueDate,
+        },
+        // Never overwrite status/progress on a rerun — only backfills area/shift metadata.
+        update: {
+          areaLabel: assignment.areaLabel,
+          shiftId: shift?.id,
+        },
+      });
+      created += 1;
+    }
+  }
+
+  console.log(`Seeded ${created} Today's Tasks assignment(s) for ${operatorCodes.length} operator(s)`);
+}
+
 async function main() {
   await seedPermissions();
   await seedRoles();
   await seedOrganization();
   await seedChecklistTemplates();
   await seedSampleUsers();
+  await seedTaskAssignments();
 }
 
 main()

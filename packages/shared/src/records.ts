@@ -30,6 +30,16 @@ export const RECORD_TYPE_META: Record<
   },
 };
 
+/** Reverse lookup of `RECORD_TYPE_META` — the routing/display join key
+ *  between a document code (as stored on a TaskAssignment/InspectionRecord)
+ *  and the record type the mobile forms and dashboard know how to render. */
+export function recordTypeForDocumentCode(documentCode: string): RecordType | null {
+  const match = RECORD_TYPES.find(
+    (recordType) => RECORD_TYPE_META[recordType].documentCode === documentCode,
+  );
+  return match ?? null;
+}
+
 export const CHECK_ITEM_RESULTS = ["ACCEPTABLE", "FAIL"] as const;
 export type CheckItemResult = (typeof CHECK_ITEM_RESULTS)[number];
 
@@ -49,6 +59,35 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   VERIFIED: "Verified",
   REJECTED: "Needs correction",
 };
+
+/** Mirrors the Prisma `RecordStatus` enum (apps/api/prisma/schema.prisma). */
+export const RECORD_STATUSES = [
+  "DRAFT",
+  "SUBMITTED",
+  "CHECKED",
+  "VERIFIED",
+  "REJECTED",
+  "ARCHIVED",
+] as const;
+export type RecordStatus = (typeof RECORD_STATUSES)[number];
+
+export const RECORD_STATUS_LABELS: Record<RecordStatus, string> = {
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  CHECKED: "Checked",
+  VERIFIED: "Verified",
+  REJECTED: "Rejected",
+  ARCHIVED: "Archived",
+};
+
+/** Detects the current work shift for a given hour of day (0–23), local time.
+ *  Shared by the seed script and any server-side "today's tasks" defaults so
+ *  the shift boundaries never drift between the two. */
+export function detectWorkShiftForHour(hour: number): WorkShift {
+  if (hour < 14) return "MORNING";
+  if (hour < 22) return "AFTERNOON";
+  return "NIGHT";
+}
 
 /** Finished Goods area checklist — NMS/PPU/CL/24 */
 export const FG_CLEANING_ITEMS = [

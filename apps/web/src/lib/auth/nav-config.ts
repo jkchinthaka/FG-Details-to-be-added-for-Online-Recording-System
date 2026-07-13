@@ -6,6 +6,10 @@ import type { UserRole } from "@nelna/shared";
  * trivial to unit test and to extend as new pages land.
  *
  * Mapping rationale (see docs/AUTHENTICATION.md for the full table):
+ *  - Everyone: "/tasks" is now the universal "Today's Tasks" dashboard home —
+ *    every role sees its own widgets there (operator assignments, supervisor
+ *    checks, QA verifications/exceptions, food-safety compliance snapshot,
+ *    admin shortcuts). "/" redirects here for every authenticated user.
  *  - FG Operator: today's tasks, creating + viewing their own records.
  *  - FG Supervisor: operator's view plus corrective actions (assign/escalate).
  *  - QA Executive / Food Safety Team Leader: records (to verify), corrective
@@ -17,7 +21,7 @@ import type { UserRole } from "@nelna/shared";
  */
 export const NAV_ROLE_MAP: Record<string, UserRole[] | undefined> = {
   "/": undefined,
-  "/tasks": ["FG_OPERATOR", "FG_SUPERVISOR"],
+  "/tasks": undefined,
   "/records/new": ["FG_OPERATOR", "FG_SUPERVISOR"],
   "/records": [
     "FG_OPERATOR",

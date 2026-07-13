@@ -133,6 +133,19 @@ enum NotificationType {
   SYSTEM
 }
 
+/**
+ * Mirrors the shared `TaskStatus` union (packages/shared/src/records.ts) so
+ * the "Today's Tasks" dashboard can read a TaskAssignment's status straight
+ * through without a translation layer.
+ */
+enum TaskAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
 // ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
@@ -177,6 +190,7 @@ model User {
   decidedTruckLoadings       TruckInspectionDetail[]    @relation("TruckLoadingDecidedBy")
   notifications              Notification[]
   auditLogs                  AuditLog[]
+  taskAssignments            TaskAssignment[]
 
   @@index([status])
 }
@@ -287,7 +301,8 @@ model Shift {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  records InspectionRecord[]
+  records         InspectionRecord[]
+  taskAssignments TaskAssignment[]
 }
 
 // ---------------------------------------------------------------------------
@@ -454,10 +469,45 @@ model InspectionRecord {
   approvals         ApprovalRecord[]
   correctiveActions CorrectiveAction[]
   truckDetail       TruckInspectionDetail?
+  taskAssignment    TaskAssignment?
 
   @@index([documentCode, recordDate])
   @@index([status])
   @@index([templateVersionId])
+}
+
+/**
+ * A checklist template assigned to a specific user for a specific day/shift
+ * — the backing data for the mobile "Today's Tasks" dashboard (see
+ * docs/records.md). Deliberately keyed by `templateCode` rather than a
+ * ChecklistTemplate relation: assignments are generated ahead of a
+ * template's published version potentially changing, and the code alone is
+ * enough to route to the right mobile form (see @nelna/shared RECORD_TYPE_META).
+ *
+ * `recordId` is populated once the operator starts/submits the actual
+ * InspectionRecord, letting the dashboard reflect live record status without
+ * duplicating it — see docs/CHECKLIST_ENGINE.md for the record submission
+ * flow this links up to in a later phase.
+ */
+model TaskAssignment {
+  id           String               @id @default(cuid())
+  assignedToId String
+  assignedTo   User                 @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  templateCode String
+  areaLabel    String
+  shiftId      String?
+  shift        Shift?               @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  dueDate      DateTime             @db.Date
+  status       TaskAssignmentStatus @default(ASSIGNED)
+  recordId     String?              @unique
+  record       InspectionRecord?    @relation(fields: [recordId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Idempotent-seeding key: at most one assignment per user/template/day.
+  @@unique([assignedToId, templateCode, dueDate])
+  @@index([assignedToId, dueDate])
 }
 
 model InspectionResult {

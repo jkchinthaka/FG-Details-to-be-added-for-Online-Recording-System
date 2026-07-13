@@ -55,9 +55,12 @@ export function buildLoginRedirectUrl(
   return query ? `/login?${query}` : "/login";
 }
 
+/** Where an unqualified/invalid `next` param falls back to — the "Today's Tasks" dashboard home. */
+const DEFAULT_POST_LOGIN_PATH = "/tasks";
+
 /** Resolves where to send the user after a successful login (defends against open-redirect via `next`). */
 export function resolvePostLoginPath(nextParam: string | null | undefined): string {
-  if (!nextParam) return "/";
-  if (!nextParam.startsWith("/") || nextParam.startsWith("//")) return "/";
+  if (!nextParam) return DEFAULT_POST_LOGIN_PATH;
+  if (!nextParam.startsWith("/") || nextParam.startsWith("//")) return DEFAULT_POST_LOGIN_PATH;
   return nextParam;
 }

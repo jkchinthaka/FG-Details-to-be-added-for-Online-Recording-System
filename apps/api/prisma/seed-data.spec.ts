@@ -6,9 +6,11 @@ import {
   PERMISSIONS,
   ROLE_DEFINITIONS,
   SEED_USER_DEFINITIONS,
+  buildTodaysTaskAssignmentSeeds,
   isValidSeedPassword,
   resolveAllSeedUsers,
   resolveSeedUser,
+  todayAtMidnightUtc,
   totalSeedItemCount,
 } from "./seed-data";
 
@@ -130,6 +132,38 @@ describe("seed-data", () => {
     it("declares each template with a unique code", () => {
       const codes = CHECKLIST_TEMPLATE_SEEDS.map((template) => template.code);
       expect(new Set(codes).size).toBe(codes.length);
+    });
+  });
+
+  describe("todayAtMidnightUtc", () => {
+    it("strips the time-of-day, keeping only the calendar date in UTC", () => {
+      const result = todayAtMidnightUtc(new Date("2026-07-14T18:45:32.123Z"));
+      expect(result.toISOString()).toBe("2026-07-14T00:00:00.000Z");
+    });
+  });
+
+  describe("buildTodaysTaskAssignmentSeeds", () => {
+    it("seeds exactly one Daily Cleaning and one Freezer Truck assignment, due today", () => {
+      const now = new Date("2026-07-14T09:00:00.000Z");
+      const seeds = buildTodaysTaskAssignmentSeeds(now);
+
+      expect(seeds).toHaveLength(2);
+      expect(seeds.map((seed) => seed.templateCode)).toEqual(
+        expect.arrayContaining(["NMS/PPU/CL/24", "NMS/PPU/CL/30"]),
+      );
+      for (const seed of seeds) {
+        expect(seed.dueDate.toISOString()).toBe(todayAtMidnightUtc(now).toISOString());
+      }
+    });
+
+    it("is deterministic for the same instant", () => {
+      const now = new Date("2026-07-14T09:00:00.000Z");
+      expect(buildTodaysTaskAssignmentSeeds(now)).toEqual(buildTodaysTaskAssignmentSeeds(now));
+    });
+
+    it("assigns every seed the same detected shift", () => {
+      const morning = buildTodaysTaskAssignmentSeeds(new Date("2026-07-14T08:00:00.000Z"));
+      expect(morning.every((seed) => seed.shiftCode === "MORNING")).toBe(true);
     });
   });
 });

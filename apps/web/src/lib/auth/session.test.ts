@@ -50,10 +50,10 @@ describe("buildLoginRedirectUrl", () => {
 });
 
 describe("resolvePostLoginPath", () => {
-  it("defaults to home when no next param is given", () => {
-    expect(resolvePostLoginPath(undefined)).toBe("/");
-    expect(resolvePostLoginPath(null)).toBe("/");
-    expect(resolvePostLoginPath("")).toBe("/");
+  it("defaults to the Today's Tasks dashboard when no next param is given", () => {
+    expect(resolvePostLoginPath(undefined)).toBe("/tasks");
+    expect(resolvePostLoginPath(null)).toBe("/tasks");
+    expect(resolvePostLoginPath("")).toBe("/tasks");
   });
 
   it("accepts a same-site absolute path", () => {
@@ -61,8 +61,8 @@ describe("resolvePostLoginPath", () => {
   });
 
   it("rejects protocol-relative or external URLs to prevent open redirects", () => {
-    expect(resolvePostLoginPath("//evil.example.com")).toBe("/");
-    expect(resolvePostLoginPath("https://evil.example.com")).toBe("/");
-    expect(resolvePostLoginPath("evil.example.com")).toBe("/");
+    expect(resolvePostLoginPath("//evil.example.com")).toBe("/tasks");
+    expect(resolvePostLoginPath("https://evil.example.com")).toBe("/tasks");
+    expect(resolvePostLoginPath("evil.example.com")).toBe("/tasks");
   });
 });

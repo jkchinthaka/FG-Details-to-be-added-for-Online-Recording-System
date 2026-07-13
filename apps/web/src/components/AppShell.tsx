@@ -16,8 +16,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/tasks", label: "My Tasks", icon: TasksIcon },
+  { href: "/tasks", label: "Home", icon: HomeIcon },
   { href: "/records/new", label: "New Record", icon: NewRecordIcon },
   { href: "/records", label: "Records", icon: RecordsIcon },
   { href: "/corrective-actions", label: "Corrective Actions", icon: CorrectiveActionIcon },
@@ -340,24 +339,6 @@ function HomeIcon(props: SVGProps<SVGSVGElement>) {
     >
       <path d="M3.5 10.5 12 4l8.5 6.5" />
       <path d="M5.5 9.5V19a1 1 0 0 0 1 1H9v-5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5h2.5a1 1 0 0 0 1-1V9.5" />
-    </svg>
-  );
-}
-
-function TasksIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <rect x="5" y="4" width="14" height="17" rx="2" />
-      <path d="M9 3.5h6" />
-      <path d="M8.5 12.5 10.5 14.5 15.5 9.5" />
     </svg>
   );
 }

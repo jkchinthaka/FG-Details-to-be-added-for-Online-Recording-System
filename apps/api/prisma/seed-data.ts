@@ -13,9 +13,11 @@ import {
   PERMISSIONS,
   USER_ROLES,
   USER_ROLE_LABELS,
+  detectWorkShiftForHour,
   type ChecklistItemType,
   type PermissionKey,
   type UserRole,
+  type WorkShift,
 } from "@nelna/shared";
 
 // ---------------------------------------------------------------------------
@@ -291,4 +293,50 @@ export function resolveAllSeedUsers(
   return SEED_USER_DEFINITIONS.map((definition) => resolveSeedUser(definition, env)).filter(
     (user): user is ResolvedSeedUser => user !== null,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Today's Tasks — sample TaskAssignment rows for the seeded FG Operator
+// ---------------------------------------------------------------------------
+
+export type TaskAssignmentSeed = {
+  templateCode: string;
+  areaLabel: string;
+  shiftCode: WorkShift;
+  dueDate: Date;
+};
+
+/** Midnight UTC for `now`'s calendar date — matches how `dueDate` (a Prisma
+ *  `@db.Date` column) is compared against in the tasks service, so seeding
+ *  and reading always agree on what counts as "today". */
+export function todayAtMidnightUtc(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/**
+ * The FG Operator's sample "Today's Tasks": one Daily Cleaning Verification
+ * assignment and one Freezer Truck Inspection assignment, due today, for
+ * whichever shift the seed is run during. Pure and deterministic given
+ * `now`, so it's fully unit-testable without a database.
+ */
+export function buildTodaysTaskAssignmentSeeds(now: Date): TaskAssignmentSeed[] {
+  const dueDate = todayAtMidnightUtc(now);
+  // UTC hour (not local) — the seed script runs server-side and must produce
+  // the same result in any timezone/CI environment given the same instant.
+  const shiftCode = detectWorkShiftForHour(now.getUTCHours());
+
+  return [
+    {
+      templateCode: DOCUMENT_CODES.DAILY_CLEANING,
+      areaLabel: "Finished Goods + Changing Room",
+      shiftCode,
+      dueDate,
+    },
+    {
+      templateCode: DOCUMENT_CODES.FREEZER_TRUCK,
+      areaLabel: "Dispatch / Loading Bay",
+      shiftCode,
+      dueDate,
+    },
+  ];
 }

@@ -18,6 +18,19 @@ describe("isNavItemVisible", () => {
     expect(isNavItemVisible("/profile", ["SYSTEM_ADMINISTRATOR"])).toBe(true);
   });
 
+  it("shows the universal Today's Tasks dashboard ('/tasks') to every authenticated role", () => {
+    for (const role of [
+      "FG_OPERATOR",
+      "FG_SUPERVISOR",
+      "QA_EXECUTIVE",
+      "FOOD_SAFETY_TEAM_LEADER",
+      "SYSTEM_ADMINISTRATOR",
+      "AUDITOR",
+    ] as const) {
+      expect(isNavItemVisible("/tasks", [role])).toBe(true);
+    }
+  });
+
   it("shows the FG Operator today's tasks, new records and their records", () => {
     expect(isNavItemVisible("/tasks", ["FG_OPERATOR"])).toBe(true);
     expect(isNavItemVisible("/records/new", ["FG_OPERATOR"])).toBe(true);
@@ -52,7 +65,6 @@ describe("isNavItemVisible", () => {
     expect(isNavItemVisible("/corrective-actions", ["QA_EXECUTIVE"])).toBe(true);
     expect(isNavItemVisible("/reports", ["QA_EXECUTIVE"])).toBe(true);
     expect(isNavItemVisible("/records/new", ["QA_EXECUTIVE"])).toBe(false);
-    expect(isNavItemVisible("/tasks", ["QA_EXECUTIVE"])).toBe(false);
   });
 
   it("grants access when a user holds any one of multiple roles", () => {
@@ -61,9 +73,9 @@ describe("isNavItemVisible", () => {
 });
 
 describe("filterNavItemsByRole", () => {
-  it("returns only the Home, Administration and Profile items for a pure System Administrator", () => {
+  it("returns Home, Reports, Administration and Profile for a pure System Administrator", () => {
     const visible = filterNavItemsByRole(ALL_ITEMS, ["SYSTEM_ADMINISTRATOR"]);
-    expect(visible.map((item) => item.href)).toEqual(["/", "/reports", "/admin", "/profile"]);
+    expect(visible.map((item) => item.href)).toEqual(["/", "/tasks", "/reports", "/admin", "/profile"]);
   });
 
   it("returns the FG Operator's full operational surface", () => {
