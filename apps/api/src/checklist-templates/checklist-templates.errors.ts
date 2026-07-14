@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 export class TemplateNotFoundException extends NotFoundException {
   constructor(code: string) {

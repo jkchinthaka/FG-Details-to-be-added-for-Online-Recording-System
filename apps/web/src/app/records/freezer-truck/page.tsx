@@ -15,7 +15,9 @@ type FreezerTruckRecordPageProps = {
  * When opened from a Today's Tasks card, `assignmentId` links the created
  * draft back to that assignment so the dashboard reflects live progress.
  */
-export default async function FreezerTruckRecordPage({ searchParams }: FreezerTruckRecordPageProps) {
+export default async function FreezerTruckRecordPage({
+  searchParams,
+}: FreezerTruckRecordPageProps) {
   const { assignmentId } = await searchParams;
   return <FreezerTruckForm assignmentId={assignmentId ?? null} />;
 }

@@ -14,7 +14,9 @@ function buildContext(user: RequestUser | undefined): ExecutionContext {
 }
 
 function buildGuard(requiredRoles: string[] | undefined) {
-  const reflector = { getAllAndOverride: jest.fn().mockReturnValue(requiredRoles) } as unknown as Reflector;
+  const reflector = {
+    getAllAndOverride: jest.fn().mockReturnValue(requiredRoles),
+  } as unknown as Reflector;
   return new RolesGuard(reflector);
 }
 
@@ -34,7 +36,9 @@ describe("RolesGuard", () => {
 
   it("throws NotAuthenticatedException when no user is attached", () => {
     const guard = buildGuard(["FG_OPERATOR"]);
-    expect(() => guard.canActivate(buildContext(undefined))).toThrow(NotAuthenticatedException);
+    expect(() => guard.canActivate(buildContext(undefined))).toThrow(
+      NotAuthenticatedException,
+    );
   });
 
   it("allows a user holding one of the required roles", () => {
@@ -44,6 +48,8 @@ describe("RolesGuard", () => {
 
   it("forbids a user missing all required roles", () => {
     const guard = buildGuard(["SYSTEM_ADMINISTRATOR"]);
-    expect(() => guard.canActivate(buildContext(operator))).toThrow(AuthForbiddenException);
+    expect(() => guard.canActivate(buildContext(operator))).toThrow(
+      AuthForbiddenException,
+    );
   });
 });

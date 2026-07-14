@@ -40,12 +40,17 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { "Content-Type": "application/json", ...init?.headers },
     });
   } catch {
-    throw new ApiError(0, "UNKNOWN", "Could not reach the server. Check your connection and try again.");
+    throw new ApiError(
+      0,
+      "UNKNOWN",
+      "Could not reach the server. Check your connection and try again.",
+    );
   }
 
   if (!response.ok) {
     const error = await parseErrorResponse(response);
-    const isAuthBootstrap = path.startsWith("/auth/login") || path.startsWith("/auth/refresh");
+    const isAuthBootstrap =
+      path.startsWith("/auth/login") || path.startsWith("/auth/refresh");
     if (
       typeof window !== "undefined" &&
       !isAuthBootstrap &&

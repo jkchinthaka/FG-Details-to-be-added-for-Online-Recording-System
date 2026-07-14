@@ -9,12 +9,25 @@ export type ChecklistValidationSummaryProps = {
 
 /** Rolls up every outstanding validation error so an operator can see —
  *  and jump to — everything blocking submission in one place. */
-export function ChecklistValidationSummary({ errors, onFocusItem }: ChecklistValidationSummaryProps) {
+export function ChecklistValidationSummary({
+  errors,
+  onFocusItem,
+}: ChecklistValidationSummaryProps) {
   if (errors.length === 0) return null;
 
   return (
-    <Alert tone="danger" title={`${errors.length} item${errors.length === 1 ? "" : "s"} need attention`}>
-      <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.1rem", display: "grid", gap: "0.25rem" }}>
+    <Alert
+      tone="danger"
+      title={`${errors.length} item${errors.length === 1 ? "" : "s"} need attention`}
+    >
+      <ul
+        style={{
+          margin: "0.25rem 0 0",
+          paddingLeft: "1.1rem",
+          display: "grid",
+          gap: "0.25rem",
+        }}
+      >
         {errors.map((error, index) => (
           <li key={`${error.itemId}-${error.code}-${index}`}>
             {onFocusItem ? (

@@ -1,7 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, EmptyState, Input, LoadingState, PageHeader, Select, Textarea } from "@nelna/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  LoadingState,
+  PageHeader,
+  Select,
+  Textarea,
+} from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   AdminApiError,
@@ -65,9 +76,17 @@ export function MasterDataAdmin() {
         description="Manage the shared reference data used across checklists and records. Rows already referenced historically are deactivated, not deleted."
       />
 
-      <div role="tablist" aria-label="Master data category" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+      <div
+        role="tablist"
+        aria-label="Master data category"
+        style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+      >
         {TABS.map((t) => (
-          <Button key={t.id} variant={t.id === tab ? "primary" : "secondary"} onClick={() => setTab(t.id)}>
+          <Button
+            key={t.id}
+            variant={t.id === tab ? "primary" : "secondary"}
+            onClick={() => setTab(t.id)}
+          >
             {t.label}
           </Button>
         ))}
@@ -182,7 +201,10 @@ function SimpleResourceTab({
     fetchMasterData(resource)
       .then((rows) => setListState({ status: "ready", rows }))
       .catch((error: unknown) => {
-        const messageText = error instanceof AdminApiError ? error.message : `Failed to load ${title.toLowerCase()}.`;
+        const messageText =
+          error instanceof AdminApiError
+            ? error.message
+            : `Failed to load ${title.toLowerCase()}.`;
         setListState({ status: "error", message: messageText });
       });
   }, [resource, title]);
@@ -209,7 +231,11 @@ function SimpleResourceTab({
       setForm({});
       reload();
     } catch (error) {
-      setCreateError(error instanceof AdminApiError ? error.message : `Failed to create ${title.toLowerCase()}.`);
+      setCreateError(
+        error instanceof AdminApiError
+          ? error.message
+          : `Failed to create ${title.toLowerCase()}.`,
+      );
     } finally {
       setCreating(false);
     }
@@ -241,11 +267,23 @@ function SimpleResourceTab({
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Add {title.toLowerCase()}
         </h2>
-        <form onSubmit={handleCreate} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+        <form
+          onSubmit={handleCreate}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            }}
+          >
             {fields.map((field) => (
               <Input
                 key={field.key}
@@ -304,10 +342,15 @@ function SimpleResourceTab({
                       </td>
                     ))}
                     <td style={{ padding: "0.5rem" }}>
-                      <Badge tone={row.isActive ? "success" : "neutral"}>{row.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                      <Badge tone={row.isActive ? "success" : "neutral"}>
+                        {row.isActive ? "ACTIVE" : "INACTIVE"}
+                      </Badge>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Button variant={row.isActive ? "danger" : "secondary"} onClick={() => handleToggleActive(row)}>
+                      <Button
+                        variant={row.isActive ? "danger" : "secondary"}
+                        onClick={() => handleToggleActive(row)}
+                      >
                         {row.isActive ? "Deactivate" : "Activate"}
                       </Button>
                     </td>
@@ -334,7 +377,12 @@ function SectionsTab() {
 
   const [departments, setDepartments] = useState<MasterDataRow[]>([]);
   const [listState, setListState] = useState<ListState>({ status: "loading" });
-  const [form, setForm] = useState({ code: "", name: "", departmentId: "", description: "" });
+  const [form, setForm] = useState({
+    code: "",
+    name: "",
+    departmentId: "",
+    description: "",
+  });
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -348,7 +396,8 @@ function SectionsTab() {
         setDepartments(depts);
       })
       .catch((error: unknown) => {
-        const messageText = error instanceof AdminApiError ? error.message : "Failed to load sections.";
+        const messageText =
+          error instanceof AdminApiError ? error.message : "Failed to load sections.";
         setListState({ status: "error", message: messageText });
       });
   }, []);
@@ -375,7 +424,9 @@ function SectionsTab() {
       setForm({ code: "", name: "", departmentId: "", description: "" });
       reload();
     } catch (error) {
-      setCreateError(error instanceof AdminApiError ? error.message : "Failed to create section.");
+      setCreateError(
+        error instanceof AdminApiError ? error.message : "Failed to create section.",
+      );
     } finally {
       setCreating(false);
     }
@@ -407,13 +458,35 @@ function SectionsTab() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Add section
         </h2>
-        <form onSubmit={handleCreate} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-            <Input label="Code" required value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
-            <Input label="Name" required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        <form
+          onSubmit={handleCreate}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            }}
+          >
+            <Input
+              label="Code"
+              required
+              value={form.code}
+              onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+            />
+            <Input
+              label="Name"
+              required
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
             <Select
               label="Department"
               required
@@ -441,7 +514,9 @@ function SectionsTab() {
         </form>
       </Card>
 
-      {listState.status === "loading" ? <LoadingState message="Loading sections…" /> : null}
+      {listState.status === "loading" ? (
+        <LoadingState message="Loading sections…" />
+      ) : null}
       {listState.status === "error" ? (
         <Alert tone="danger" title="Could not load sections">
           {listState.message}
@@ -468,12 +543,19 @@ function SectionsTab() {
                   <tr key={row.id} style={{ borderTop: "1px solid var(--nelna-border)" }}>
                     <td style={{ padding: "0.5rem" }}>{row.code}</td>
                     <td style={{ padding: "0.5rem" }}>{row.name}</td>
-                    <td style={{ padding: "0.5rem" }}>{departmentName(row.departmentId)}</td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Badge tone={row.isActive ? "success" : "neutral"}>{row.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                      {departmentName(row.departmentId)}
                     </td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Button variant={row.isActive ? "danger" : "secondary"} onClick={() => handleToggleActive(row)}>
+                      <Badge tone={row.isActive ? "success" : "neutral"}>
+                        {row.isActive ? "ACTIVE" : "INACTIVE"}
+                      </Badge>
+                    </td>
+                    <td style={{ padding: "0.5rem" }}>
+                      <Button
+                        variant={row.isActive ? "danger" : "secondary"}
+                        onClick={() => handleToggleActive(row)}
+                      >
                         {row.isActive ? "Deactivate" : "Activate"}
                       </Button>
                     </td>
@@ -494,14 +576,17 @@ function SectionsTab() {
 
 function PrioritiesTab() {
   const [state, setState] = useState<
-    { status: "loading" } | { status: "error"; message: string } | { status: "ready"; items: Array<{ value: string; label: string }> }
+    | { status: "loading" }
+    | { status: "error"; message: string }
+    | { status: "ready"; items: Array<{ value: string; label: string }> }
   >({ status: "loading" });
 
   useEffect(() => {
     fetchPriorities()
       .then((items) => setState({ status: "ready", items }))
       .catch((error: unknown) => {
-        const message = error instanceof AdminApiError ? error.message : "Failed to load priorities.";
+        const message =
+          error instanceof AdminApiError ? error.message : "Failed to load priorities.";
         setState({ status: "error", message });
       });
   }, []);
@@ -517,13 +602,18 @@ function PrioritiesTab() {
 
   return (
     <Card>
-      <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+      <h2
+        className="text-nelna-primary-dark text-lg"
+        style={{ fontFamily: "var(--nelna-font-display)" }}
+      >
         Priorities
       </h2>
       <p style={{ color: "var(--nelna-text-secondary)", marginTop: "0.25rem" }}>
         Fixed system enum values — not editable here.
       </p>
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+      <div
+        style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}
+      >
         {state.items.map((item) => (
           <Badge key={item.value} tone="neutral">
             {item.label}
@@ -540,7 +630,9 @@ function PrioritiesTab() {
 
 function LoadingDecisionPoliciesTab() {
   const [listState, setListState] = useState<
-    { status: "loading" } | { status: "error"; message: string } | { status: "ready"; rows: LoadingDecisionPolicyRow[] }
+    | { status: "loading" }
+    | { status: "error"; message: string }
+    | { status: "ready"; rows: LoadingDecisionPolicyRow[] }
   >({ status: "loading" });
   const [form, setForm] = useState({ key: "", description: "", config: "{}" });
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -552,7 +644,8 @@ function LoadingDecisionPoliciesTab() {
     fetchLoadingDecisionPolicies()
       .then((rows) => setListState({ status: "ready", rows }))
       .catch((error: unknown) => {
-        const messageText = error instanceof AdminApiError ? error.message : "Failed to load policies.";
+        const messageText =
+          error instanceof AdminApiError ? error.message : "Failed to load policies.";
         setListState({ status: "error", message: messageText });
       });
   }, []);
@@ -589,8 +682,8 @@ function LoadingDecisionPoliciesTab() {
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
       <Alert tone="information" title="Admin-supplied only">
-        This system does not invent or pre-fill Nelna&apos;s loading decision policy content — whatever you post here
-        is stored and returned as-is.
+        This system does not invent or pre-fill Nelna&apos;s loading decision policy
+        content — whatever you post here is stored and returned as-is.
       </Alert>
 
       {message ? (
@@ -600,12 +693,29 @@ function LoadingDecisionPoliciesTab() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Create or replace a policy
         </h2>
-        <form onSubmit={handleSave} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-            <Input label="Key" required value={form.key} onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))} />
+        <form
+          onSubmit={handleSave}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            }}
+          >
+            <Input
+              label="Key"
+              required
+              value={form.key}
+              onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
+            />
             <Input
               label="Description"
               value={form.description}
@@ -631,25 +741,40 @@ function LoadingDecisionPoliciesTab() {
         </form>
       </Card>
 
-      {listState.status === "loading" ? <LoadingState message="Loading policies…" /> : null}
+      {listState.status === "loading" ? (
+        <LoadingState message="Loading policies…" />
+      ) : null}
       {listState.status === "error" ? (
         <Alert tone="danger" title="Could not load policies">
           {listState.message}
         </Alert>
       ) : null}
       {listState.status === "ready" && listState.rows.length === 0 ? (
-        <EmptyState title="No policies yet" description="Create the first policy above." />
+        <EmptyState
+          title="No policies yet"
+          description="Create the first policy above."
+        />
       ) : null}
       {listState.status === "ready" && listState.rows.length > 0 ? (
         <div style={{ display: "grid", gap: "0.75rem" }}>
           {listState.rows.map((row) => (
             <Card key={row.id}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <h3 style={{ margin: 0 }}>{row.key}</h3>
-                <Badge tone={row.isActive ? "success" : "neutral"}>{row.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                <Badge tone={row.isActive ? "success" : "neutral"}>
+                  {row.isActive ? "ACTIVE" : "INACTIVE"}
+                </Badge>
               </div>
               {row.description ? (
-                <p style={{ color: "var(--nelna-text-secondary)", marginTop: "0.25rem" }}>{row.description}</p>
+                <p style={{ color: "var(--nelna-text-secondary)", marginTop: "0.25rem" }}>
+                  {row.description}
+                </p>
               ) : null}
               <pre
                 style={{

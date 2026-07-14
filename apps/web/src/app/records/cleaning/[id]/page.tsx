@@ -15,7 +15,9 @@ type CleaningRecordDetailPageProps = {
  * by the current user; read-only for everyone else once it's been
  * submitted, matching the operator-editing lock business rule.
  */
-export default async function CleaningRecordDetailPage({ params }: CleaningRecordDetailPageProps) {
+export default async function CleaningRecordDetailPage({
+  params,
+}: CleaningRecordDetailPageProps) {
   const { id } = await params;
   return <InspectionRecordWorkspace recordId={id} />;
 }

@@ -24,7 +24,9 @@ export function toAdminUserSummary(user: UserWithRelations): AdminUserSummary {
     department: user.department
       ? { id: user.department.id, name: user.department.name, code: user.department.code }
       : null,
-    section: user.section ? { id: user.section.id, name: user.section.name, code: user.section.code } : null,
+    section: user.section
+      ? { id: user.section.id, name: user.section.name, code: user.section.code }
+      : null,
     roles: user.userRoles.map((userRole) => userRole.role.name as UserRole),
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
     failedLoginAttempts: user.failedLoginAttempts,

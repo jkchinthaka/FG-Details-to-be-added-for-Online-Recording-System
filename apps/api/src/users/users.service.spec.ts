@@ -127,7 +127,9 @@ describe("UsersService", () => {
       const createCall = prismaMock.user.create.mock.calls[0]![0];
       expect(createCall.data.passwordHash).not.toBe("password123");
       expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ action: "USER_CREATED" }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ action: "USER_CREATED" }),
+        }),
       );
     });
   });
@@ -155,7 +157,9 @@ describe("UsersService", () => {
       const result = await service.deactivate("admin-1", "actor-1");
       expect(result.status).toBe("INACTIVE");
       expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ action: "USER_DEACTIVATED" }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ action: "USER_DEACTIVATED" }),
+        }),
       );
     });
 
@@ -176,7 +180,9 @@ describe("UsersService", () => {
       const prismaMock = buildPrismaMock();
       prismaMock.user.findUnique.mockResolvedValue(makeAdminUser());
       prismaMock.user.count.mockResolvedValue(0);
-      prismaMock.role.findMany.mockResolvedValue([{ id: "role-op", name: "FG_OPERATOR" }]);
+      prismaMock.role.findMany.mockResolvedValue([
+        { id: "role-op", name: "FG_OPERATOR" },
+      ]);
       const service = buildService(prismaMock);
 
       await expect(
@@ -189,17 +195,29 @@ describe("UsersService", () => {
       const prismaMock = buildPrismaMock();
       prismaMock.user.findUnique
         .mockResolvedValueOnce(makeAdminUser())
-        .mockResolvedValueOnce(makeAdminUser({ userRoles: [{ role: { name: "FG_SUPERVISOR" } }] }));
+        .mockResolvedValueOnce(
+          makeAdminUser({ userRoles: [{ role: { name: "FG_SUPERVISOR" } }] }),
+        );
       prismaMock.user.count.mockResolvedValue(1);
-      prismaMock.role.findMany.mockResolvedValue([{ id: "role-sup", name: "FG_SUPERVISOR" }]);
+      prismaMock.role.findMany.mockResolvedValue([
+        { id: "role-sup", name: "FG_SUPERVISOR" },
+      ]);
       const service = buildService(prismaMock);
 
-      const result = await service.assignRoles("admin-1", { roleNames: ["FG_SUPERVISOR"] }, "actor-1");
+      const result = await service.assignRoles(
+        "admin-1",
+        { roleNames: ["FG_SUPERVISOR"] },
+        "actor-1",
+      );
 
       expect(result.roles).toEqual(["FG_SUPERVISOR"]);
-      expect(prismaMock.userRole.deleteMany).toHaveBeenCalledWith({ where: { userId: "admin-1" } });
+      expect(prismaMock.userRole.deleteMany).toHaveBeenCalledWith({
+        where: { userId: "admin-1" },
+      });
       expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ action: "USER_ROLES_CHANGED" }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ action: "USER_ROLES_CHANGED" }),
+        }),
       );
     });
   });
@@ -221,7 +239,9 @@ describe("UsersService", () => {
         }),
       );
       expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ action: "USER_PASSWORD_RESET" }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ action: "USER_PASSWORD_RESET" }),
+        }),
       );
     });
   });
@@ -229,7 +249,9 @@ describe("UsersService", () => {
   describe("accessHistory", () => {
     it("returns sessions without token hashes", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.user.findUnique.mockResolvedValue(makeUser({ lastLoginAt: new Date("2026-01-02T00:00:00.000Z") }));
+      prismaMock.user.findUnique.mockResolvedValue(
+        makeUser({ lastLoginAt: new Date("2026-01-02T00:00:00.000Z") }),
+      );
       prismaMock.refreshToken.findMany.mockResolvedValue([
         {
           id: "rt-1",

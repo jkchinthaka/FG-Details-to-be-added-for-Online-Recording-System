@@ -16,7 +16,11 @@ import {
   UnknownRoleException,
   UserNotFoundException,
 } from "./users.errors";
-import { USER_WITH_RELATIONS_INCLUDE, toAdminUserSummary, type UserWithRelations } from "./users.mappers";
+import {
+  USER_WITH_RELATIONS_INCLUDE,
+  toAdminUserSummary,
+  type UserWithRelations,
+} from "./users.mappers";
 import type {
   AdminPasswordResetResponse,
   AdminUserAccessHistoryResponse,
@@ -105,12 +109,17 @@ export class UsersService {
         passwordHash,
         departmentId: dto.departmentId,
         sectionId: dto.sectionId,
-        userRoles: roleIds.length > 0 ? { create: roleIds.map((roleId) => ({ roleId })) } : undefined,
+        userRoles:
+          roleIds.length > 0
+            ? { create: roleIds.map((roleId) => ({ roleId })) }
+            : undefined,
       },
       include: USER_WITH_RELATIONS_INCLUDE,
     });
 
-    await this.recordAudit(actorId, "USER_CREATED", user.id, { roleNames: dto.roleNames ?? [] });
+    await this.recordAudit(actorId, "USER_CREATED", user.id, {
+      roleNames: dto.roleNames ?? [],
+    });
     return toAdminUserSummary(user);
   }
 
@@ -158,7 +167,10 @@ export class UsersService {
   // Department / section / roles
   // -------------------------------------------------------------------------
 
-  async assignDepartment(id: string, dto: AssignDepartmentDto): Promise<AdminUserSummary> {
+  async assignDepartment(
+    id: string,
+    dto: AssignDepartmentDto,
+  ): Promise<AdminUserSummary> {
     await this.findUserOrThrow(id);
     const user = await this.prisma.user.update({
       where: { id },
@@ -171,7 +183,11 @@ export class UsersService {
     return toAdminUserSummary(user);
   }
 
-  async assignRoles(id: string, dto: AssignRolesDto, actorId: string): Promise<AdminUserSummary> {
+  async assignRoles(
+    id: string,
+    dto: AssignRolesDto,
+    actorId: string,
+  ): Promise<AdminUserSummary> {
     const existing = await this.findUserOrThrow(id);
     const roleIds = await this.resolveRoleIds(dto.roleNames);
 
@@ -183,7 +199,9 @@ export class UsersService {
 
     await this.prisma.$transaction([
       this.prisma.userRole.deleteMany({ where: { userId: id } }),
-      this.prisma.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: id, roleId })) }),
+      this.prisma.userRole.createMany({
+        data: roleIds.map((roleId) => ({ userId: id, roleId })),
+      }),
     ]);
 
     await this.recordAudit(actorId, "USER_ROLES_CHANGED", id, {
@@ -227,7 +245,11 @@ export class UsersService {
     };
   }
 
-  async resetPassword(id: string, dto: ResetPasswordDto, actorId: string): Promise<AdminPasswordResetResponse> {
+  async resetPassword(
+    id: string,
+    dto: ResetPasswordDto,
+    actorId: string,
+  ): Promise<AdminPasswordResetResponse> {
     await this.findUserOrThrow(id);
     const temporaryPassword = dto.temporaryPassword ?? generateTemporaryPassword();
     const passwordHash = await bcrypt.hash(temporaryPassword, BCRYPT_ROUNDS);
@@ -246,7 +268,10 @@ export class UsersService {
   // -------------------------------------------------------------------------
 
   private async findUserOrThrow(id: string): Promise<UserWithRelations> {
-    const user = await this.prisma.user.findUnique({ where: { id }, include: USER_WITH_RELATIONS_INCLUDE });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: USER_WITH_RELATIONS_INCLUDE,
+    });
     if (!user) throw new UserNotFoundException(id);
     return user;
   }
@@ -275,7 +300,10 @@ export class UsersService {
     if (existing) throw new EmployeeCodeConflictException(employeeCode);
   }
 
-  private async assertEmailAvailable(email: string, excludeUserId?: string): Promise<void> {
+  private async assertEmailAvailable(
+    email: string,
+    excludeUserId?: string,
+  ): Promise<void> {
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing && existing.id !== excludeUserId) {
       throw new EmailConflictException(email);
@@ -299,7 +327,13 @@ export class UsersService {
     metadata: Record<string, unknown>,
   ): Promise<void> {
     await this.prisma.auditLog.create({
-      data: { actorId, action, entityType: "User", entityId, metadata: metadata as Prisma.InputJsonValue },
+      data: {
+        actorId,
+        action,
+        entityType: "User",
+        entityId,
+        metadata: metadata as Prisma.InputJsonValue,
+      },
     });
   }
 }

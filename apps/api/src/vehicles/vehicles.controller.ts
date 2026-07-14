@@ -12,9 +12,13 @@ export class VehiclesController {
   @Get()
   @RequirePermissions("records:create", "records:read")
   @ApiOperation({
-    summary: "Search vehicles for the freezer truck inspection's vehicle selector; omit q for a recent vehicles list",
+    summary:
+      "Search vehicles for the freezer truck inspection's vehicle selector; omit q for a recent vehicles list",
   })
-  search(@Query("q") q?: string, @Query("limit") limit?: string): Promise<VehicleSearchResponse> {
+  search(
+    @Query("q") q?: string,
+    @Query("limit") limit?: string,
+  ): Promise<VehicleSearchResponse> {
     const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
     return this.vehiclesService.search(q, parsedLimit);
   }

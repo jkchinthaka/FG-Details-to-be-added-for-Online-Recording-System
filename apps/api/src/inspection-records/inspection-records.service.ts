@@ -41,7 +41,11 @@ import {
 } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RequestUser } from "../auth/auth.types";
-import { LoadingDecisionStatus, RecordStatus, TemplateStatus } from "../../generated/prisma-client";
+import {
+  LoadingDecisionStatus,
+  RecordStatus,
+  TemplateStatus,
+} from "../../generated/prisma-client";
 import {
   VERSION_WITH_CONTENT_INCLUDE,
   mapVersionToDefinition,
@@ -92,7 +96,12 @@ const DEFAULT_TRUCK_AREA_LABEL = "Dispatch / Loading Bay";
  *  "requires correct role (supervisor/QA)" business rule. Checked here in
  *  addition to the `@Roles()` guard so the rule holds even if a controller
  *  is ever wired up without it. */
-const LOADING_DECISION_ROLES = ["FG_SUPERVISOR", "QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "SYSTEM_ADMINISTRATOR"];
+const LOADING_DECISION_ROLES = [
+  "FG_SUPERVISOR",
+  "QA_EXECUTIVE",
+  "FOOD_SAFETY_TEAM_LEADER",
+  "SYSTEM_ADMINISTRATOR",
+];
 
 function hasOnlyRole(roles: string[], role: string): boolean {
   return roles.length > 0 && roles.every((r) => r === role);
@@ -116,7 +125,10 @@ export class InspectionRecordsService {
   // Create / resume draft
   // -------------------------------------------------------------------------
 
-  async createCleaningDraft(user: RequestUser, dto: CreateCleaningDraftDto): Promise<InspectionRecordDetail> {
+  async createCleaningDraft(
+    user: RequestUser,
+    dto: CreateCleaningDraftDto,
+  ): Promise<InspectionRecordDetail> {
     const parsed = createCleaningDraftSchema.safeParse(dto);
     if (!parsed.success) {
       throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
@@ -124,7 +136,8 @@ export class InspectionRecordsService {
 
     const recordDate = parsed.data.recordDate ?? colomboDateOnly();
     const recordDateAtMidnight = dateOnlyToUtcMidnight(recordDate);
-    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
+    const shiftCode: WorkShift =
+      parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
     const areaLabel = parsed.data.areaLabel ?? DEFAULT_CLEANING_AREA_LABEL;
 
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
@@ -140,7 +153,13 @@ export class InspectionRecordsService {
     });
 
     const resolution = resolveDraftDuplicate(
-      existing ? { id: existing.id, status: existing.status as SharedRecordStatus, createdById: existing.createdById } : null,
+      existing
+        ? {
+            id: existing.id,
+            status: existing.status as SharedRecordStatus,
+            createdById: existing.createdById,
+          }
+        : null,
       user.id,
     );
 
@@ -153,7 +172,9 @@ export class InspectionRecordsService {
         include: RECORD_HEADER_INCLUDE,
       });
     } else {
-      const templateVersion = await this.findPublishedTemplateVersion(DOCUMENT_CODES.DAILY_CLEANING);
+      const templateVersion = await this.findPublishedTemplateVersion(
+        DOCUMENT_CODES.DAILY_CLEANING,
+      );
       record = await this.prisma.inspectionRecord.create({
         data: {
           templateVersionId: templateVersion.id,
@@ -179,7 +200,10 @@ export class InspectionRecordsService {
    *  (NMS/PPU/CL/30). Duplicate-prevention is scoped to the *same vehicle*
    *  for the date/shift, rather than the whole area — several different
    *  trucks are routinely inspected in the same shift/loading bay. */
-  async createTruckDraft(user: RequestUser, dto: CreateTruckDraftDto): Promise<InspectionRecordDetail> {
+  async createTruckDraft(
+    user: RequestUser,
+    dto: CreateTruckDraftDto,
+  ): Promise<InspectionRecordDetail> {
     const parsed = createTruckDraftSchema.safeParse(dto);
     if (!parsed.success) {
       throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
@@ -187,7 +211,8 @@ export class InspectionRecordsService {
 
     const recordDate = parsed.data.recordDate ?? colomboDateOnly();
     const recordDateAtMidnight = dateOnlyToUtcMidnight(recordDate);
-    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
+    const shiftCode: WorkShift =
+      parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
     const areaLabel = parsed.data.areaLabel ?? DEFAULT_TRUCK_AREA_LABEL;
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
 
@@ -204,7 +229,13 @@ export class InspectionRecordsService {
     });
 
     const resolution = resolveDraftDuplicate(
-      existing ? { id: existing.id, status: existing.status as SharedRecordStatus, createdById: existing.createdById } : null,
+      existing
+        ? {
+            id: existing.id,
+            status: existing.status as SharedRecordStatus,
+            createdById: existing.createdById,
+          }
+        : null,
       user.id,
     );
 
@@ -217,8 +248,12 @@ export class InspectionRecordsService {
         include: RECORD_HEADER_INCLUDE,
       });
     } else {
-      const templateVersion = await this.findPublishedTemplateVersion(DOCUMENT_CODES.FREEZER_TRUCK);
-      const reinspectionOfId = await this.resolveReinspectionTarget(parsed.data.reinspectionOfRecordId);
+      const templateVersion = await this.findPublishedTemplateVersion(
+        DOCUMENT_CODES.FREEZER_TRUCK,
+      );
+      const reinspectionOfId = await this.resolveReinspectionTarget(
+        parsed.data.reinspectionOfRecordId,
+      );
 
       record = await this.prisma.inspectionRecord.create({
         data: {
@@ -268,7 +303,11 @@ export class InspectionRecordsService {
   // Save draft (autosave / explicit save)
   // -------------------------------------------------------------------------
 
-  async saveDraft(user: RequestUser, id: string, dto: SaveDraftDto): Promise<InspectionRecordDetail> {
+  async saveDraft(
+    user: RequestUser,
+    id: string,
+    dto: SaveDraftDto,
+  ): Promise<InspectionRecordDetail> {
     const parsed = saveDraftResponsesSchema.safeParse(dto);
     if (!parsed.success) {
       throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
@@ -277,11 +316,21 @@ export class InspectionRecordsService {
     const record = await this.findRecordOrThrow(id);
     this.assertOwnerCanEdit(record, user);
 
-    const templateVersion = await this.loadTemplateVersionContent(record.templateVersionId);
-    await this.persistResponses(record.id, templateVersion, parsed.data.responses, user.id);
+    const templateVersion = await this.loadTemplateVersionContent(
+      record.templateVersionId,
+    );
+    await this.persistResponses(
+      record.id,
+      templateVersion,
+      parsed.data.responses,
+      user.id,
+    );
 
     if (parsed.data.areaLabel && parsed.data.areaLabel !== record.areaLabel) {
-      await this.prisma.inspectionRecord.update({ where: { id }, data: { areaLabel: parsed.data.areaLabel } });
+      await this.prisma.inspectionRecord.update({
+        where: { id },
+        data: { areaLabel: parsed.data.areaLabel },
+      });
     }
 
     return this.getById(user, id);
@@ -291,7 +340,11 @@ export class InspectionRecordsService {
   // Submit
   // -------------------------------------------------------------------------
 
-  async submit(user: RequestUser, id: string, dto: SubmitRecordDto): Promise<SubmitRecordResult> {
+  async submit(
+    user: RequestUser,
+    id: string,
+    dto: SubmitRecordDto,
+  ): Promise<SubmitRecordResult> {
     const parsed = submitInspectionRecordSchema.safeParse(dto ?? {});
     if (!parsed.success) {
       throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
@@ -300,10 +353,17 @@ export class InspectionRecordsService {
     const record = await this.findRecordOrThrow(id);
     this.assertOwnerCanEdit(record, user);
 
-    const templateVersion = await this.loadTemplateVersionContent(record.templateVersionId);
+    const templateVersion = await this.loadTemplateVersionContent(
+      record.templateVersionId,
+    );
 
     if (parsed.data.responses) {
-      await this.persistResponses(record.id, templateVersion, parsed.data.responses, user.id);
+      await this.persistResponses(
+        record.id,
+        templateVersion,
+        parsed.data.responses,
+        user.id,
+      );
     }
 
     const versionDefinition = mapVersionToDefinition(templateVersion);
@@ -315,50 +375,65 @@ export class InspectionRecordsService {
     });
     const responseMap = toResponseMap(results);
 
-    const validation = validateChecklistResponses(versionDefinition.sections, responseMap);
+    const validation = validateChecklistResponses(
+      versionDefinition.sections,
+      responseMap,
+    );
     if (!validation.isValid) {
       throw new RecordValidationException(validation.errors);
     }
 
     const submittedAt = new Date();
-    const { correctiveActionsCreated, loadingDecision } = await this.prisma.$transaction(async (tx) => {
-      // The conditional update is the concurrency gate. Two double-taps (or
-      // retries after a lost response) may both read a DRAFT, but only one may
-      // transition it to SUBMITTED and create its downstream workflow rows.
-      const claimed = await tx.inspectionRecord.updateMany({
-        where: {
-          id: record.id,
-          status: {
-            in: [RecordStatus.DRAFT, RecordStatus.REJECTED, RecordStatus.RETURNED_FOR_CORRECTION],
+    const { correctiveActionsCreated, loadingDecision } = await this.prisma.$transaction(
+      async (tx) => {
+        // The conditional update is the concurrency gate. Two double-taps (or
+        // retries after a lost response) may both read a DRAFT, but only one may
+        // transition it to SUBMITTED and create its downstream workflow rows.
+        const claimed = await tx.inspectionRecord.updateMany({
+          where: {
+            id: record.id,
+            status: {
+              in: [
+                RecordStatus.DRAFT,
+                RecordStatus.REJECTED,
+                RecordStatus.RETURNED_FOR_CORRECTION,
+              ],
+            },
           },
-        },
-        data: { status: RecordStatus.PENDING_CHECK, submittedAt },
-      });
-      if (claimed.count !== 1) {
-        throw new RecordLockedException();
-      }
+          data: { status: RecordStatus.PENDING_CHECK, submittedAt },
+        });
+        if (claimed.count !== 1) {
+          throw new RecordLockedException();
+        }
 
-      const correctiveActionsCreated = await this.createCorrectiveActionsForFailures(
-        record.id,
-        items,
-        responseMap,
-        results,
-        user.id,
-        tx,
-      );
+        const correctiveActionsCreated = await this.createCorrectiveActionsForFailures(
+          record.id,
+          items,
+          responseMap,
+          results,
+          user.id,
+          tx,
+        );
 
-      await tx.taskAssignment.updateMany({
-        where: { recordId: record.id },
-        data: { status: "SUBMITTED" },
-      });
+        await tx.taskAssignment.updateMany({
+          where: { recordId: record.id },
+          data: { status: "SUBMITTED" },
+        });
 
-      const loadingDecision =
-        record.documentCode === DOCUMENT_CODES.FREEZER_TRUCK
-          ? await this.recordLoadingDecisionRecommendation(record, items, responseMap, user.id, tx)
-          : null;
+        const loadingDecision =
+          record.documentCode === DOCUMENT_CODES.FREEZER_TRUCK
+            ? await this.recordLoadingDecisionRecommendation(
+                record,
+                items,
+                responseMap,
+                user.id,
+                tx,
+              )
+            : null;
 
-      return { correctiveActionsCreated, loadingDecision };
-    });
+        return { correctiveActionsCreated, loadingDecision };
+      },
+    );
 
     const counts = computeRecordCounts(items, responseMap);
     const status: SharedRecordStatus = "PENDING_CHECK";
@@ -366,7 +441,11 @@ export class InspectionRecordsService {
     return {
       recordId: record.id,
       documentCode: record.documentCode,
-      recordNumber: formatRecordNumber(record.documentCode, toDateOnlyString(record.recordDate), record.id),
+      recordNumber: formatRecordNumber(
+        record.documentCode,
+        toDateOnlyString(record.recordDate),
+        record.id,
+      ),
       status,
       submittedAt: submittedAt.toISOString(),
       counts,
@@ -391,185 +470,251 @@ export class InspectionRecordsService {
     return this.listByStatuses(user, ["PENDING_VERIFICATION", "CHECKED"]);
   }
 
-  async checkRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+  async checkRecord(
+    user: RequestUser,
+    id: string,
+    dto: WorkflowCommentDto,
+  ): Promise<InspectionRecordDetail> {
     this.requirePermission(user, "records:check", "check");
-    return this.applyWorkflow(user, id, "CHECK", dto?.comment, async (tx, record, toStatus) => {
-      const sod = assertCheckSegregationOfDuty(DEFAULT_WORKFLOW_POLICY, user.id, record.createdById);
-      if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
+    return this.applyWorkflow(
+      user,
+      id,
+      "CHECK",
+      dto?.comment,
+      async (tx, record, toStatus) => {
+        const sod = assertCheckSegregationOfDuty(
+          DEFAULT_WORKFLOW_POLICY,
+          user.id,
+          record.createdById,
+        );
+        if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
 
-      const prior = await tx.approvalRecord.findFirst({
-        where: { recordId: record.id, approvalType: "CHECK", decision: "APPROVED" },
-      });
-      if (prior) throw new DuplicateWorkflowApprovalException("CHECK");
+        const prior = await tx.approvalRecord.findFirst({
+          where: { recordId: record.id, approvalType: "CHECK", decision: "APPROVED" },
+        });
+        if (prior) throw new DuplicateWorkflowApprovalException("CHECK");
 
-      const decidedAt = new Date();
-      await tx.inspectionRecord.update({
-        where: { id: record.id },
-        data: {
-          status: toStatus as RecordStatus,
-          checkedById: user.id,
-          checkedAt: decidedAt,
-        },
-      });
-      await tx.approvalRecord.create({
-        data: {
-          recordId: record.id,
-          approvalType: "CHECK",
-          decision: "APPROVED",
-          decidedById: user.id,
-          decidedAt,
-          comments: dto?.comment?.trim() || null,
-        },
-      });
-      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_CHECKED", {
-        toStatus,
-        roles: user.roles,
-      });
-      await this.notifyUser(tx, record.createdById, "RECORD_CHECKED", "Record checked", `Record ${record.documentCode} was checked.`, record.id);
-      await this.notifyUser(
-        tx,
-        record.createdById,
-        "RECORD_PENDING_VERIFICATION",
-        "Awaiting verification",
-        `Record ${record.documentCode} is pending QA verification.`,
-        record.id,
-      );
-    });
+        const decidedAt = new Date();
+        await tx.inspectionRecord.update({
+          where: { id: record.id },
+          data: {
+            status: toStatus as RecordStatus,
+            checkedById: user.id,
+            checkedAt: decidedAt,
+          },
+        });
+        await tx.approvalRecord.create({
+          data: {
+            recordId: record.id,
+            approvalType: "CHECK",
+            decision: "APPROVED",
+            decidedById: user.id,
+            decidedAt,
+            comments: dto?.comment?.trim() || null,
+          },
+        });
+        await this.writeWorkflowAudit(tx, user, record.id, "RECORD_CHECKED", {
+          toStatus,
+          roles: user.roles,
+        });
+        await this.notifyUser(
+          tx,
+          record.createdById,
+          "RECORD_CHECKED",
+          "Record checked",
+          `Record ${record.documentCode} was checked.`,
+          record.id,
+        );
+        await this.notifyUser(
+          tx,
+          record.createdById,
+          "RECORD_PENDING_VERIFICATION",
+          "Awaiting verification",
+          `Record ${record.documentCode} is pending QA verification.`,
+          record.id,
+        );
+      },
+    );
   }
 
-  async verifyRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+  async verifyRecord(
+    user: RequestUser,
+    id: string,
+    dto: WorkflowCommentDto,
+  ): Promise<InspectionRecordDetail> {
     this.requirePermission(user, "records:verify", "verify");
-    return this.applyWorkflow(user, id, "VERIFY", dto?.comment, async (tx, record, toStatus) => {
-      const sod = assertVerifySegregationOfDuty(
-        DEFAULT_WORKFLOW_POLICY,
-        user.id,
-        record.createdById,
-        record.checkedById,
-      );
-      if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
+    return this.applyWorkflow(
+      user,
+      id,
+      "VERIFY",
+      dto?.comment,
+      async (tx, record, toStatus) => {
+        const sod = assertVerifySegregationOfDuty(
+          DEFAULT_WORKFLOW_POLICY,
+          user.id,
+          record.createdById,
+          record.checkedById,
+        );
+        if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
 
-      const prior = await tx.approvalRecord.findFirst({
-        where: { recordId: record.id, approvalType: "VERIFY", decision: "APPROVED" },
-      });
-      if (prior) throw new DuplicateWorkflowApprovalException("VERIFY");
+        const prior = await tx.approvalRecord.findFirst({
+          where: { recordId: record.id, approvalType: "VERIFY", decision: "APPROVED" },
+        });
+        if (prior) throw new DuplicateWorkflowApprovalException("VERIFY");
 
-      const decidedAt = new Date();
-      await tx.inspectionRecord.update({
-        where: { id: record.id },
-        data: {
-          status: toStatus as RecordStatus,
-          verifiedById: user.id,
-          verifiedAt: decidedAt,
-        },
-      });
-      await tx.approvalRecord.create({
-        data: {
-          recordId: record.id,
-          approvalType: "VERIFY",
-          decision: "APPROVED",
-          decidedById: user.id,
-          decidedAt,
-          comments: dto?.comment?.trim() || null,
-        },
-      });
-      await tx.taskAssignment.updateMany({
-        where: { recordId: record.id },
-        data: { status: "VERIFIED" },
-      });
-      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VERIFIED", {
-        toStatus,
-        roles: user.roles,
-      });
-      await this.notifyUser(
-        tx,
-        record.createdById,
-        "RECORD_VERIFIED",
-        "Record verified",
-        `Record ${record.documentCode} was verified.`,
-        record.id,
-      );
-    });
+        const decidedAt = new Date();
+        await tx.inspectionRecord.update({
+          where: { id: record.id },
+          data: {
+            status: toStatus as RecordStatus,
+            verifiedById: user.id,
+            verifiedAt: decidedAt,
+          },
+        });
+        await tx.approvalRecord.create({
+          data: {
+            recordId: record.id,
+            approvalType: "VERIFY",
+            decision: "APPROVED",
+            decidedById: user.id,
+            decidedAt,
+            comments: dto?.comment?.trim() || null,
+          },
+        });
+        await tx.taskAssignment.updateMany({
+          where: { recordId: record.id },
+          data: { status: "VERIFIED" },
+        });
+        await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VERIFIED", {
+          toStatus,
+          roles: user.roles,
+        });
+        await this.notifyUser(
+          tx,
+          record.createdById,
+          "RECORD_VERIFIED",
+          "Record verified",
+          `Record ${record.documentCode} was verified.`,
+          record.id,
+        );
+      },
+    );
   }
 
-  async returnRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+  async returnRecord(
+    user: RequestUser,
+    id: string,
+    dto: WorkflowCommentDto,
+  ): Promise<InspectionRecordDetail> {
     this.requirePermission(user, "records:return", "return");
     const comment = dto?.comment?.trim();
     if (!comment) throw new WorkflowCommentRequiredException("RETURN");
-    return this.applyWorkflow(user, id, "RETURN", comment, async (tx, record, toStatus) => {
-      const decidedAt = new Date();
-      await tx.inspectionRecord.update({
-        where: { id: record.id },
-        data: { status: toStatus as RecordStatus },
-      });
-      await tx.approvalRecord.create({
-        data: {
-          recordId: record.id,
-          approvalType: "RETURN",
-          decision: "REJECTED",
-          decidedById: user.id,
-          decidedAt,
-          comments: comment,
-        },
-      });
-      await tx.taskAssignment.updateMany({
-        where: { recordId: record.id },
-        data: { status: "REJECTED" },
-      });
-      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_RETURNED", {
-        toStatus,
-        roles: user.roles,
-        comment,
-      });
-      await this.notifyUser(
-        tx,
-        record.createdById,
-        "RECORD_RETURNED",
-        "Record returned for correction",
-        comment,
-        record.id,
-      );
-    });
+    return this.applyWorkflow(
+      user,
+      id,
+      "RETURN",
+      comment,
+      async (tx, record, toStatus) => {
+        const decidedAt = new Date();
+        await tx.inspectionRecord.update({
+          where: { id: record.id },
+          data: { status: toStatus as RecordStatus },
+        });
+        await tx.approvalRecord.create({
+          data: {
+            recordId: record.id,
+            approvalType: "RETURN",
+            decision: "REJECTED",
+            decidedById: user.id,
+            decidedAt,
+            comments: comment,
+          },
+        });
+        await tx.taskAssignment.updateMany({
+          where: { recordId: record.id },
+          data: { status: "REJECTED" },
+        });
+        await this.writeWorkflowAudit(tx, user, record.id, "RECORD_RETURNED", {
+          toStatus,
+          roles: user.roles,
+          comment,
+        });
+        await this.notifyUser(
+          tx,
+          record.createdById,
+          "RECORD_RETURNED",
+          "Record returned for correction",
+          comment,
+          record.id,
+        );
+      },
+    );
   }
 
-  async rejectRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+  async rejectRecord(
+    user: RequestUser,
+    id: string,
+    dto: WorkflowCommentDto,
+  ): Promise<InspectionRecordDetail> {
     this.requirePermission(user, "records:reject", "reject");
     const comment = dto?.comment?.trim();
     if (!comment) throw new WorkflowCommentRequiredException("REJECT");
-    return this.applyWorkflow(user, id, "REJECT", comment, async (tx, record, toStatus) => {
-      const decidedAt = new Date();
-      await tx.inspectionRecord.update({
-        where: { id: record.id },
-        data: { status: toStatus as RecordStatus },
-      });
-      await tx.approvalRecord.create({
-        data: {
-          recordId: record.id,
-          approvalType: "REJECT",
-          decision: "REJECTED",
-          decidedById: user.id,
-          decidedAt,
-          comments: comment,
-        },
-      });
-      await tx.taskAssignment.updateMany({
-        where: { recordId: record.id },
-        data: { status: "REJECTED" },
-      });
-      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_REJECTED", {
-        toStatus,
-        roles: user.roles,
-        comment,
-      });
-      await this.notifyUser(tx, record.createdById, "RECORD_REJECTED", "Record rejected", comment, record.id);
-    });
+    return this.applyWorkflow(
+      user,
+      id,
+      "REJECT",
+      comment,
+      async (tx, record, toStatus) => {
+        const decidedAt = new Date();
+        await tx.inspectionRecord.update({
+          where: { id: record.id },
+          data: { status: toStatus as RecordStatus },
+        });
+        await tx.approvalRecord.create({
+          data: {
+            recordId: record.id,
+            approvalType: "REJECT",
+            decision: "REJECTED",
+            decidedById: user.id,
+            decidedAt,
+            comments: comment,
+          },
+        });
+        await tx.taskAssignment.updateMany({
+          where: { recordId: record.id },
+          data: { status: "REJECTED" },
+        });
+        await this.writeWorkflowAudit(tx, user, record.id, "RECORD_REJECTED", {
+          toStatus,
+          roles: user.roles,
+          comment,
+        });
+        await this.notifyUser(
+          tx,
+          record.createdById,
+          "RECORD_REJECTED",
+          "Record rejected",
+          comment,
+          record.id,
+        );
+      },
+    );
   }
 
-  async voidRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+  async voidRecord(
+    user: RequestUser,
+    id: string,
+    dto: WorkflowCommentDto,
+  ): Promise<InspectionRecordDetail> {
     this.requirePermission(user, "records:void", "void");
     const comment = dto?.comment?.trim();
     if (!comment) throw new WorkflowCommentRequiredException("VOID");
     return this.applyWorkflow(user, id, "VOID", comment, async (tx, record, toStatus) => {
-      if (!isImmutableVerifiedStatus(record.status as SharedRecordStatus) && record.status !== "VERIFIED" && record.status !== "COMPLETED") {
+      if (
+        !isImmutableVerifiedStatus(record.status as SharedRecordStatus) &&
+        record.status !== "VERIFIED" &&
+        record.status !== "COMPLETED"
+      ) {
         // applyWorkflow already validates transition; VOID only from VERIFIED/COMPLETED
       }
       const decidedAt = new Date();
@@ -604,17 +749,26 @@ export class InspectionRecordsService {
     return this.prisma.approvalRecord.findMany({
       where: { recordId: id },
       orderBy: { createdAt: "asc" },
-      include: { decidedBy: { select: { id: true, fullName: true, employeeCode: true } } },
+      include: {
+        decidedBy: { select: { id: true, fullName: true, employeeCode: true } },
+      },
     });
   }
 
-  private requirePermission(user: RequestUser, permission: PermissionKey, action: string): void {
+  private requirePermission(
+    user: RequestUser,
+    permission: PermissionKey,
+    action: string,
+  ): void {
     if (!hasPermission(user, permission)) {
       throw new WorkflowPermissionForbiddenException(action);
     }
   }
 
-  private async listByStatuses(user: RequestUser, statuses: SharedRecordStatus[]): Promise<InspectionRecordDetail[]> {
+  private async listByStatuses(
+    user: RequestUser,
+    statuses: SharedRecordStatus[],
+  ): Promise<InspectionRecordDetail[]> {
     const rows = await this.prisma.inspectionRecord.findMany({
       where: { status: { in: statuses as RecordStatus[] } },
       include: RECORD_HEADER_INCLUDE,
@@ -684,7 +838,13 @@ export class InspectionRecordsService {
   private async notifyUser(
     prisma: Pick<PrismaService, "notification">,
     userId: string,
-    type: "RECORD_REJECTED" | "RECORD_VERIFIED" | "RECORD_RETURNED" | "RECORD_CHECKED" | "RECORD_PENDING_VERIFICATION" | "SYSTEM",
+    type:
+      | "RECORD_REJECTED"
+      | "RECORD_VERIFIED"
+      | "RECORD_RETURNED"
+      | "RECORD_CHECKED"
+      | "RECORD_PENDING_VERIFICATION"
+      | "SYSTEM",
     title: string,
     body: string,
     relatedEntityId: string,
@@ -743,7 +903,11 @@ export class InspectionRecordsService {
    *  A critical-failure recommendation can never be overridden to an
    *  "approved" outcome — see `isOverrideToApprovedAllowed`. Every change is
    *  preserved in `AuditLog` and mirrored into an `ApprovalRecord`. */
-  async approveLoadingDecision(user: RequestUser, id: string, dto: LoadingDecisionDto): Promise<InspectionRecordDetail> {
+  async approveLoadingDecision(
+    user: RequestUser,
+    id: string,
+    dto: LoadingDecisionDto,
+  ): Promise<InspectionRecordDetail> {
     if (!hasAnyRole(user.roles, LOADING_DECISION_ROLES)) {
       throw new LoadingDecisionForbiddenException();
     }
@@ -759,7 +923,9 @@ export class InspectionRecordsService {
     }
 
     const recommended = record.truckDetail.recommendedDecision as LoadingDecision | null;
-    const isApprovedOutcome = parsed.data.decision === "APPROVED_FOR_LOADING" || parsed.data.decision === "CONDITIONALLY_APPROVED";
+    const isApprovedOutcome =
+      parsed.data.decision === "APPROVED_FOR_LOADING" ||
+      parsed.data.decision === "CONDITIONALLY_APPROVED";
     if (isApprovedOutcome && !isOverrideToApprovedAllowed(recommended)) {
       throw new CriticalFailureOverrideException();
     }
@@ -794,7 +960,12 @@ export class InspectionRecordsService {
         action: "LOADING_DECISION_CHANGED",
         entityType: "TruckInspectionDetail",
         entityId: record.truckDetail.id,
-        metadata: { recordId: record.id, from: previousDecision, to: parsed.data.decision, remarks: parsed.data.remarks ?? null },
+        metadata: {
+          recordId: record.id,
+          from: previousDecision,
+          to: parsed.data.decision,
+          remarks: parsed.data.remarks ?? null,
+        },
       },
     });
 
@@ -820,7 +991,9 @@ export class InspectionRecordsService {
     return version;
   }
 
-  private async loadTemplateVersionContent(templateVersionId: string): Promise<VersionWithContent> {
+  private async loadTemplateVersionContent(
+    templateVersionId: string,
+  ): Promise<VersionWithContent> {
     return this.prisma.checklistTemplateVersion.findUniqueOrThrow({
       where: { id: templateVersionId },
       include: VERSION_WITH_CONTENT_INCLUDE,
@@ -828,7 +1001,10 @@ export class InspectionRecordsService {
   }
 
   private async findRecordOrThrow(id: string): Promise<RecordWithHeaderRelations> {
-    const record = await this.prisma.inspectionRecord.findUnique({ where: { id }, include: RECORD_HEADER_INCLUDE });
+    const record = await this.prisma.inspectionRecord.findUnique({
+      where: { id },
+      include: RECORD_HEADER_INCLUDE,
+    });
     if (!record) throw new RecordNotFoundException(id);
     return record;
   }
@@ -840,7 +1016,12 @@ export class InspectionRecordsService {
   private async resolveVehicleForTruckDraft(
     user: RequestUser,
     data: { vehicleId?: string; freezerTruckNumber?: string; vehicleNumber?: string },
-  ): Promise<{ vehicleId: string | null; freezerTruckNumber: string; vehicleNumber: string; transporterId: string | null }> {
+  ): Promise<{
+    vehicleId: string | null;
+    freezerTruckNumber: string;
+    vehicleNumber: string;
+    transporterId: string | null;
+  }> {
     if (data.vehicleId) {
       const vehicle = await this.prisma.vehicle.findUnique({
         where: { id: data.vehicleId },
@@ -850,7 +1031,9 @@ export class InspectionRecordsService {
         throw new VehicleNotFoundException(data.vehicleId);
       }
       if (!vehicle.freezerTruckNumber) {
-        throw new InvalidRecordPayloadException("Selected vehicle has no freezer truck number on file");
+        throw new InvalidRecordPayloadException(
+          "Selected vehicle has no freezer truck number on file",
+        );
       }
       return {
         vehicleId: vehicle.id,
@@ -875,9 +1058,13 @@ export class InspectionRecordsService {
   /** Validates a `reinspectionOfRecordId` (when supplied) resolves to a real
    *  record before linking — a malformed id must never silently break draft
    *  creation, but it also must never silently create a fake link. */
-  private async resolveReinspectionTarget(reinspectionOfRecordId: string | undefined): Promise<string | undefined> {
+  private async resolveReinspectionTarget(
+    reinspectionOfRecordId: string | undefined,
+  ): Promise<string | undefined> {
     if (!reinspectionOfRecordId) return undefined;
-    const prior = await this.prisma.inspectionRecord.findUnique({ where: { id: reinspectionOfRecordId } });
+    const prior = await this.prisma.inspectionRecord.findUnique({
+      where: { id: reinspectionOfRecordId },
+    });
     if (!prior) {
       throw new RecordNotFoundException(reinspectionOfRecordId);
     }
@@ -902,12 +1089,20 @@ export class InspectionRecordsService {
     }
   }
 
-  private async linkTaskAssignment(taskAssignmentId: string, recordId: string, userId: string): Promise<void> {
-    const assignment = await this.prisma.taskAssignment.findUnique({ where: { id: taskAssignmentId } });
+  private async linkTaskAssignment(
+    taskAssignmentId: string,
+    recordId: string,
+    userId: string,
+  ): Promise<void> {
+    const assignment = await this.prisma.taskAssignment.findUnique({
+      where: { id: taskAssignmentId },
+    });
     if (!assignment || assignment.assignedToId !== userId) {
       // Never let a malformed/foreign assignment id block draft creation —
       // the record itself is still valid without the dashboard link-back.
-      this.logger.warn(`Ignoring taskAssignmentId "${taskAssignmentId}": not found or not owned by user "${userId}"`);
+      this.logger.warn(
+        `Ignoring taskAssignmentId "${taskAssignmentId}": not found or not owned by user "${userId}"`,
+      );
       return;
     }
     await this.prisma.taskAssignment.update({
@@ -919,8 +1114,13 @@ export class InspectionRecordsService {
     });
   }
 
-  private async buildDetail(record: RecordWithHeaderRelations, user: RequestUser): Promise<InspectionRecordDetail> {
-    const templateVersion = await this.loadTemplateVersionContent(record.templateVersionId);
+  private async buildDetail(
+    record: RecordWithHeaderRelations,
+    user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    const templateVersion = await this.loadTemplateVersionContent(
+      record.templateVersionId,
+    );
     const versionDefinition = mapVersionToDefinition(templateVersion);
 
     const results = await this.prisma.inspectionResult.findMany({
@@ -932,7 +1132,9 @@ export class InspectionRecordsService {
       header: toHeader(record, versionDefinition.title, versionDefinition.versionNumber),
       version: versionDefinition,
       responses: toResponseMap(results),
-      editable: isRecordEditable(record.status as SharedRecordStatus) && record.createdById === user.id,
+      editable:
+        isRecordEditable(record.status as SharedRecordStatus) &&
+        record.createdById === user.id,
       truck: toTruckDetail(record),
     };
   }
@@ -948,7 +1150,9 @@ export class InspectionRecordsService {
     userId: string,
   ): Promise<void> {
     const versionDefinition = mapVersionToDefinition(templateVersion);
-    const itemsById = new Map(flattenItems(versionDefinition.sections).map((item) => [item.id, item]));
+    const itemsById = new Map(
+      flattenItems(versionDefinition.sections).map((item) => [item.id, item]),
+    );
 
     for (const [itemId, rawResponse] of Object.entries(responses)) {
       const item = itemsById.get(itemId);
@@ -956,9 +1160,16 @@ export class InspectionRecordsService {
 
       const parsedResponse = checklistItemResponseSchema.safeParse(rawResponse);
       if (!parsedResponse.success) {
-        throw new InvalidRecordPayloadException(formatZodIssues(parsedResponse.error.issues));
+        throw new InvalidRecordPayloadException(
+          formatZodIssues(parsedResponse.error.issues),
+        );
       }
-      await this.persistOneResponse(recordId, item, parsedResponse.data as ChecklistItemResponse, userId);
+      await this.persistOneResponse(
+        recordId,
+        item,
+        parsedResponse.data as ChecklistItemResponse,
+        userId,
+      );
     }
   }
 
@@ -998,7 +1209,9 @@ export class InspectionRecordsService {
     });
 
     if (response.evidence) {
-      await this.prisma.inspectionAttachment.deleteMany({ where: { resultId: result.id } });
+      await this.prisma.inspectionAttachment.deleteMany({
+        where: { resultId: result.id },
+      });
       if (response.evidence.length > 0) {
         await this.prisma.inspectionAttachment.createMany({
           data: response.evidence.map((photo) => ({
@@ -1040,12 +1253,15 @@ export class InspectionRecordsService {
       const result = resultByItemId.get(item.id);
       if (!result) continue;
 
-      const alreadyExists = await prisma.correctiveAction.findFirst({ where: { resultId: result.id } });
+      const alreadyExists = await prisma.correctiveAction.findFirst({
+        where: { resultId: result.id },
+      });
       if (alreadyExists) continue;
 
       const description =
-        [response?.issueReason, response?.remark, response?.correction].filter(Boolean).join(" — ") ||
-        `Failure recorded for "${item.label}"`;
+        [response?.issueReason, response?.remark, response?.correction]
+          .filter(Boolean)
+          .join(" — ") || `Failure recorded for "${item.label}"`;
 
       await prisma.correctiveAction.create({
         data: {

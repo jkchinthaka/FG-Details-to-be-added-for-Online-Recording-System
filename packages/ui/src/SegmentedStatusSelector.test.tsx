@@ -1,6 +1,9 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SegmentedStatusSelector, type SegmentedStatusOption } from "./SegmentedStatusSelector";
+import {
+  SegmentedStatusSelector,
+  type SegmentedStatusOption,
+} from "./SegmentedStatusSelector";
 
 type Result = "ACCEPTABLE" | "FAIL";
 
@@ -13,7 +16,12 @@ describe("SegmentedStatusSelector", () => {
   it("calls onChange with the selected option's value", () => {
     const onChange = vi.fn();
     render(
-      <SegmentedStatusSelector label="Wall" value={null} options={options} onChange={onChange} />,
+      <SegmentedStatusSelector
+        label="Wall"
+        value={null}
+        options={options}
+        onChange={onChange}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Fail" }));
@@ -31,12 +39,12 @@ describe("SegmentedStatusSelector", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Acceptable" }).getAttribute("aria-pressed")).toBe(
-      "true",
-    );
-    expect(screen.getByRole("button", { name: "Fail" }).getAttribute("aria-pressed")).toBe(
-      "false",
-    );
+    expect(
+      screen.getByRole("button", { name: "Acceptable" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      screen.getByRole("button", { name: "Fail" }).getAttribute("aria-pressed"),
+    ).toBe("false");
   });
 
   it("disables every option and surfaces an error message", () => {
@@ -51,7 +59,9 @@ describe("SegmentedStatusSelector", () => {
       />,
     );
 
-    const acceptable = screen.getByRole("button", { name: "Acceptable" }) as HTMLButtonElement;
+    const acceptable = screen.getByRole("button", {
+      name: "Acceptable",
+    }) as HTMLButtonElement;
     expect(acceptable.disabled).toBe(true);
     expect(screen.getByRole("alert").textContent).toBe("Select a result");
   });

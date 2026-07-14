@@ -37,5 +37,7 @@ apps/api/prisma/*.db-journal
 apps/api/generated/
 
 # PWA generated
-apps/web/public/sw.js
+# Next.js / PWA generated artefacts (keep intentional `public/sw.js` tracked)
 apps/web/public/workbox-*.js
+apps/web/public/sw.js.map
+# Note: apps/web/public/sw.js is the Prompt 34 service worker and is versioned.

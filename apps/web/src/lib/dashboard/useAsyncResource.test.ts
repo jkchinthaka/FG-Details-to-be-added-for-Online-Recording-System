@@ -32,7 +32,10 @@ describe("useAsyncResource", () => {
   });
 
   it("re-runs the fetcher and returns to loading when retry() is called", async () => {
-    const fetcher = vi.fn().mockRejectedValueOnce(new Error("first failure")).mockResolvedValueOnce({ value: 1 });
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("first failure"))
+      .mockResolvedValueOnce({ value: 1 });
     const { result } = renderHook(() => useAsyncResource(fetcher));
 
     await waitFor(() => expect(result.current.status).toBe("error"));

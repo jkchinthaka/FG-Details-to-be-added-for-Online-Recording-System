@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@nelna/ui";
-import { getLastSyncAt, listOfflineQueue, type OfflineQueueItem } from "@/lib/offline/queue-store";
+import {
+  getLastSyncAt,
+  listOfflineQueue,
+  type OfflineQueueItem,
+} from "@/lib/offline/queue-store";
 import { processOfflineQueue, retryOfflineItem } from "@/lib/offline/sync-engine";
 
 export function OfflineStatusBar() {
@@ -39,7 +43,9 @@ export function OfflineStatusBar() {
   }, [refresh]);
 
   const conflicts = pending.filter((i) => i.state === "CONFLICT_REQUIRES_REVIEW").length;
-  const waiting = pending.filter((i) => i.state === "WAITING_TO_SYNC" || i.state === "SYNC_FAILED").length;
+  const waiting = pending.filter(
+    (i) => i.state === "WAITING_TO_SYNC" || i.state === "SYNC_FAILED",
+  ).length;
 
   if (online && waiting === 0 && conflicts === 0) {
     return null;
@@ -59,7 +65,10 @@ export function OfflineStatusBar() {
           {conflicts > 0 ? (
             <span className="ml-2">
               {conflicts} conflict(s) —{" "}
-              <Link href="/offline/conflicts" className="font-semibold text-nelna-primary">
+              <Link
+                href="/offline/conflicts"
+                className="text-nelna-primary font-semibold"
+              >
                 review
               </Link>
             </span>
@@ -80,7 +89,10 @@ export function OfflineStatusBar() {
         </Button>
       </div>
       {pending.slice(0, 3).map((item) => (
-        <div key={item.id} className="mt-1 flex items-center justify-between gap-2 text-xs">
+        <div
+          key={item.id}
+          className="mt-1 flex items-center justify-between gap-2 text-xs"
+        >
           <span>
             {item.recordType} · {item.state}
             {item.lastError ? ` — ${item.lastError}` : ""}
@@ -88,7 +100,7 @@ export function OfflineStatusBar() {
           {item.state === "SYNC_FAILED" ? (
             <button
               type="button"
-              className="font-semibold text-nelna-primary"
+              className="text-nelna-primary font-semibold"
               onClick={() => void retryOfflineItem(item.id).then(() => refresh())}
             >
               Retry

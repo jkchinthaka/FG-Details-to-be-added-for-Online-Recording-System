@@ -20,7 +20,14 @@ export type QuickChoiceFieldProps = {
  * custom typed string; the only local state is which UI mode ("Other" free
  * text vs. pills) is currently showing.
  */
-export function QuickChoiceField({ label, value, options, onChange, disabled = false, error }: QuickChoiceFieldProps) {
+export function QuickChoiceField({
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  error,
+}: QuickChoiceFieldProps) {
   const presetOptions = options.filter((option) => option !== "Other");
   const hasOtherOption = options.length !== presetOptions.length;
   const isKnownPreset = presetOptions.includes(value);
@@ -39,7 +46,11 @@ export function QuickChoiceField({ label, value, options, onChange, disabled = f
   return (
     <div className="nelna-field">
       <span className="nelna-field-label">{label}</span>
-      <div role="group" aria-label={label} style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+      <div
+        role="group"
+        aria-label={label}
+        style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}
+      >
         {presetOptions.map((option) => (
           <button
             key={option}
@@ -50,9 +61,15 @@ export function QuickChoiceField({ label, value, options, onChange, disabled = f
             className={[
               "nelna-segmented-option",
               "nelna-focusable",
-              !customMode && value === option ? "nelna-tone-success" : "nelna-tone-neutral",
+              !customMode && value === option
+                ? "nelna-tone-success"
+                : "nelna-tone-neutral",
             ].join(" ")}
-            style={{ minHeight: "2.25rem", padding: "0.4rem 0.75rem", fontSize: "0.85rem" }}
+            style={{
+              minHeight: "2.25rem",
+              padding: "0.4rem 0.75rem",
+              fontSize: "0.85rem",
+            }}
           >
             {option}
           </button>
@@ -63,10 +80,16 @@ export function QuickChoiceField({ label, value, options, onChange, disabled = f
             disabled={disabled}
             aria-pressed={customMode}
             onClick={selectOther}
-            className={["nelna-segmented-option", "nelna-focusable", customMode ? "nelna-tone-success" : "nelna-tone-neutral"].join(
-              " ",
-            )}
-            style={{ minHeight: "2.25rem", padding: "0.4rem 0.75rem", fontSize: "0.85rem" }}
+            className={[
+              "nelna-segmented-option",
+              "nelna-focusable",
+              customMode ? "nelna-tone-success" : "nelna-tone-neutral",
+            ].join(" ")}
+            style={{
+              minHeight: "2.25rem",
+              padding: "0.4rem 0.75rem",
+              fontSize: "0.85rem",
+            }}
           >
             Other
           </button>

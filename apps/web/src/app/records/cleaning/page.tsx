@@ -15,7 +15,9 @@ type CleaningRecordPageProps = {
  * from a Today's Tasks card, `assignmentId` links the new draft back to that
  * assignment so the dashboard reflects live progress.
  */
-export default async function CleaningRecordPage({ searchParams }: CleaningRecordPageProps) {
+export default async function CleaningRecordPage({
+  searchParams,
+}: CleaningRecordPageProps) {
   const { assignmentId } = await searchParams;
   return <InspectionRecordWorkspace assignmentId={assignmentId ?? null} />;
 }

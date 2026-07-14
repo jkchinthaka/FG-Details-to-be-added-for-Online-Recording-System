@@ -15,7 +15,9 @@ type FreezerTruckRecordDetailPageProps = {
  * record owned by the current user; read-only with the loading-decision
  * panel for everyone else once it's been submitted.
  */
-export default async function FreezerTruckRecordDetailPage({ params }: FreezerTruckRecordDetailPageProps) {
+export default async function FreezerTruckRecordDetailPage({
+  params,
+}: FreezerTruckRecordDetailPageProps) {
   const { id } = await params;
   return <FreezerTruckForm recordId={id} />;
 }

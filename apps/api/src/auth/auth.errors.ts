@@ -1,4 +1,9 @@
-import { ForbiddenException, HttpException, HttpStatus, UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from "@nestjs/common";
 import type { AuthErrorCode } from "@nelna/shared";
 
 /**
@@ -17,7 +22,10 @@ import type { AuthErrorCode } from "@nelna/shared";
 
 export class InvalidCredentialsException extends UnauthorizedException {
   constructor() {
-    super({ code: "INVALID_CREDENTIALS" satisfies AuthErrorCode, message: "Invalid email or password." });
+    super({
+      code: "INVALID_CREDENTIALS" satisfies AuthErrorCode,
+      message: "Invalid email or password.",
+    });
   }
 }
 
@@ -53,7 +61,10 @@ export class SessionExpiredException extends UnauthorizedException {
 
 export class NotAuthenticatedException extends UnauthorizedException {
   constructor() {
-    super({ code: "NOT_AUTHENTICATED" satisfies AuthErrorCode, message: "Sign in to continue." });
+    super({
+      code: "NOT_AUTHENTICATED" satisfies AuthErrorCode,
+      message: "Sign in to continue.",
+    });
   }
 }
 

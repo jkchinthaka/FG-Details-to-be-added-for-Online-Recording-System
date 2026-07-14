@@ -17,7 +17,10 @@ const MAX_LIMIT = 25;
 export class VehiclesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(query: string | undefined, limitInput?: number): Promise<VehicleSearchResponse> {
+  async search(
+    query: string | undefined,
+    limitInput?: number,
+  ): Promise<VehicleSearchResponse> {
     const take = clampLimit(limitInput);
     const trimmed = query?.trim();
 

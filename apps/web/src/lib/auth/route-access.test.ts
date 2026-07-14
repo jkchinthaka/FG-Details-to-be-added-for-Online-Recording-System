@@ -15,6 +15,8 @@ describe("route-access", () => {
   });
 
   it("allows supervisors on pending check via permission", () => {
-    expect(canAccessRoute("/records/pending-check", ["FG_SUPERVISOR"], ["records:check"])).toBe(true);
+    expect(
+      canAccessRoute("/records/pending-check", ["FG_SUPERVISOR"], ["records:check"]),
+    ).toBe(true);
   });
 });

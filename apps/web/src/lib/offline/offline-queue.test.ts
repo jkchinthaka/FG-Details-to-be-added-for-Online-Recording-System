@@ -19,6 +19,8 @@ describe("offline submission semantics", () => {
       responses: {},
       savedAt: "2026-07-14T08:00:00.000Z",
     });
-    expect(loadRecoverableDraft("inspection-record:r1", "2026-07-14T09:00:00.000Z")).toBeNull();
+    expect(
+      loadRecoverableDraft("inspection-record:r1", "2026-07-14T09:00:00.000Z"),
+    ).toBeNull();
   });
 });

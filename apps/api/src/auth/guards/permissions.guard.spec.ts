@@ -36,7 +36,9 @@ describe("PermissionsGuard", () => {
 
   it("throws NotAuthenticatedException when no user is attached", () => {
     const guard = buildGuard(["records:verify"]);
-    expect(() => guard.canActivate(buildContext(undefined))).toThrow(NotAuthenticatedException);
+    expect(() => guard.canActivate(buildContext(undefined))).toThrow(
+      NotAuthenticatedException,
+    );
   });
 
   it("allows a user holding one of the required permissions", () => {

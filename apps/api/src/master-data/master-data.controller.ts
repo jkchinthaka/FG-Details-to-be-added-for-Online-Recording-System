@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Patch, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Patch,
+  Query,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
 import {
@@ -65,7 +75,10 @@ export class MasterDataController {
   // ---------------------------------------------------------------------
 
   @Get("sections")
-  listSections(@Query("departmentId") departmentId?: string, @Query("activeOnly") activeOnly?: string) {
+  listSections(
+    @Query("departmentId") departmentId?: string,
+    @Query("activeOnly") activeOnly?: string,
+  ) {
     return this.service.listSections(departmentId, parseActiveOnly(activeOnly));
   }
 
@@ -168,7 +181,10 @@ export class MasterDataController {
   }
 
   @Patch("corrective-action-categories/:id")
-  updateCorrectiveActionCategory(@Param("id") id: string, @Body() dto: UpdateCorrectiveActionCategoryDto) {
+  updateCorrectiveActionCategory(
+    @Param("id") id: string,
+    @Body() dto: UpdateCorrectiveActionCategoryDto,
+  ) {
     return this.service.updateCorrectiveActionCategory(id, dto);
   }
 
@@ -199,7 +215,10 @@ export class MasterDataController {
   }
 
   @Patch("temperature-profiles/:id")
-  updateTemperatureProfile(@Param("id") id: string, @Body() dto: UpdateTemperatureProfileDto) {
+  updateTemperatureProfile(
+    @Param("id") id: string,
+    @Body() dto: UpdateTemperatureProfileDto,
+  ) {
     return this.service.updateTemperatureProfile(id, dto);
   }
 
@@ -220,7 +239,9 @@ export class MasterDataController {
   // ---------------------------------------------------------------------
 
   @Get("priorities")
-  @ApiOperation({ summary: "Static Priority enum values (no Nelna-specific policy invented)" })
+  @ApiOperation({
+    summary: "Static Priority enum values (no Nelna-specific policy invented)",
+  })
   listPriorities() {
     return this.service.listPriorities();
   }
@@ -241,8 +262,14 @@ export class MasterDataController {
 
   @Post("loading-decision-policies/:key")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Create or replace a loading decision policy's stored config (admin-supplied)" })
-  upsertLoadingDecisionPolicy(@Param("key") key: string, @Body() dto: UpsertLoadingDecisionPolicyDto) {
+  @ApiOperation({
+    summary:
+      "Create or replace a loading decision policy's stored config (admin-supplied)",
+  })
+  upsertLoadingDecisionPolicy(
+    @Param("key") key: string,
+    @Body() dto: UpsertLoadingDecisionPolicyDto,
+  ) {
     return this.service.upsertLoadingDecisionPolicy(decodeURIComponent(key), dto);
   }
 }

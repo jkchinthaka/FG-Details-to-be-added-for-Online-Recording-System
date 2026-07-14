@@ -1,5 +1,20 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+} from "@nestjs/common";
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
 import type { Request, Response } from "express";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
 import { AuthService } from "./auth.service";
@@ -26,7 +41,9 @@ export class AuthController {
   @Public()
   @Post("login")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Authenticate with email + password, receiving httpOnly session cookies" })
+  @ApiOperation({
+    summary: "Authenticate with email + password, receiving httpOnly session cookies",
+  })
   @ApiOkResponse({ description: "Signed in", type: CurrentUserDto })
   @ApiUnauthorizedResponse({ description: "Invalid email or password" })
   async login(
@@ -51,10 +68,14 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<CurrentUserDto> {
     const config = getAuthConfig();
-    const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as string | undefined;
+    const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as
+      string | undefined;
 
     try {
-      const { user, tokens } = await this.authService.refresh(refreshTokenRaw, requestMeta(req));
+      const { user, tokens } = await this.authService.refresh(
+        refreshTokenRaw,
+        requestMeta(req),
+      );
       setAuthCookies(res, config, tokens);
       return user;
     } catch (error) {
@@ -73,7 +94,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ success: true }> {
     const config = getAuthConfig();
-    const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as string | undefined;
+    const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as
+      string | undefined;
     await this.authService.logout(refreshTokenRaw);
     clearAuthCookies(res, config);
     return { success: true };
@@ -81,7 +103,9 @@ export class AuthController {
 
   @Get("me")
   @ApiCookieAuth()
-  @ApiOperation({ summary: "Return the currently authenticated user's profile, roles and permissions" })
+  @ApiOperation({
+    summary: "Return the currently authenticated user's profile, roles and permissions",
+  })
   @ApiOkResponse({ description: "Current user", type: CurrentUserDto })
   @ApiUnauthorizedResponse({ description: "Not authenticated or session expired" })
   async me(@CurrentUser() currentUser: RequestUser): Promise<CurrentUserDto> {

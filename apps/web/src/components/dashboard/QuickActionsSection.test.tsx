@@ -20,7 +20,9 @@ describe("QuickActionsSection", () => {
   });
 
   it("renders nothing for a role with no visible quick actions", () => {
-    const { container } = render(<QuickActionsSection roles={["SYSTEM_ADMINISTRATOR"]} />);
+    const { container } = render(
+      <QuickActionsSection roles={["SYSTEM_ADMINISTRATOR"]} />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 });

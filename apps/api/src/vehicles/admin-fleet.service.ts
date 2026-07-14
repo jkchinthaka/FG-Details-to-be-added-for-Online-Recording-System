@@ -19,7 +19,11 @@ import {
   VehicleConflictException,
   VehicleNotFoundException,
 } from "./vehicles.errors";
-import { VEHICLE_WITH_TRANSPORTER_INCLUDE, toAdminDriverSummary, toAdminVehicleSummary } from "./vehicles.mappers";
+import {
+  VEHICLE_WITH_TRANSPORTER_INCLUDE,
+  toAdminDriverSummary,
+  toAdminVehicleSummary,
+} from "./vehicles.mappers";
 
 const DEFAULT_HISTORY_LIMIT = 25;
 
@@ -71,7 +75,10 @@ export class AdminFleetService {
       });
       return toAdminVehicleSummary(vehicle);
     } catch (error) {
-      throw this.mapVehicleConflict(error, dto.freezerTruckNumber ?? dto.qrIdentifier ?? id);
+      throw this.mapVehicleConflict(
+        error,
+        dto.freezerTruckNumber ?? dto.qrIdentifier ?? id,
+      );
     }
   }
 
@@ -147,7 +154,9 @@ export class AdminFleetService {
   /** Warns (409) rather than silently merging when a license number already
    *  exists — see DEF-008 / ADM-04 UAT case. */
   async createDriver(dto: CreateDriverDto) {
-    const existing = await this.prisma.driver.findUnique({ where: { licenseNumber: dto.licenseNumber } });
+    const existing = await this.prisma.driver.findUnique({
+      where: { licenseNumber: dto.licenseNumber },
+    });
     if (existing) throw new DriverLicenseConflictException(dto.licenseNumber);
 
     const driver = await this.prisma.driver.create({
@@ -165,7 +174,11 @@ export class AdminFleetService {
     await this.findDriverOrThrow(id);
     const driver = await this.prisma.driver.update({
       where: { id },
-      data: { fullName: dto.fullName, phone: dto.phone, transporterId: dto.transporterId },
+      data: {
+        fullName: dto.fullName,
+        phone: dto.phone,
+        transporterId: dto.transporterId,
+      },
     });
     return toAdminDriverSummary(driver);
   }
@@ -191,7 +204,10 @@ export class AdminFleetService {
     try {
       return await this.prisma.transporter.create({ data: dto });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_UNIQUE_CONSTRAINT_CODE) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_UNIQUE_CONSTRAINT_CODE
+      ) {
         throw new TransporterConflictException(dto.name);
       }
       throw error;
@@ -231,8 +247,13 @@ export class AdminFleetService {
   }
 
   private mapVehicleConflict(error: unknown, fallbackValue: string): Error {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_UNIQUE_CONSTRAINT_CODE) {
-      const target = Array.isArray(error.meta?.target) ? (error.meta?.target as string[]).join(",") : "field";
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === PRISMA_UNIQUE_CONSTRAINT_CODE
+    ) {
+      const target = Array.isArray(error.meta?.target)
+        ? (error.meta?.target as string[]).join(",")
+        : "field";
       return new VehicleConflictException(target, fallbackValue);
     }
     return error instanceof Error ? error : new Error(String(error));

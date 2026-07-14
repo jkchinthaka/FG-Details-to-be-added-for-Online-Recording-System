@@ -13,7 +13,11 @@ export type ClearAllBarProps = {
 
 /** Destructive "start over" action, gated behind an explicit confirm dialog
  *  so a stray tap can never wipe out recorded responses. */
-export function ClearAllBar({ onClearAll, disabled = false, answeredCount = 0 }: ClearAllBarProps) {
+export function ClearAllBar({
+  onClearAll,
+  disabled = false,
+  answeredCount = 0,
+}: ClearAllBarProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
@@ -48,8 +52,9 @@ export function ClearAllBar({ onClearAll, disabled = false, answeredCount = 0 }:
         }
       >
         <p style={{ margin: 0 }}>
-          This removes {answeredCount} recorded response{answeredCount === 1 ? "" : "s"}, including any failure
-          notes, corrective actions and photos. This cannot be undone.
+          This removes {answeredCount} recorded response{answeredCount === 1 ? "" : "s"},
+          including any failure notes, corrective actions and photos. This cannot be
+          undone.
         </p>
       </Modal>
     </>

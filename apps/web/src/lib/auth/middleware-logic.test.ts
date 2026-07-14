@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { decideMiddlewareAction, decideVerifiedMiddlewareAction } from "./middleware-logic";
+import {
+  decideMiddlewareAction,
+  decideVerifiedMiddlewareAction,
+} from "./middleware-logic";
 import type { CurrentUser } from "@nelna/shared";
 
 function cookieSet(names: string[]) {
@@ -23,13 +26,17 @@ describe("decideMiddlewareAction (cookie presence)", () => {
   });
 
   it("allows a protected route when the access token cookie is present", () => {
-    expect(decideMiddlewareAction("/records", cookieSet(["nelna_access_token"]))).toEqual({
-      action: "allow",
-    });
+    expect(decideMiddlewareAction("/records", cookieSet(["nelna_access_token"]))).toEqual(
+      {
+        action: "allow",
+      },
+    );
   });
 
   it("allows a protected route when only the refresh token cookie is present (access token expired)", () => {
-    expect(decideMiddlewareAction("/records", cookieSet(["nelna_refresh_token"]))).toEqual({
+    expect(
+      decideMiddlewareAction("/records", cookieSet(["nelna_refresh_token"])),
+    ).toEqual({
       action: "allow",
     });
   });
@@ -72,20 +79,26 @@ describe("decideVerifiedMiddlewareAction", () => {
   });
 
   it("allows an operator on records", () => {
-    expect(decideVerifiedMiddlewareAction("/records", { status: "ok", user: activeUser })).toEqual({
+    expect(
+      decideVerifiedMiddlewareAction("/records", { status: "ok", user: activeUser }),
+    ).toEqual({
       action: "allow",
     });
   });
 
   it("blocks an operator from /admin (wrong role)", () => {
-    expect(decideVerifiedMiddlewareAction("/admin", { status: "ok", user: activeUser })).toEqual({
+    expect(
+      decideVerifiedMiddlewareAction("/admin", { status: "ok", user: activeUser }),
+    ).toEqual({
       action: "redirect",
       url: "/unauthorized?from=%2Fadmin",
     });
   });
 
   it("allows public unauthorized page without a session", () => {
-    expect(decideVerifiedMiddlewareAction("/unauthorized", { status: "missing" })).toEqual({
+    expect(
+      decideVerifiedMiddlewareAction("/unauthorized", { status: "missing" }),
+    ).toEqual({
       action: "allow",
     });
   });

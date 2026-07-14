@@ -41,7 +41,10 @@ export function collectProductionEnvIssues(
     });
   }
 
-  if (access.toLowerCase().includes("dev-only") || refresh.toLowerCase().includes("dev-only")) {
+  if (
+    access.toLowerCase().includes("dev-only") ||
+    refresh.toLowerCase().includes("dev-only")
+  ) {
     issues.push({
       variable: "JWT_ACCESS_SECRET / JWT_REFRESH_SECRET",
       message: "Dev-only placeholder secrets are not allowed in production",

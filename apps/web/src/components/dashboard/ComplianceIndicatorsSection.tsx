@@ -3,12 +3,18 @@ import { Badge, Card } from "@nelna/ui";
 
 /** Compact Food-Safety-Team-Leader widget: label + single value per indicator,
  *  deliberately not a chart (see docs/PROJECT_BRIEF.md UX guardrails). */
-export function ComplianceIndicatorsSection({ indicators }: { indicators: ComplianceIndicator[] }) {
+export function ComplianceIndicatorsSection({
+  indicators,
+}: {
+  indicators: ComplianceIndicator[];
+}) {
   if (indicators.length === 0) return null;
 
   return (
     <Card>
-      <h2 className="text-sm font-bold uppercase tracking-wide text-nelna-primary">Compliance snapshot</h2>
+      <h2 className="text-nelna-primary text-sm font-bold uppercase tracking-wide">
+        Compliance snapshot
+      </h2>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {indicators.map((indicator) => (
           <div

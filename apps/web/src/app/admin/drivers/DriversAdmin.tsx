@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, EmptyState, Input, LoadingState, PageHeader } from "@nelna/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  LoadingState,
+  PageHeader,
+} from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   AdminApiError,
@@ -34,7 +43,8 @@ export function DriversAdmin() {
     fetchAdminDrivers()
       .then((drivers) => setListState({ status: "ready", drivers }))
       .catch((error: unknown) => {
-        const messageText = error instanceof AdminApiError ? error.message : "Failed to load drivers.";
+        const messageText =
+          error instanceof AdminApiError ? error.message : "Failed to load drivers.";
         setListState({ status: "error", message: messageText });
       });
   }, []);
@@ -57,7 +67,9 @@ export function DriversAdmin() {
       setForm(EMPTY_FORM);
       reload();
     } catch (error) {
-      setCreateError(error instanceof AdminApiError ? error.message : "Failed to register driver.");
+      setCreateError(
+        error instanceof AdminApiError ? error.message : "Failed to register driver.",
+      );
     } finally {
       setCreating(false);
     }
@@ -84,7 +96,8 @@ export function DriversAdmin() {
       <div style={{ display: "grid", gap: "1.25rem" }}>
         <PageHeader eyebrow="Administration" title="Drivers" />
         <Alert tone="danger" title="Not authorized">
-          Managing fleet master data requires the &quot;master_data:manage&quot; permission.
+          Managing fleet master data requires the &quot;master_data:manage&quot;
+          permission.
         </Alert>
       </div>
     );
@@ -110,11 +123,23 @@ export function DriversAdmin() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Register driver
         </h2>
-        <form onSubmit={handleCreate} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <form
+          onSubmit={handleCreate}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
             <Input
               label="Full name"
               required
@@ -146,14 +171,19 @@ export function DriversAdmin() {
         </form>
       </Card>
 
-      {listState.status === "loading" ? <LoadingState message="Loading drivers…" /> : null}
+      {listState.status === "loading" ? (
+        <LoadingState message="Loading drivers…" />
+      ) : null}
       {listState.status === "error" ? (
         <Alert tone="danger" title="Could not load drivers">
           {listState.message}
         </Alert>
       ) : null}
       {listState.status === "ready" && listState.drivers.length === 0 ? (
-        <EmptyState title="No drivers yet" description="Register the first driver above." />
+        <EmptyState
+          title="No drivers yet"
+          description="Register the first driver above."
+        />
       ) : null}
 
       {listState.status === "ready" && listState.drivers.length > 0 ? (
@@ -176,10 +206,15 @@ export function DriversAdmin() {
                     <td style={{ padding: "0.5rem" }}>{d.licenseNumber}</td>
                     <td style={{ padding: "0.5rem" }}>{d.phone ?? "—"}</td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Badge tone={d.isActive ? "success" : "neutral"}>{d.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                      <Badge tone={d.isActive ? "success" : "neutral"}>
+                        {d.isActive ? "ACTIVE" : "INACTIVE"}
+                      </Badge>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Button variant={d.isActive ? "danger" : "secondary"} onClick={() => handleToggleActive(d)}>
+                      <Button
+                        variant={d.isActive ? "danger" : "secondary"}
+                        onClick={() => handleToggleActive(d)}
+                      >
                         {d.isActive ? "Deactivate" : "Activate"}
                       </Button>
                     </td>

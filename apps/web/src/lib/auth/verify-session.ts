@@ -1,7 +1,10 @@
 import type { CurrentUser } from "@nelna/shared";
 import type { VerifiedSession } from "./middleware-logic";
 
-const API_BASE_URL = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE_URL =
+  process.env.API_INTERNAL_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001";
 
 function collectSetCookie(response: Response): string[] {
   const headers = response.headers as Headers & { getSetCookie?: () => string[] };
@@ -17,7 +20,9 @@ function collectSetCookie(response: Response): string[] {
  * Attempts one refresh when `/auth/me` returns 401.
  * Access/refresh token values are never returned to application JS — only status + CurrentUser.
  */
-export async function verifySessionFromCookieHeader(cookieHeader: string | null): Promise<{
+export async function verifySessionFromCookieHeader(
+  cookieHeader: string | null,
+): Promise<{
   session: VerifiedSession;
   setCookieHeaders: string[];
 }> {

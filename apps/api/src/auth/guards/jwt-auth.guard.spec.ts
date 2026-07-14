@@ -35,7 +35,9 @@ describe("JwtAuthGuard", () => {
 
   function buildGuard(reflectorReturn: boolean | undefined = undefined) {
     const jwtService = new JwtService({ secret: "test-access-secret" });
-    const reflector = { getAllAndOverride: jest.fn().mockReturnValue(reflectorReturn) } as unknown as Reflector;
+    const reflector = {
+      getAllAndOverride: jest.fn().mockReturnValue(reflectorReturn),
+    } as unknown as Reflector;
     const guard = new JwtAuthGuard(jwtService, reflector);
     return { guard, jwtService };
   }
@@ -49,24 +51,38 @@ describe("JwtAuthGuard", () => {
   it("rejects requests with no access token cookie", async () => {
     const { guard } = buildGuard(false);
     const { context } = buildContext({});
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(NotAuthenticatedException);
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      NotAuthenticatedException,
+    );
   });
 
   it("rejects an invalid/tampered token", async () => {
     const { guard } = buildGuard(false);
-    const { context } = buildContext({ [AUTH_COOKIE_NAMES.accessToken]: "not-a-real-token" });
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(NotAuthenticatedException);
+    const { context } = buildContext({
+      [AUTH_COOKIE_NAMES.accessToken]: "not-a-real-token",
+    });
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      NotAuthenticatedException,
+    );
   });
 
   it("rejects an expired token with SessionExpiredException", async () => {
     const { guard, jwtService } = buildGuard(false);
     const token = await jwtService.signAsync(
-      { sub: "user-1", employeeCode: "EMP-1", fullName: "Test User", roles: [], permissions: [] },
+      {
+        sub: "user-1",
+        employeeCode: "EMP-1",
+        fullName: "Test User",
+        roles: [],
+        permissions: [],
+      },
       { secret: "test-access-secret", expiresIn: "0s" },
     );
     await new Promise((resolve) => setTimeout(resolve, 10));
     const { context } = buildContext({ [AUTH_COOKIE_NAMES.accessToken]: token });
-    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(SessionExpiredException);
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      SessionExpiredException,
+    );
   });
 
   it("attaches the decoded user to the request on a valid token", async () => {

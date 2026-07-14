@@ -12,7 +12,8 @@ export class TasksController {
 
   @Get("today")
   @ApiOperation({
-    summary: "Role-aware 'Today's Tasks' dashboard payload (summary, task cards, widgets) for the current user",
+    summary:
+      "Role-aware 'Today's Tasks' dashboard payload (summary, task cards, widgets) for the current user",
   })
   getTodaysTasks(
     @CurrentUser() user: RequestUser,

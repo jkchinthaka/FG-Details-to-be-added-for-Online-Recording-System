@@ -27,7 +27,10 @@ export function Input({
 
   return (
     <div className="nelna-field">
-      <label htmlFor={inputId} className={hideLabel ? "nelna-sr-only" : "nelna-field-label"}>
+      <label
+        htmlFor={inputId}
+        className={hideLabel ? "nelna-sr-only" : "nelna-field-label"}
+      >
         {label}
       </label>
       <input

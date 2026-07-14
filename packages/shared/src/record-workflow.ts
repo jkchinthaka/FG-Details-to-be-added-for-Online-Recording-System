@@ -50,7 +50,10 @@ export function resolveWorkflowTransition(
   return edge?.to ?? null;
 }
 
-export function isValidWorkflowTransition(from: RecordStatus, action: WorkflowAction): boolean {
+export function isValidWorkflowTransition(
+  from: RecordStatus,
+  action: WorkflowAction,
+): boolean {
   return resolveWorkflowTransition(from, action) !== null;
 }
 
@@ -72,7 +75,10 @@ export function assertCheckSegregationOfDuty(
   createdById: string,
 ): { ok: true } | { ok: false; reason: string } {
   if (!policy.allowCreatorSelfCheck && actorUserId === createdById) {
-    return { ok: false, reason: "Creator cannot check their own record (segregation of duty)." };
+    return {
+      ok: false,
+      reason: "Creator cannot check their own record (segregation of duty).",
+    };
   }
   return { ok: true };
 }
@@ -87,7 +93,10 @@ export function assertVerifySegregationOfDuty(
     return { ok: false, reason: "Creator cannot verify their own record." };
   }
   if (!policy.allowCheckerSelfVerify && checkedById && actorUserId === checkedById) {
-    return { ok: false, reason: "Checker cannot verify the same record (segregation of duty)." };
+    return {
+      ok: false,
+      reason: "Checker cannot verify the same record (segregation of duty).",
+    };
   }
   return { ok: true };
 }

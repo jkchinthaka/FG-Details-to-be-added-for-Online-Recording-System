@@ -1,4 +1,13 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { InspectionRecordDetail, SubmitRecordResult } from "@nelna/shared";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
@@ -35,7 +44,8 @@ export class InspectionRecordsController {
   @Post("cleaning/draft")
   @RequirePermissions("records:create")
   @ApiOperation({
-    summary: "Create (or resume) today's Daily Cleaning Verification draft for the current operator",
+    summary:
+      "Create (or resume) today's Daily Cleaning Verification draft for the current operator",
   })
   createCleaningDraft(
     @Body() dto: CreateCleaningDraftDto,
@@ -47,7 +57,8 @@ export class InspectionRecordsController {
   @Post("truck/draft")
   @RequirePermissions("records:create")
   @ApiOperation({
-    summary: "Create (or resume) a Freezer Truck Inspection Before Loading draft for the selected vehicle",
+    summary:
+      "Create (or resume) a Freezer Truck Inspection Before Loading draft for the selected vehicle",
   })
   createTruckDraft(
     @Body() dto: CreateTruckDraftDto,
@@ -57,11 +68,17 @@ export class InspectionRecordsController {
   }
 
   @Post(":id/loading-decision")
-  @Roles("FG_SUPERVISOR", "QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "SYSTEM_ADMINISTRATOR")
+  @Roles(
+    "FG_SUPERVISOR",
+    "QA_EXECUTIVE",
+    "FOOD_SAFETY_TEAM_LEADER",
+    "SYSTEM_ADMINISTRATOR",
+  )
   @RequirePermissions("loading_decisions:approve")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Record the final freezer truck loading decision (supervisor/QA only; a critical block cannot be overridden)",
+    summary:
+      "Record the final freezer truck loading decision (supervisor/QA only; a critical block cannot be overridden)",
   })
   approveLoadingDecision(
     @Param("id") id: string,
@@ -73,14 +90,22 @@ export class InspectionRecordsController {
 
   @Get(":id")
   @RequirePermissions("records:read")
-  @ApiOperation({ summary: "Retrieve an inspection record's header, template version and current responses" })
-  getById(@Param("id") id: string, @CurrentUser() user: RequestUser): Promise<InspectionRecordDetail> {
+  @ApiOperation({
+    summary:
+      "Retrieve an inspection record's header, template version and current responses",
+  })
+  getById(
+    @Param("id") id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
     return this.service.getById(user, id);
   }
 
   @Patch(":id/draft")
   @RequirePermissions("records:create")
-  @ApiOperation({ summary: "Autosave/save the current draft responses (does not submit)" })
+  @ApiOperation({
+    summary: "Autosave/save the current draft responses (does not submit)",
+  })
   saveDraft(
     @Param("id") id: string,
     @Body() dto: SaveDraftDto,
@@ -92,7 +117,9 @@ export class InspectionRecordsController {
   @Post(":id/submit")
   @RequirePermissions("records:create")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Validate and submit a record, locking it from further operator edits" })
+  @ApiOperation({
+    summary: "Validate and submit a record, locking it from further operator edits",
+  })
   submit(
     @Param("id") id: string,
     @Body() dto: SubmitRecordDto,

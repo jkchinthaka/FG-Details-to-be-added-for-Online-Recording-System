@@ -64,17 +64,42 @@ function makeVersion(): ChecklistTemplateVersionDefinition {
         name: "Pre-loading checks",
         sortOrder: 0,
         items: [
-          { ...DEFAULT_ITEM_RULES, id: "overall_cleanliness", label: "Overall cleanliness", helpText: null, sortOrder: 0, itemType: "PASS_FAIL_NA", options: [] },
-          { ...DEFAULT_ITEM_RULES, id: "door_lock", label: "Door lock", helpText: null, sortOrder: 1, itemType: "PASS_FAIL_NA", options: [], isCriticalFailure: true },
+          {
+            ...DEFAULT_ITEM_RULES,
+            id: "overall_cleanliness",
+            label: "Overall cleanliness",
+            helpText: null,
+            sortOrder: 0,
+            itemType: "PASS_FAIL_NA",
+            options: [],
+          },
+          {
+            ...DEFAULT_ITEM_RULES,
+            id: "door_lock",
+            label: "Door lock",
+            helpText: null,
+            sortOrder: 1,
+            itemType: "PASS_FAIL_NA",
+            options: [],
+            isCriticalFailure: true,
+          },
         ],
       },
     ],
   };
 }
 
-function makeTruckDetail(overrides: Partial<TruckInspectionDetailPayload> = {}): TruckInspectionDetailPayload {
+function makeTruckDetail(
+  overrides: Partial<TruckInspectionDetailPayload> = {},
+): TruckInspectionDetailPayload {
   return {
-    vehicle: { id: "vehicle-1", vehicleNumber: "MH-12 AB 3456", freezerTruckNumber: "FT-01", status: "ACTIVE", transporter: { id: "t1", name: "Nelna Logistics" } },
+    vehicle: {
+      id: "vehicle-1",
+      vehicleNumber: "MH-12 AB 3456",
+      freezerTruckNumber: "FT-01",
+      status: "ACTIVE",
+      transporter: { id: "t1", name: "Nelna Logistics" },
+    },
     driver: null,
     transporter: { id: "t1", name: "Nelna Logistics" },
     freezerTruckNumber: "FT-01",
@@ -130,7 +155,9 @@ function makeDetail(overrides: DetailOverrides = {}): InspectionRecordDetail {
   };
 }
 
-function makeSubmitResult(overrides: Partial<SubmitRecordResult> = {}): SubmitRecordResult {
+function makeSubmitResult(
+  overrides: Partial<SubmitRecordResult> = {},
+): SubmitRecordResult {
   return {
     recordId: "record-truck-1",
     documentCode: "NMS/PPU/CL/30",
@@ -146,10 +173,18 @@ function makeSubmitResult(overrides: Partial<SubmitRecordResult> = {}): SubmitRe
   };
 }
 
-function makeVehicleSearchResponse(overrides: Partial<VehicleSearchResponse> = {}): VehicleSearchResponse {
+function makeVehicleSearchResponse(
+  overrides: Partial<VehicleSearchResponse> = {},
+): VehicleSearchResponse {
   return {
     vehicles: [
-      { id: "vehicle-1", vehicleNumber: "MH-12 AB 3456", freezerTruckNumber: "FT-01", status: "ACTIVE", transporter: { id: "t1", name: "Nelna Logistics" } },
+      {
+        id: "vehicle-1",
+        vehicleNumber: "MH-12 AB 3456",
+        freezerTruckNumber: "FT-01",
+        status: "ACTIVE",
+        transporter: { id: "t1", name: "Nelna Logistics" },
+      },
     ],
     isRecent: true,
     ...overrides,
@@ -160,10 +195,14 @@ describe("FreezerTruckForm — vehicle selection then submit", () => {
   it("selects a recent vehicle, marks all conditions passed, reviews and submits", async () => {
     mockUser();
     const user = userEvent.setup();
-    vi.spyOn(vehiclesApi, "searchVehicles").mockResolvedValue(makeVehicleSearchResponse());
+    vi.spyOn(vehiclesApi, "searchVehicles").mockResolvedValue(
+      makeVehicleSearchResponse(),
+    );
     vi.spyOn(inspectionApi, "createTruckDraft").mockResolvedValue(makeDetail());
     vi.spyOn(inspectionApi, "saveInspectionDraft").mockResolvedValue(makeDetail());
-    vi.spyOn(inspectionApi, "submitInspectionRecord").mockResolvedValue(makeSubmitResult());
+    vi.spyOn(inspectionApi, "submitInspectionRecord").mockResolvedValue(
+      makeSubmitResult(),
+    );
 
     render(<FreezerTruckForm assignmentId="assign-2" />);
 
@@ -171,51 +210,82 @@ describe("FreezerTruckForm — vehicle selection then submit", () => {
     await user.click(screen.getByRole("button", { name: /MH-12 AB 3456/i }));
     await user.click(screen.getByRole("button", { name: /continue to inspection/i }));
 
-    await waitFor(() => expect(screen.getByText("Inspection of Freezer Truck Before Loading")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByText("Inspection of Freezer Truck Before Loading"),
+      ).toBeInTheDocument(),
+    );
     expect(inspectionApi.createTruckDraft).toHaveBeenCalledWith(
       expect.objectContaining({ vehicleId: "vehicle-1", taskAssignmentId: "assign-2" }),
     );
     expect(screen.getByText("MH-12 AB 3456")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /mark all 2 items acceptable/i }));
+    await user.click(
+      screen.getByRole("button", { name: /mark all 2 items acceptable/i }),
+    );
     await user.click(screen.getByRole("button", { name: "Review" }));
     expect(screen.getByText("Review before submitting")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /submit freezer truck inspection/i }));
+    await user.click(
+      screen.getByRole("button", { name: /submit freezer truck inspection/i }),
+    );
 
-    await waitFor(() => expect(screen.getByText("Freezer truck inspection submitted")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Freezer truck inspection submitted")).toBeInTheDocument(),
+    );
     expect(screen.getByText("Approved for loading")).toBeInTheDocument();
   });
 
   it("hides manual entry for a user without the vehicles:manual_entry permission", async () => {
     mockUser({ permissions: [] });
-    vi.spyOn(vehiclesApi, "searchVehicles").mockResolvedValue(makeVehicleSearchResponse());
+    vi.spyOn(vehiclesApi, "searchVehicles").mockResolvedValue(
+      makeVehicleSearchResponse(),
+    );
 
     render(<FreezerTruckForm />);
 
     await waitFor(() => expect(screen.getByText("Recent vehicles")).toBeInTheDocument());
-    expect(screen.queryByText(/enter truck & vehicle number manually/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/enter truck & vehicle number manually/i),
+    ).not.toBeInTheDocument();
   });
 
   it("allows manual entry for a user holding vehicles:manual_entry", async () => {
     mockUser({ permissions: ["vehicles:manual_entry"] });
     const user = userEvent.setup();
-    vi.spyOn(vehiclesApi, "searchVehicles").mockResolvedValue(makeVehicleSearchResponse({ vehicles: [], isRecent: true }));
+    vi.spyOn(vehiclesApi, "searchVehicles").mockResolvedValue(
+      makeVehicleSearchResponse({ vehicles: [], isRecent: true }),
+    );
     vi.spyOn(inspectionApi, "createTruckDraft").mockResolvedValue(
-      makeDetail({ truck: makeTruckDetail({ vehicle: null, freezerTruckNumber: "FT-99", vehicleNumber: "GJ-05 CD 1122" }) }),
+      makeDetail({
+        truck: makeTruckDetail({
+          vehicle: null,
+          freezerTruckNumber: "FT-99",
+          vehicleNumber: "GJ-05 CD 1122",
+        }),
+      }),
     );
 
     render(<FreezerTruckForm />);
 
-    await waitFor(() => expect(screen.getByText(/enter truck & vehicle number manually/i)).toBeInTheDocument());
-    await user.click(screen.getByRole("button", { name: /enter truck & vehicle number manually/i }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/enter truck & vehicle number manually/i),
+      ).toBeInTheDocument(),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /enter truck & vehicle number manually/i }),
+    );
     await user.type(screen.getByLabelText("Freezer truck number"), "FT-99");
     await user.type(screen.getByLabelText("Vehicle number"), "GJ-05 CD 1122");
     await user.click(screen.getByRole("button", { name: /continue to inspection/i }));
 
     await waitFor(() =>
       expect(inspectionApi.createTruckDraft).toHaveBeenCalledWith(
-        expect.objectContaining({ freezerTruckNumber: "FT-99", vehicleNumber: "GJ-05 CD 1122" }),
+        expect.objectContaining({
+          freezerTruckNumber: "FT-99",
+          vehicleNumber: "GJ-05 CD 1122",
+        }),
       ),
     );
   });
@@ -228,15 +298,22 @@ describe("FreezerTruckForm — read-only detail with loading decision panel", ()
       makeDetail({
         header: { status: "SUBMITTED", submittedAt: "2026-07-14T02:00:00.000Z" },
         editable: false,
-        truck: makeTruckDetail({ recommendedDecision: "LOADING_BLOCKED", loadingDecision: "LOADING_BLOCKED" }),
+        truck: makeTruckDetail({
+          recommendedDecision: "LOADING_BLOCKED",
+          loadingDecision: "LOADING_BLOCKED",
+        }),
       }),
     );
 
     render(<FreezerTruckForm recordId="record-truck-1" />);
 
     await waitFor(() => expect(screen.getByText("Loading decision")).toBeInTheDocument());
-    expect(screen.getByText(/critical failure — loading cannot be approved/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /record decision/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/critical failure — loading cannot be approved/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /record decision/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("lets a supervisor/QA holding loading_decisions:approve record the final decision", async () => {
@@ -245,27 +322,42 @@ describe("FreezerTruckForm — read-only detail with loading decision panel", ()
     const submittedDetail = makeDetail({
       header: { status: "SUBMITTED", submittedAt: "2026-07-14T02:00:00.000Z" },
       editable: false,
-      truck: makeTruckDetail({ recommendedDecision: "CONDITIONALLY_APPROVED", loadingDecision: "CONDITIONALLY_APPROVED" }),
+      truck: makeTruckDetail({
+        recommendedDecision: "CONDITIONALLY_APPROVED",
+        loadingDecision: "CONDITIONALLY_APPROVED",
+      }),
     });
     vi.spyOn(inspectionApi, "fetchInspectionRecord").mockResolvedValue(submittedDetail);
-    const recordDecisionSpy = vi.spyOn(inspectionApi, "recordLoadingDecision").mockResolvedValue(
-      makeDetail({
-        header: { status: "SUBMITTED", submittedAt: "2026-07-14T02:00:00.000Z" },
-        editable: false,
-        truck: makeTruckDetail({
-          recommendedDecision: "CONDITIONALLY_APPROVED",
-          loadingDecision: "APPROVED_FOR_LOADING",
-          decidedBy: { id: "sup-1", fullName: "Sam Supervisor", employeeCode: "EMP-SUP" },
-          decidedAt: "2026-07-14T03:00:00.000Z",
+    const recordDecisionSpy = vi
+      .spyOn(inspectionApi, "recordLoadingDecision")
+      .mockResolvedValue(
+        makeDetail({
+          header: { status: "SUBMITTED", submittedAt: "2026-07-14T02:00:00.000Z" },
+          editable: false,
+          truck: makeTruckDetail({
+            recommendedDecision: "CONDITIONALLY_APPROVED",
+            loadingDecision: "APPROVED_FOR_LOADING",
+            decidedBy: {
+              id: "sup-1",
+              fullName: "Sam Supervisor",
+              employeeCode: "EMP-SUP",
+            },
+            decidedAt: "2026-07-14T03:00:00.000Z",
+          }),
         }),
-      }),
-    );
+      );
 
     render(<FreezerTruckForm recordId="record-truck-1" />);
 
-    await waitFor(() => expect(screen.getByText("Record final decision")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Record final decision")).toBeInTheDocument(),
+    );
     const panel = screen.getByText("Record final decision").closest("div")!;
-    await user.click(within(panel.parentElement as HTMLElement).getByRole("button", { name: "Approved for loading" }));
+    await user.click(
+      within(panel.parentElement as HTMLElement).getByRole("button", {
+        name: "Approved for loading",
+      }),
+    );
     await user.click(screen.getByRole("button", { name: /record decision/i }));
 
     await waitFor(() =>
@@ -274,6 +366,8 @@ describe("FreezerTruckForm — read-only detail with loading decision panel", ()
         expect.objectContaining({ decision: "APPROVED_FOR_LOADING" }),
       ),
     );
-    await waitFor(() => expect(screen.getByText(/Decided by Sam Supervisor/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Decided by Sam Supervisor/)).toBeInTheDocument(),
+    );
   });
 });

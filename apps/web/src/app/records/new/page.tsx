@@ -20,7 +20,7 @@ export default function NewRecordPage() {
           <Card interactive>
             <Badge tone="neutral">{DOCUMENT_CODES.DAILY_CLEANING}</Badge>
             <h2
-              className="mt-2 text-lg text-nelna-primary-dark"
+              className="text-nelna-primary-dark mt-2 text-lg"
               style={{ fontFamily: "var(--nelna-font-display)" }}
             >
               Daily Cleaning Verification
@@ -34,7 +34,7 @@ export default function NewRecordPage() {
           <Card interactive>
             <Badge tone="neutral">{DOCUMENT_CODES.FREEZER_TRUCK}</Badge>
             <h2
-              className="mt-2 text-lg text-nelna-primary-dark"
+              className="text-nelna-primary-dark mt-2 text-lg"
               style={{ fontFamily: "var(--nelna-font-display)" }}
             >
               Freezer Truck Inspection

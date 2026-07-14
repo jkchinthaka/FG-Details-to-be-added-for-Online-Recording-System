@@ -24,7 +24,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/records", label: "Records", icon: RecordsIcon },
   { href: "/records/pending-check", label: "To Check", icon: RecordsIcon },
   { href: "/records/pending-verification", label: "To Verify", icon: RecordsIcon },
-  { href: "/corrective-actions", label: "Corrective Actions", icon: CorrectiveActionIcon },
+  {
+    href: "/corrective-actions",
+    label: "Corrective Actions",
+    icon: CorrectiveActionIcon,
+  },
   { href: "/reports", label: "Reports", icon: ReportsIcon },
   { href: "/admin", label: "Administration", icon: AdminIcon },
   { href: "/profile", label: "Profile", icon: ProfileIcon },
@@ -36,7 +40,12 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 const LOGIN_PATH = "/login";
-const CHROMELESS_PATHS = new Set(["/login", "/unauthorized", "/account-inactive", "/offline"]);
+const CHROMELESS_PATHS = new Set([
+  "/login",
+  "/unauthorized",
+  "/account-inactive",
+  "/offline",
+]);
 
 /** Responsive application shell: bottom nav on mobile, sidebar from tablet up. */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -204,11 +213,11 @@ function TopHeader() {
             }}
           />
           <span className="leading-tight">
-            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-nelna-primary">
+            <span className="text-nelna-primary block text-[0.65rem] font-semibold uppercase tracking-[0.14em]">
               Nelna Farm · FG
             </span>
             <span
-              className="block text-lg text-nelna-primary-dark"
+              className="text-nelna-primary-dark block text-lg"
               style={{ fontFamily: "var(--nelna-font-display)" }}
             >
               Digital Recording
@@ -243,11 +252,14 @@ function TopHeader() {
                 style={{ boxShadow: "var(--nelna-shadow-md)" }}
               >
                 <div className="px-3 py-2">
-                  <p className="truncate text-sm font-bold text-nelna-primary-dark">
+                  <p className="text-nelna-primary-dark truncate text-sm font-bold">
                     {auth.user?.fullName ?? "Signed in"}
                   </p>
                   {primaryRole ? (
-                    <p className="truncate text-xs" style={{ color: "var(--nelna-text-secondary)" }}>
+                    <p
+                      className="truncate text-xs"
+                      style={{ color: "var(--nelna-text-secondary)" }}
+                    >
                       {USER_ROLE_LABELS[primaryRole]}
                     </p>
                   ) : null}
@@ -257,7 +269,7 @@ function TopHeader() {
                   href="/profile"
                   role="menuitem"
                   onClick={() => setMenuOpen(false)}
-                  className="flex min-h-11 items-center rounded-[var(--nelna-radius-sm)] px-3 text-sm font-semibold text-nelna-primary-dark hover:bg-[var(--nelna-surface-muted)]"
+                  className="text-nelna-primary-dark flex min-h-11 items-center rounded-[var(--nelna-radius-sm)] px-3 text-sm font-semibold hover:bg-[var(--nelna-surface-muted)]"
                 >
                   Profile
                 </Link>
@@ -322,7 +334,16 @@ function BottomNav({
       className="nelna-bottom-nav fixed inset-x-0 bottom-0 z-40 md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className={hasMore ? "grid grid-cols-5" : "grid" } style={hasMore ? undefined : { gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}>
+      <ul
+        className={hasMore ? "grid grid-cols-5" : "grid"}
+        style={
+          hasMore
+            ? undefined
+            : {
+                gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))`,
+              }
+        }
+      >
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (

@@ -68,14 +68,22 @@ describe("isNavItemVisible", () => {
   });
 
   it("grants access when a user holds any one of multiple roles", () => {
-    expect(isNavItemVisible("/admin", ["FG_OPERATOR", "SYSTEM_ADMINISTRATOR"])).toBe(true);
+    expect(isNavItemVisible("/admin", ["FG_OPERATOR", "SYSTEM_ADMINISTRATOR"])).toBe(
+      true,
+    );
   });
 });
 
 describe("filterNavItemsByRole", () => {
   it("returns Home, Reports, Administration and Profile for a pure System Administrator", () => {
     const visible = filterNavItemsByRole(ALL_ITEMS, ["SYSTEM_ADMINISTRATOR"]);
-    expect(visible.map((item) => item.href)).toEqual(["/", "/tasks", "/reports", "/admin", "/profile"]);
+    expect(visible.map((item) => item.href)).toEqual([
+      "/",
+      "/tasks",
+      "/reports",
+      "/admin",
+      "/profile",
+    ]);
   });
 
   it("returns the FG Operator's full operational surface", () => {

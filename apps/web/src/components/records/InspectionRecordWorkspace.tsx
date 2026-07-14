@@ -13,7 +13,15 @@ import {
   type InspectionRecordDetail,
   type SubmitRecordResult,
 } from "@nelna/shared";
-import { Alert, Badge, Button, Card, ChecklistRenderer, LoadingState, StickySubmitBar } from "@nelna/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  ChecklistRenderer,
+  LoadingState,
+  StickySubmitBar,
+} from "@nelna/ui";
 import {
   InspectionRecordApiError,
   createCleaningDraft,
@@ -21,7 +29,12 @@ import {
   saveInspectionDraft,
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
-import { clearDraft, formatDraftSavedAt, loadRecoverableDraft, saveDraft } from "@/lib/draft-storage";
+import {
+  clearDraft,
+  formatDraftSavedAt,
+  loadRecoverableDraft,
+  saveDraft,
+} from "@/lib/draft-storage";
 import { RecordHeaderField } from "@/components/records/RecordHeaderField";
 import { enqueueOfflineSubmission } from "@/lib/offline/queue-store";
 import { processOfflineQueue } from "@/lib/offline/sync-engine";
@@ -45,9 +58,12 @@ const AUTOSAVE_DELAY_MS = 1500;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 async function downloadOfficialPdf(recordId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/reports/record-pdf/${encodeURIComponent(recordId)}`, {
-    credentials: "include",
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/reports/record-pdf/${encodeURIComponent(recordId)}`,
+    {
+      credentials: "include",
+    },
+  );
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     throw new Error(body.message ?? `PDF download failed (${response.status})`);
@@ -72,7 +88,10 @@ async function downloadOfficialPdf(recordId: string): Promise<void> {
  * editable (submitted/checked/verified, or someone else's record), the same
  * component renders a read-only view of it.
  */
-export function InspectionRecordWorkspace({ recordId, assignmentId }: InspectionRecordWorkspaceProps) {
+export function InspectionRecordWorkspace({
+  recordId,
+  assignmentId,
+}: InspectionRecordWorkspaceProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [responses, setResponses] = useState<ChecklistResponseMap>({});
   const [phase, setPhase] = useState<WorkflowPhase>("editing");
@@ -111,8 +130,12 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
       })
       .catch((error: unknown) => {
         if (attempt !== loadAttempt.current) return;
-        const isDuplicate = error instanceof InspectionRecordApiError && error.status === 409;
-        const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+        const isDuplicate =
+          error instanceof InspectionRecordApiError && error.status === 409;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again.";
         setState({ status: "error", message, isDuplicate });
       });
   }
@@ -122,7 +145,8 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordId, assignmentId]);
 
-  const detail = state.status === "ready" || state.status === "success" ? state.detail : null;
+  const detail =
+    state.status === "ready" || state.status === "success" ? state.detail : null;
   const activeRecordId = detail?.header.id ?? null;
   const editable = state.status === "ready" && detail !== null && detail.editable;
 
@@ -136,7 +160,10 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
     }
 
     setDirty(true);
-    saveDraft(`inspection-record:${activeRecordId}`, { responses, savedAt: new Date().toISOString() });
+    saveDraft(`inspection-record:${activeRecordId}`, {
+      responses,
+      savedAt: new Date().toISOString(),
+    });
 
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
@@ -174,12 +201,19 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty]);
 
-  const items = useMemo(() => (detail ? flattenItems(detail.version.sections) : []), [detail]);
+  const items = useMemo(
+    () => (detail ? flattenItems(detail.version.sections) : []),
+    [detail],
+  );
   const validation = useMemo(
-    () => (detail ? validateChecklistResponses(detail.version.sections, responses) : null),
+    () =>
+      detail ? validateChecklistResponses(detail.version.sections, responses) : null,
     [detail, responses],
   );
-  const counts = useMemo(() => (detail ? computeRecordCounts(items, responses) : null), [detail, items, responses]);
+  const counts = useMemo(
+    () => (detail ? computeRecordCounts(items, responses) : null),
+    [detail, items, responses],
+  );
 
   function handleReview() {
     setPhase("review");
@@ -198,7 +232,9 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         await enqueueOfflineSubmission({
           recordType:
-            detail.header.documentCode === DOCUMENT_CODES.FREEZER_TRUCK ? "FREEZER_TRUCK" : "DAILY_CLEANING",
+            detail.header.documentCode === DOCUMENT_CODES.FREEZER_TRUCK
+              ? "FREEZER_TRUCK"
+              : "DAILY_CLEANING",
           recordId: activeRecordId,
           payload: { responses },
           templateVersionNumber: detail.header.templateVersionNumber,
@@ -221,14 +257,20 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
       void processOfflineQueue();
       setState((current) => {
         if (current.status !== "ready") return current;
-        return { status: "success", detail: { ...current.detail, editable: false }, result };
+        return {
+          status: "success",
+          detail: { ...current.detail, editable: false },
+          result,
+        };
       });
     } catch (error) {
       if (error instanceof InspectionRecordApiError && error.status === 0) {
         try {
           await enqueueOfflineSubmission({
             recordType:
-              detail.header.documentCode === DOCUMENT_CODES.FREEZER_TRUCK ? "FREEZER_TRUCK" : "DAILY_CLEANING",
+              detail.header.documentCode === DOCUMENT_CODES.FREEZER_TRUCK
+                ? "FREEZER_TRUCK"
+                : "DAILY_CLEANING",
             recordId: activeRecordId,
             payload: { responses },
             templateVersionNumber: detail.header.templateVersionNumber,
@@ -263,11 +305,18 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
 
   if (state.status === "error") {
     return (
-      <Alert tone="danger" title={state.isDuplicate ? "Already in progress" : "Couldn't open this record"}>
+      <Alert
+        tone="danger"
+        title={state.isDuplicate ? "Already in progress" : "Couldn't open this record"}
+      >
         <p style={{ margin: 0 }}>{state.message}</p>
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.85rem" }}>
           {state.isDuplicate ? (
-            <Button variant="secondary" size="md" onClick={() => (window.location.href = "/tasks")}>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => (window.location.href = "/tasks")}
+            >
               Back to Today&apos;s Tasks
             </Button>
           ) : (
@@ -290,15 +339,16 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
 
       {!editable ? (
         <Alert tone="information" title="Read-only">
-          This record is {RECORD_STATUS_LABELS[detail!.header.status].toLowerCase()} and can no longer be edited
-          here.
+          This record is {RECORD_STATUS_LABELS[detail!.header.status].toLowerCase()} and
+          can no longer be edited here.
         </Alert>
       ) : null}
 
       {saveError ? <Alert tone="warning">{saveError}</Alert> : null}
       {draftRecovered ? (
         <Alert tone="warning" title="Local draft restored">
-          A newer backup saved on this device was restored. Review and save it before submitting.
+          A newer backup saved on this device was restored. Review and save it before
+          submitting.
         </Alert>
       ) : null}
       {submitError ? (
@@ -353,7 +403,14 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
 
   return (
     <Card padding="lg">
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: "0.75rem",
+        }}
+      >
         <div style={{ display: "grid", gap: "0.3rem" }}>
           <p
             style={{
@@ -368,14 +425,30 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
             {header.documentCode} · v{header.templateVersionNumber}
           </p>
           <h2
-            style={{ margin: 0, fontFamily: "var(--nelna-font-display)", fontSize: "1.3rem", color: "var(--nelna-primary-active)" }}
+            style={{
+              margin: 0,
+              fontFamily: "var(--nelna-font-display)",
+              fontSize: "1.3rem",
+              color: "var(--nelna-primary-active)",
+            }}
           >
             {header.templateTitle}
           </h2>
-          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--nelna-text-muted)" }}>Record #{header.recordNumber}</p>
+          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--nelna-text-muted)" }}>
+            Record #{header.recordNumber}
+          </p>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.5rem" }}>
-          <Badge tone={statusTone(header.status)}>{RECORD_STATUS_LABELS[header.status]}</Badge>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "0.5rem",
+          }}
+        >
+          <Badge tone={statusTone(header.status)}>
+            {RECORD_STATUS_LABELS[header.status]}
+          </Badge>
           <Button
             variant="ghost"
             type="button"
@@ -399,11 +472,17 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
           fontSize: "0.9rem",
         }}
       >
-        <RecordHeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
+        <RecordHeaderField
+          label="Date"
+          value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })}
+        />
         <RecordHeaderField label="Month" value={header.recordMonth} />
         <RecordHeaderField label="Shift" value={header.shiftLabel ?? "—"} />
         <RecordHeaderField label="Section / area" value={header.areaLabel ?? "—"} />
-        <RecordHeaderField label="Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
+        <RecordHeaderField
+          label="Recorded by"
+          value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`}
+        />
         <RecordHeaderField
           label="Checked by"
           value={
@@ -419,7 +498,8 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
               ? `${header.verifiedBy.fullName} (${header.verifiedBy.employeeCode})`
               : "Pending verification"
           }
-        />      </dl>
+        />{" "}
+      </dl>
     </Card>
   );
 }
@@ -427,14 +507,32 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
 function ReviewCountsCard({
   counts,
 }: {
-  counts: { acceptable: number; failed: number; notApplicable: number; unanswered: number; total: number };
+  counts: {
+    acceptable: number;
+    failed: number;
+    notApplicable: number;
+    unanswered: number;
+    total: number;
+  };
 }) {
   return (
     <Card>
-      <p style={{ margin: "0 0 0.65rem", fontWeight: 700, color: "var(--nelna-primary-dark)" }}>
+      <p
+        style={{
+          margin: "0 0 0.65rem",
+          fontWeight: 700,
+          color: "var(--nelna-primary-dark)",
+        }}
+      >
         Review before submitting
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))",
+          gap: "0.75rem",
+        }}
+      >
         <CountStat label="Acceptable" value={counts.acceptable} tone="success" />
         <CountStat label="Unacceptable" value={counts.failed} tone="danger" />
         <CountStat label="N/A" value={counts.notApplicable} tone="neutral" />
@@ -461,13 +559,19 @@ function CountStat({
   };
   return (
     <div style={{ textAlign: "center" }}>
-      <p style={{ margin: 0, fontSize: "1.6rem", fontWeight: 700, color: colors[tone] }}>{value}</p>
-      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: "1.6rem", fontWeight: 700, color: colors[tone] }}>
+        {value}
+      </p>
+      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>
+        {label}
+      </p>
     </div>
   );
 }
 
-function statusTone(status: InspectionRecordDetail["header"]["status"]): "neutral" | "success" | "warning" | "danger" | "information" {
+function statusTone(
+  status: InspectionRecordDetail["header"]["status"],
+): "neutral" | "success" | "warning" | "danger" | "information" {
   switch (status) {
     case "DRAFT":
       return "neutral";
@@ -497,7 +601,14 @@ function RecordSuccessScreen({
   return (
     <div className="space-y-4">
       <Card padding="lg">
-        <div style={{ textAlign: "center", display: "grid", gap: "0.5rem", justifyItems: "center" }}>
+        <div
+          style={{
+            textAlign: "center",
+            display: "grid",
+            gap: "0.5rem",
+            justifyItems: "center",
+          }}
+        >
           <span
             aria-hidden
             style={{
@@ -513,22 +624,39 @@ function RecordSuccessScreen({
           >
             ✓
           </span>
-          <h2 style={{ margin: 0, fontFamily: "var(--nelna-font-display)", fontSize: "1.4rem", color: "var(--nelna-primary-active)" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: "var(--nelna-font-display)",
+              fontSize: "1.4rem",
+              color: "var(--nelna-primary-active)",
+            }}
+          >
             Cleaning verification submitted
           </h2>
           <p style={{ margin: 0, color: "var(--nelna-text-secondary)" }}>
             Record #{result.recordNumber} · submitted {submittedAt.toLocaleString()}
           </p>
-          <Badge tone={statusTone(result.status)}>{RECORD_STATUS_LABELS[result.status]}</Badge>
+          <Badge tone={statusTone(result.status)}>
+            {RECORD_STATUS_LABELS[result.status]}
+          </Badge>
         </div>
 
         {result.hasCriticalFailure ? (
-          <Alert tone="danger" title="Critical failure recorded" >
-            This record includes at least one critical failure. It has been flagged for immediate follow-up.
+          <Alert tone="danger" title="Critical failure recorded">
+            This record includes at least one critical failure. It has been flagged for
+            immediate follow-up.
           </Alert>
         ) : null}
 
-        <div style={{ marginTop: "1.25rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: "0.75rem" }}>
+        <div
+          style={{
+            marginTop: "1.25rem",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))",
+            gap: "0.75rem",
+          }}
+        >
           <CountStat label="Acceptable" value={result.counts.acceptable} tone="success" />
           <CountStat label="Unacceptable" value={result.counts.failed} tone="danger" />
           <CountStat label="N/A" value={result.counts.notApplicable} tone="neutral" />
@@ -537,9 +665,10 @@ function RecordSuccessScreen({
 
         {result.correctiveActionsCreated > 0 ? (
           <p style={{ marginTop: "1rem", color: "var(--nelna-text-secondary)" }}>
-            {result.correctiveActionsCreated} corrective action{result.correctiveActionsCreated === 1 ? "" : "s"}{" "}
-            {result.correctiveActionsCreated === 1 ? "was" : "were"} automatically opened for the failing items that
-            require one.
+            {result.correctiveActionsCreated} corrective action
+            {result.correctiveActionsCreated === 1 ? "" : "s"}{" "}
+            {result.correctiveActionsCreated === 1 ? "was" : "were"} automatically opened
+            for the failing items that require one.
           </p>
         ) : null}
 
@@ -549,7 +678,15 @@ function RecordSuccessScreen({
             : "No further action is required."}
         </p>
 
-        <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+        <div
+          style={{
+            marginTop: "1.5rem",
+            display: "flex",
+            gap: "0.5rem",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
           <Link href="/tasks">
             <Button variant="primary">Return to Today&apos;s Tasks</Button>
           </Link>

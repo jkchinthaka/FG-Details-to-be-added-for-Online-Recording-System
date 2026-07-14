@@ -22,14 +22,18 @@ export const OFFLINE_CONFLICT_REASONS = [
 
 export type OfflineConflictReason = (typeof OFFLINE_CONFLICT_REASONS)[number];
 
-export type OfflineQueueRecordType = "DAILY_CLEANING" | "FREEZER_TRUCK" | "CORRECTIVE_ACTION_DRAFT";
+export type OfflineQueueRecordType =
+  "DAILY_CLEANING" | "FREEZER_TRUCK" | "CORRECTIVE_ACTION_DRAFT";
 
 export const OFFLINE_QUEUE_MAX_ENTRIES = 40;
 export const OFFLINE_RETRY_BASE_MS = 2_000;
 export const OFFLINE_RETRY_MAX_MS = 60_000;
 
 export function nextRetryDelayMs(attempt: number): number {
-  const exp = Math.min(OFFLINE_RETRY_MAX_MS, OFFLINE_RETRY_BASE_MS * 2 ** Math.max(0, attempt));
+  const exp = Math.min(
+    OFFLINE_RETRY_MAX_MS,
+    OFFLINE_RETRY_BASE_MS * 2 ** Math.max(0, attempt),
+  );
   return exp;
 }
 

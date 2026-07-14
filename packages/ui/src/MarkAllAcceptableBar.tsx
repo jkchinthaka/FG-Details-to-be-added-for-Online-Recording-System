@@ -31,8 +31,8 @@ export function MarkAllAcceptableBar({
           fontSize: "0.95rem",
         }}
       >
-        All checks look good? Mark all {itemCount} items acceptable, then only
-        change failed items.
+        All checks look good? Mark all {itemCount} items acceptable, then only change
+        failed items.
       </p>
       <NelnaButton
         variant="primary"

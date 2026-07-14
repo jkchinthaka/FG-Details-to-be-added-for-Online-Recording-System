@@ -16,7 +16,9 @@ export function Checkbox({ label, className, id, ...rest }: CheckboxProps) {
   return (
     <label
       htmlFor={checkboxId}
-      className={["nelna-checkbox", "nelna-focusable", className].filter(Boolean).join(" ")}
+      className={["nelna-checkbox", "nelna-focusable", className]
+        .filter(Boolean)
+        .join(" ")}
     >
       <input id={checkboxId} type="checkbox" {...rest} />
       <span>{label}</span>

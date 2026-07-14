@@ -10,7 +10,11 @@ type SessionExpiredDialogProps = {
 };
 
 /** Modal shown when the API reports session expiry mid-workflow. Does not mark records as submitted. */
-export function SessionExpiredDialog({ open, onSignIn, preserveDraftHint = true }: SessionExpiredDialogProps) {
+export function SessionExpiredDialog({
+  open,
+  onSignIn,
+  preserveDraftHint = true,
+}: SessionExpiredDialogProps) {
   if (!open) return null;
 
   return (
@@ -21,16 +25,20 @@ export function SessionExpiredDialog({ open, onSignIn, preserveDraftHint = true 
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4"
     >
       <div className="w-full max-w-md rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-white p-5 shadow-lg">
-        <h2 id="session-expired-title" className="text-lg font-bold text-nelna-primary-dark">
+        <h2
+          id="session-expired-title"
+          className="text-nelna-primary-dark text-lg font-bold"
+        >
           Session expired
         </h2>
         <p className="mt-2 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-          Your sign-in session ended. Sign in again to continue. Any unfinished work was not submitted to the
-          server.
+          Your sign-in session ended. Sign in again to continue. Any unfinished work was
+          not submitted to the server.
         </p>
         {preserveDraftHint ? (
           <p className="mt-2 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-            Safe local draft data on this device is kept until you sync or clear it after signing in again.
+            Safe local draft data on this device is kept until you sync or clear it after
+            signing in again.
           </p>
         ) : null}
         <div className="mt-4 flex justify-end">

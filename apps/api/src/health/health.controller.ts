@@ -11,7 +11,8 @@ export class HealthController {
   @Public()
   @Get()
   @ApiOperation({
-    summary: "Aggregated health (liveness + dependency status). Omits secrets and host infrastructure detail.",
+    summary:
+      "Aggregated health (liveness + dependency status). Omits secrets and host infrastructure detail.",
   })
   @ApiOkResponse({ description: "healthy or degraded with check details" })
   getHealth(): Promise<HealthResponse> {

@@ -19,6 +19,9 @@ export function toCsvRow(cells: Array<string | number | null | undefined>): stri
   return cells.map(escapeCsvCell).join(",");
 }
 
-export function toCsvDocument(headers: string[], rows: Array<Array<string | number | null | undefined>>): string {
+export function toCsvDocument(
+  headers: string[],
+  rows: Array<Array<string | number | null | undefined>>,
+): string {
   return [toCsvRow(headers), ...rows.map((row) => toCsvRow(row))].join("\r\n");
 }

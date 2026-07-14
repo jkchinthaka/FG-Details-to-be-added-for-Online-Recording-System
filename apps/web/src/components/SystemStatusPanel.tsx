@@ -35,9 +35,7 @@ export function SystemStatusPanel() {
       setState({
         phase: "error",
         message:
-          error instanceof Error
-            ? error.message
-            : "Unable to reach the Nelna FG API",
+          error instanceof Error ? error.message : "Unable to reach the Nelna FG API",
       });
     }
   }
@@ -54,7 +52,7 @@ export function SystemStatusPanel() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2
-            className="text-xl text-nelna-primary-dark"
+            className="text-nelna-primary-dark text-xl"
             style={{ fontFamily: "var(--nelna-font-display)" }}
           >
             System status
@@ -66,16 +64,14 @@ export function SystemStatusPanel() {
         <button
           type="button"
           onClick={() => void load()}
-          className="min-h-12 rounded-[var(--nelna-radius)] border-2 border-[var(--nelna-border)] px-4 text-sm font-semibold text-nelna-primary-dark"
+          className="text-nelna-primary-dark min-h-12 rounded-[var(--nelna-radius)] border-2 border-[var(--nelna-border)] px-4 text-sm font-semibold"
         >
           Refresh
         </button>
       </div>
 
       {state.phase === "loading" ? (
-        <p className="mt-4 text-sm text-[var(--nelna-text-muted)]">
-          Checking API…
-        </p>
+        <p className="mt-4 text-sm text-[var(--nelna-text-muted)]">Checking API…</p>
       ) : null}
 
       {state.phase === "error" ? (

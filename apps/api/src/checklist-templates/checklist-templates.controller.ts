@@ -1,6 +1,19 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Patch } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+  Patch,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { ChecklistTemplateSummary, ChecklistTemplateVersionDefinition } from "@nelna/shared";
+import type {
+  ChecklistTemplateSummary,
+  ChecklistTemplateVersionDefinition,
+} from "@nelna/shared";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
 import type { RequestUser } from "../auth/auth.types";
@@ -46,8 +59,12 @@ export class ChecklistTemplatesController {
   }
 
   @Get(":code/published")
-  @ApiOperation({ summary: "Retrieve a template's current published version (full sections/items)" })
-  getPublishedVersion(@Param("code") code: string): Promise<ChecklistTemplateVersionDefinition> {
+  @ApiOperation({
+    summary: "Retrieve a template's current published version (full sections/items)",
+  })
+  getPublishedVersion(
+    @Param("code") code: string,
+  ): Promise<ChecklistTemplateVersionDefinition> {
     return this.service.getPublishedVersion(decodeURIComponent(code));
   }
 
@@ -58,7 +75,11 @@ export class ChecklistTemplatesController {
     @Param("versionNumber", ParseIntPipe) versionNumber: number,
     @CurrentUser() user: RequestUser,
   ): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.getVersionByNumber(decodeURIComponent(code), versionNumber, user.permissions);
+    return this.service.getVersionByNumber(
+      decodeURIComponent(code),
+      versionNumber,
+      user.permissions,
+    );
   }
 
   @Get(":code")
@@ -82,12 +103,17 @@ export class ChecklistTemplatesController {
     @Param("code") code: string,
     @Body() dto?: CreateDraftVersionDto,
   ): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.createDraftVersion(decodeURIComponent(code), dto?.fromVersionNumber);
+    return this.service.createDraftVersion(
+      decodeURIComponent(code),
+      dto?.fromVersionNumber,
+    );
   }
 
   @Post(":code/versions/:versionNumber/clone")
   @RequirePermissions("templates:manage")
-  @ApiOperation({ summary: "Create a new draft version by cloning a specific existing version" })
+  @ApiOperation({
+    summary: "Create a new draft version by cloning a specific existing version",
+  })
   cloneDraftFromVersion(
     @Param("code") code: string,
     @Param("versionNumber", ParseIntPipe) versionNumber: number,
@@ -114,12 +140,18 @@ export class ChecklistTemplatesController {
     @Param("versionNumber", ParseIntPipe) versionNumber: number,
     @Body() dto: ReorderDto,
   ): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.reorderSections(decodeURIComponent(code), versionNumber, dto.orderedIds);
+    return this.service.reorderSections(
+      decodeURIComponent(code),
+      versionNumber,
+      dto.orderedIds,
+    );
   }
 
   @Post(":code/versions/:versionNumber/sections/:sectionId/items")
   @RequirePermissions("templates:manage")
-  @ApiOperation({ summary: "Add an item (with its response type and rules) to a draft section" })
+  @ApiOperation({
+    summary: "Add an item (with its response type and rules) to a draft section",
+  })
   addItem(
     @Param("code") code: string,
     @Param("versionNumber", ParseIntPipe) versionNumber: number,
@@ -138,12 +170,19 @@ export class ChecklistTemplatesController {
     @Param("sectionId") sectionId: string,
     @Body() dto: ReorderDto,
   ): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.reorderItems(decodeURIComponent(code), versionNumber, sectionId, dto.orderedIds);
+    return this.service.reorderItems(
+      decodeURIComponent(code),
+      versionNumber,
+      sectionId,
+      dto.orderedIds,
+    );
   }
 
   @Patch(":code/versions/:versionNumber/items/:itemId")
   @RequirePermissions("templates:manage")
-  @ApiOperation({ summary: "Update a draft item's label, response type or validation rules" })
+  @ApiOperation({
+    summary: "Update a draft item's label, response type or validation rules",
+  })
   updateItem(
     @Param("code") code: string,
     @Param("versionNumber", ParseIntPipe) versionNumber: number,
@@ -167,7 +206,12 @@ export class ChecklistTemplatesController {
     @Body() dto: PublishVersionDto,
     @CurrentUser() user: RequestUser,
   ): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.publishVersion(decodeURIComponent(code), versionNumber, user.id, dto.notes);
+    return this.service.publishVersion(
+      decodeURIComponent(code),
+      versionNumber,
+      user.id,
+      dto.notes,
+    );
   }
 
   @Post(":code/versions/:versionNumber/archive")

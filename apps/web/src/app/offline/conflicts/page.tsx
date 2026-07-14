@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Card, EmptyState, PageHeader } from "@nelna/ui";
-import { deleteOfflineQueueItem, listOfflineQueue, type OfflineQueueItem } from "@/lib/offline/queue-store";
+import {
+  deleteOfflineQueueItem,
+  listOfflineQueue,
+  type OfflineQueueItem,
+} from "@/lib/offline/queue-store";
 import { retryOfflineItem } from "@/lib/offline/sync-engine";
 
 export default function OfflineConflictsPage() {
@@ -11,7 +15,11 @@ export default function OfflineConflictsPage() {
 
   async function reload() {
     const all = await listOfflineQueue();
-    setItems(all.filter((i) => i.state === "CONFLICT_REQUIRES_REVIEW" || i.state === "SYNC_FAILED"));
+    setItems(
+      all.filter(
+        (i) => i.state === "CONFLICT_REQUIRES_REVIEW" || i.state === "SYNC_FAILED",
+      ),
+    );
   }
 
   useEffect(() => {
@@ -30,7 +38,7 @@ export default function OfflineConflictsPage() {
       ) : (
         items.map((item) => (
           <Card key={item.id}>
-            <p className="font-semibold text-nelna-primary-dark">
+            <p className="text-nelna-primary-dark font-semibold">
               {item.recordType} · {item.recordId}
             </p>
             <p className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
@@ -39,7 +47,11 @@ export default function OfflineConflictsPage() {
             </p>
             {item.lastError ? <p className="mt-1 text-sm">{item.lastError}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" onClick={() => void retryOfflineItem(item.id).then(reload)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void retryOfflineItem(item.id).then(reload)}
+              >
                 Retry
               </Button>
               <Button
@@ -49,7 +61,10 @@ export default function OfflineConflictsPage() {
               >
                 Discard device draft
               </Button>
-              <Link href={`/records`} className="inline-flex items-center font-semibold text-nelna-primary">
+              <Link
+                href={`/records`}
+                className="text-nelna-primary inline-flex items-center font-semibold"
+              >
                 Open records →
               </Link>
             </div>

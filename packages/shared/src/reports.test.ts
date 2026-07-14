@@ -29,22 +29,34 @@ describe("toCsvDocument", () => {
 
 describe("reportFiltersSchema", () => {
   it("rejects inverted date ranges", () => {
-    const result = reportFiltersSchema.safeParse({ fromDate: "2026-07-10", toDate: "2026-07-01" });
+    const result = reportFiltersSchema.safeParse({
+      fromDate: "2026-07-10",
+      toDate: "2026-07-01",
+    });
     expect(result.success).toBe(false);
   });
 
   it("accepts a valid window", () => {
-    const result = reportFiltersSchema.safeParse({ fromDate: "2026-07-01", toDate: "2026-07-14" });
+    const result = reportFiltersSchema.safeParse({
+      fromDate: "2026-07-01",
+      toDate: "2026-07-14",
+    });
     expect(result.success).toBe(true);
   });
 
   it("rejects ranges longer than 93 days", () => {
-    const result = reportFiltersSchema.safeParse({ fromDate: "2026-01-01", toDate: "2026-04-05" });
+    const result = reportFiltersSchema.safeParse({
+      fromDate: "2026-01-01",
+      toDate: "2026-04-05",
+    });
     expect(result.success).toBe(false);
   });
 
   it("accepts an inclusive 93-day window", () => {
-    const result = reportFiltersSchema.safeParse({ fromDate: "2026-01-01", toDate: "2026-04-03" });
+    const result = reportFiltersSchema.safeParse({
+      fromDate: "2026-01-01",
+      toDate: "2026-04-03",
+    });
     expect(result.success).toBe(true);
   });
 

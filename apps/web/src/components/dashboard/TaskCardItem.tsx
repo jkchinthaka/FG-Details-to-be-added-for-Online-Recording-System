@@ -16,12 +16,12 @@ export function TaskCardItem({ task }: { task: TaskCard }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {task.documentCode ? (
-              <p className="truncate text-xs font-semibold uppercase tracking-wide text-nelna-primary">
+              <p className="text-nelna-primary truncate text-xs font-semibold uppercase tracking-wide">
                 {task.documentCode}
               </p>
             ) : null}
             <h3
-              className="mt-1 text-base leading-snug text-nelna-primary-dark"
+              className="text-nelna-primary-dark mt-1 text-base leading-snug"
               style={{ fontFamily: "var(--nelna-font-display)" }}
             >
               {task.title}

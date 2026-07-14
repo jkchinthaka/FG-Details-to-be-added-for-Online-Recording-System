@@ -14,7 +14,12 @@ import {
   type ChecklistItemDefinition,
   type ChecklistResponseMap,
 } from "./checklist-engine";
-import { FINAL_LOADING_DECISIONS, WORK_SHIFTS, type FinalLoadingDecision, type LoadingDecision } from "./records";
+import {
+  FINAL_LOADING_DECISIONS,
+  WORK_SHIFTS,
+  type FinalLoadingDecision,
+  type LoadingDecision,
+} from "./records";
 
 // ---------------------------------------------------------------------------
 // Vehicle / driver / transporter — search + selection
@@ -64,7 +69,10 @@ const YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
  */
 export const createTruckDraftSchema = z
   .object({
-    recordDate: z.string().regex(YYYY_MM_DD, "recordDate must be in YYYY-MM-DD format").optional(),
+    recordDate: z
+      .string()
+      .regex(YYYY_MM_DD, "recordDate must be in YYYY-MM-DD format")
+      .optional(),
     shiftCode: z.enum(WORK_SHIFTS).optional(),
     areaLabel: z.string().trim().min(1).max(200).optional(),
     vehicleId: z.string().trim().min(1).optional(),
@@ -190,7 +198,9 @@ export function computeRecommendedLoadingDecision(
  *  supervisor, or QA — may record an "approved" final decision while it
  *  stands. Only `LOADING_BLOCKED` (leave it blocked) or `REJECTED` (reject
  *  the truck outright) are valid final decisions in that case. */
-export function isOverrideToApprovedAllowed(recommendedDecision: LoadingDecision | null): boolean {
+export function isOverrideToApprovedAllowed(
+  recommendedDecision: LoadingDecision | null,
+): boolean {
   return recommendedDecision !== "LOADING_BLOCKED";
 }
 
@@ -198,7 +208,9 @@ export function isOverrideToApprovedAllowed(recommendedDecision: LoadingDecision
  *  system's recommendation — enforces the same non-overridable-block rule
  *  as `isOverrideToApprovedAllowed`, expressed as an allow-list for the API
  *  layer and the web decision picker to share. */
-export function allowedFinalDecisions(recommendedDecision: LoadingDecision | null): readonly FinalLoadingDecision[] {
+export function allowedFinalDecisions(
+  recommendedDecision: LoadingDecision | null,
+): readonly FinalLoadingDecision[] {
   if (isOverrideToApprovedAllowed(recommendedDecision)) {
     return FINAL_LOADING_DECISIONS;
   }

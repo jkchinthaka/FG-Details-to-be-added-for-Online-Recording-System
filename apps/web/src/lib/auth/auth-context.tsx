@@ -10,7 +10,13 @@ import {
   type ReactNode,
 } from "react";
 import type { CurrentUser, LoginInput } from "@nelna/shared";
-import { ApiError, fetchCurrentUser, login as apiLogin, logout as apiLogout, refreshSession } from "./api";
+import {
+  ApiError,
+  fetchCurrentUser,
+  login as apiLogin,
+  logout as apiLogout,
+  refreshSession,
+} from "./api";
 import { isSessionExpiredCode } from "./session";
 import { canAccessRoute } from "./route-access";
 
@@ -134,7 +140,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearSessionExpiredNotice,
       canOpenPath,
     }),
-    [status, user, login, logout, loadSession, sessionExpiredNotice, clearSessionExpiredNotice, canOpenPath],
+    [
+      status,
+      user,
+      login,
+      logout,
+      loadSession,
+      sessionExpiredNotice,
+      clearSessionExpiredNotice,
+      canOpenPath,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

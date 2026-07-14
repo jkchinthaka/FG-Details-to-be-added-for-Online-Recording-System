@@ -1,6 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { USER_ROLES, type UserRole } from "@nelna/shared";
-import { IsArray, IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import {
+  IsArray,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 
 export class CreateUserDto {
   @ApiProperty({ example: "EMP-1001" })

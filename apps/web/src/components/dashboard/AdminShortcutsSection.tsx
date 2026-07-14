@@ -8,7 +8,9 @@ export function AdminShortcutsSection({ shortcuts }: { shortcuts: AdminShortcut[
 
   return (
     <Card>
-      <h2 className="text-sm font-bold uppercase tracking-wide text-nelna-primary">Admin shortcuts</h2>
+      <h2 className="text-nelna-primary text-sm font-bold uppercase tracking-wide">
+        Admin shortcuts
+      </h2>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {shortcuts.map((shortcut) => (
           <Link
@@ -16,7 +18,9 @@ export function AdminShortcutsSection({ shortcuts }: { shortcuts: AdminShortcut[
             href={shortcut.href}
             className="nelna-focusable rounded-[var(--nelna-radius-sm)] border border-[var(--nelna-border)] px-3 py-2.5 hover:bg-[var(--nelna-surface-muted)]"
           >
-            <p className="text-sm font-semibold text-nelna-primary-dark">{shortcut.label}</p>
+            <p className="text-nelna-primary-dark text-sm font-semibold">
+              {shortcut.label}
+            </p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--nelna-text-muted)" }}>
               {shortcut.description}
             </p>

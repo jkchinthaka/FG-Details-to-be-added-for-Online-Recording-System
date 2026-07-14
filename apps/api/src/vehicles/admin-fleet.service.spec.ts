@@ -50,7 +50,9 @@ describe("AdminFleetService", () => {
   describe("createVehicle — duplicate prevention", () => {
     it("maps a duplicate vehicle number unique-constraint violation to a 409", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.vehicle.create.mockRejectedValue(uniqueConstraintError(["vehicleNumber"]));
+      prismaMock.vehicle.create.mockRejectedValue(
+        uniqueConstraintError(["vehicleNumber"]),
+      );
       const service = buildService(prismaMock);
 
       await expect(
@@ -60,7 +62,9 @@ describe("AdminFleetService", () => {
 
     it("maps a duplicate QR identifier unique-constraint violation to a 409", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.vehicle.create.mockRejectedValue(uniqueConstraintError(["qrIdentifier"]));
+      prismaMock.vehicle.create.mockRejectedValue(
+        uniqueConstraintError(["qrIdentifier"]),
+      );
       const service = buildService(prismaMock);
 
       await expect(
@@ -92,7 +96,9 @@ describe("AdminFleetService", () => {
       prismaMock.vehicle.findUnique.mockResolvedValue(null);
       const service = buildService(prismaMock);
 
-      await expect(service.updateVehicle("nope", {})).rejects.toBeInstanceOf(VehicleNotFoundException);
+      await expect(service.updateVehicle("nope", {})).rejects.toBeInstanceOf(
+        VehicleNotFoundException,
+      );
       expect(prismaMock.vehicle.update).not.toHaveBeenCalled();
     });
   });
@@ -100,7 +106,10 @@ describe("AdminFleetService", () => {
   describe("createDriver — duplicate license warning", () => {
     it("throws DriverLicenseConflictException when the license number already exists", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.driver.findUnique.mockResolvedValue({ id: "driver-1", licenseNumber: "B1234567" });
+      prismaMock.driver.findUnique.mockResolvedValue({
+        id: "driver-1",
+        licenseNumber: "B1234567",
+      });
       const service = buildService(prismaMock);
 
       await expect(
@@ -122,7 +131,10 @@ describe("AdminFleetService", () => {
       });
       const service = buildService(prismaMock);
 
-      const result = await service.createDriver({ fullName: "Sunil Perera", licenseNumber: "B1234567" });
+      const result = await service.createDriver({
+        fullName: "Sunil Perera",
+        licenseNumber: "B1234567",
+      });
       expect(result.licenseNumber).toBe("B1234567");
     });
   });
@@ -161,7 +173,10 @@ describe("AdminFleetService", () => {
 
       const result = await service.vehicleInspectionHistory("vehicle-1");
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({ id: "insp-1", loadingDecision: "APPROVED_FOR_LOADING" });
+      expect(result[0]).toMatchObject({
+        id: "insp-1",
+        loadingDecision: "APPROVED_FOR_LOADING",
+      });
     });
   });
 });

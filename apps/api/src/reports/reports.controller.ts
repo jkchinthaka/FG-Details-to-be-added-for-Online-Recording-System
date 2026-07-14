@@ -20,8 +20,15 @@ export class ReportsController {
 
   @Get("record-pdf/:id")
   @RequirePermissions("records:read", "reports:read")
-  @ApiOperation({ summary: "Official record PDF (electronic approval disclaimer; not a cryptographic signature)" })
-  async recordPdf(@Param("id") id: string, @CurrentUser() user: RequestUser, @Res() res: Response) {
+  @ApiOperation({
+    summary:
+      "Official record PDF (electronic approval disclaimer; not a cryptographic signature)",
+  })
+  async recordPdf(
+    @Param("id") id: string,
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+  ) {
     const { filename, buffer } = await this.reportsService.buildRecordPdf(user, id);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
@@ -46,7 +53,11 @@ export class ReportsController {
   @Get("run/:kind")
   @RequirePermissions("reports:read", "audit:read", "records:check", "records:verify")
   @ApiOperation({ summary: "Run a paginated operational report" })
-  runReport(@Param("kind") kind: string, @Query() query: Record<string, string>, @CurrentUser() user: RequestUser) {
+  runReport(
+    @Param("kind") kind: string,
+    @Query() query: Record<string, string>,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.reportsService.runReport(user, kind, query);
   }
 }

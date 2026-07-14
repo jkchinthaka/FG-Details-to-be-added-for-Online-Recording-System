@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 export class UserNotFoundException extends NotFoundException {
   constructor(id: string) {

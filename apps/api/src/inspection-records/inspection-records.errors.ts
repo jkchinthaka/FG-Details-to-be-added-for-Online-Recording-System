@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
 import type { ChecklistValidationError } from "@nelna/shared";
 
 export class RecordNotFoundException extends NotFoundException {
@@ -26,7 +31,9 @@ export class DuplicateRecordException extends ConflictException {
  *  nor REJECTED) — see the "returned-correction workflow" business rule. */
 export class RecordLockedException extends ConflictException {
   constructor() {
-    super("This record has already been submitted and can no longer be edited by the operator.");
+    super(
+      "This record has already been submitted and can no longer be edited by the operator.",
+    );
   }
 }
 
@@ -54,7 +61,9 @@ export class VehicleNotFoundException extends NotFoundException {
  *  user without the `vehicles:manual_entry` permission. */
 export class ManualVehicleEntryForbiddenException extends ForbiddenException {
   constructor() {
-    super("You do not have permission to enter a vehicle manually — select one from the vehicle list instead.");
+    super(
+      "You do not have permission to enter a vehicle manually — select one from the vehicle list instead.",
+    );
   }
 }
 
@@ -80,7 +89,9 @@ export class LoadingDecisionForbiddenException extends ForbiddenException {
  *  no human, including a supervisor/QA, may override. */
 export class CriticalFailureOverrideException extends ConflictException {
   constructor() {
-    super("A critical failure was recorded — loading cannot be approved until it is resolved and re-inspected.");
+    super(
+      "A critical failure was recorded — loading cannot be approved until it is resolved and re-inspected.",
+    );
   }
 }
 

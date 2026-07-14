@@ -38,7 +38,12 @@ import {
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
 import { searchVehicles } from "@/lib/vehicles/api";
-import { clearDraft, formatDraftSavedAt, loadRecoverableDraft, saveDraft } from "@/lib/draft-storage";
+import {
+  clearDraft,
+  formatDraftSavedAt,
+  loadRecoverableDraft,
+  saveDraft,
+} from "@/lib/draft-storage";
 import { useAuth } from "@/lib/auth/auth-context";
 import { RecordHeaderField } from "@/components/records/RecordHeaderField";
 
@@ -71,7 +76,9 @@ const AUTOSAVE_DELAY_MS = 1500;
  * panel once the record has been submitted.
  */
 export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormProps) {
-  const [state, setState] = useState<LoadState>({ status: recordId ? "loading" : "selecting" });
+  const [state, setState] = useState<LoadState>({
+    status: recordId ? "loading" : "selecting",
+  });
   const [responses, setResponses] = useState<ChecklistResponseMap>({});
   const [phase, setPhase] = useState<WorkflowPhase>("editing");
   const [dirty, setDirty] = useState(false);
@@ -105,8 +112,12 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
       })
       .catch((error: unknown) => {
         if (attempt !== loadAttempt.current) return;
-        const isDuplicate = error instanceof InspectionRecordApiError && error.status === 409;
-        const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+        const isDuplicate =
+          error instanceof InspectionRecordApiError && error.status === 409;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again.";
         setState({ status: "error", message, isDuplicate });
       });
   }
@@ -133,7 +144,8 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
     setState({ status: "ready", detail: nextDetail });
   }
 
-  const detail = state.status === "ready" || state.status === "success" ? state.detail : null;
+  const detail =
+    state.status === "ready" || state.status === "success" ? state.detail : null;
   const activeRecordId = detail?.header.id ?? null;
   const editable = state.status === "ready" && detail !== null && detail.editable;
 
@@ -147,7 +159,10 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
     }
 
     setDirty(true);
-    saveDraft(`inspection-record:${activeRecordId}`, { responses, savedAt: new Date().toISOString() });
+    saveDraft(`inspection-record:${activeRecordId}`, {
+      responses,
+      savedAt: new Date().toISOString(),
+    });
 
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
@@ -183,12 +198,19 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty]);
 
-  const items = useMemo(() => (detail ? flattenItems(detail.version.sections) : []), [detail]);
+  const items = useMemo(
+    () => (detail ? flattenItems(detail.version.sections) : []),
+    [detail],
+  );
   const validation = useMemo(
-    () => (detail ? validateChecklistResponses(detail.version.sections, responses) : null),
+    () =>
+      detail ? validateChecklistResponses(detail.version.sections, responses) : null,
     [detail, responses],
   );
-  const counts = useMemo(() => (detail ? computeRecordCounts(items, responses) : null), [detail, items, responses]);
+  const counts = useMemo(
+    () => (detail ? computeRecordCounts(items, responses) : null),
+    [detail, items, responses],
+  );
 
   function handleReview() {
     setPhase("review");
@@ -210,7 +232,11 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
       setDirty(false);
       setState((current) => {
         if (current.status !== "ready") return current;
-        return { status: "success", detail: { ...current.detail, editable: false }, result };
+        return {
+          status: "success",
+          detail: { ...current.detail, editable: false },
+          result,
+        };
       });
     } catch (error) {
       if (error instanceof InspectionRecordApiError) {
@@ -228,7 +254,12 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
   }
 
   if (state.status === "selecting") {
-    return <VehicleSelectionStep assignmentId={assignmentId ?? null} onDraftReady={handleDraftReady} />;
+    return (
+      <VehicleSelectionStep
+        assignmentId={assignmentId ?? null}
+        onDraftReady={handleDraftReady}
+      />
+    );
   }
 
   if (state.status === "loading") {
@@ -237,11 +268,18 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
 
   if (state.status === "error") {
     return (
-      <Alert tone="danger" title={state.isDuplicate ? "Already in progress" : "Couldn't open this record"}>
+      <Alert
+        tone="danger"
+        title={state.isDuplicate ? "Already in progress" : "Couldn't open this record"}
+      >
         <p style={{ margin: 0 }}>{state.message}</p>
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.85rem" }}>
           {state.isDuplicate ? (
-            <Button variant="secondary" size="md" onClick={() => (window.location.href = "/tasks")}>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => (window.location.href = "/tasks")}
+            >
               Back to Today&apos;s Tasks
             </Button>
           ) : (
@@ -265,20 +303,24 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
       <TruckHeaderCard detail={detail!} />
 
       {showDecisionPanel ? (
-        <LoadingDecisionPanel detail={detail!} onDecisionRecorded={handleDecisionRecorded} />
+        <LoadingDecisionPanel
+          detail={detail!}
+          onDecisionRecorded={handleDecisionRecorded}
+        />
       ) : null}
 
       {!editable && !showDecisionPanel ? (
         <Alert tone="information" title="Read-only">
-          This record is {RECORD_STATUS_LABELS[detail!.header.status].toLowerCase()} and can no longer be edited
-          here.
+          This record is {RECORD_STATUS_LABELS[detail!.header.status].toLowerCase()} and
+          can no longer be edited here.
         </Alert>
       ) : null}
 
       {saveError ? <Alert tone="warning">{saveError}</Alert> : null}
       {draftRecovered ? (
         <Alert tone="warning" title="Local draft restored">
-          A newer backup saved on this device was restored. Review and save it before submitting.
+          A newer backup saved on this device was restored. Review and save it before
+          submitting.
         </Alert>
       ) : null}
       {submitError ? (
@@ -373,7 +415,11 @@ function VehicleSelectionStep({
           })
           .catch((error: unknown) => {
             if (attempt !== searchAttempt.current) return;
-            setSearchError(error instanceof Error ? error.message : "Couldn't load vehicles. Please try again.");
+            setSearchError(
+              error instanceof Error
+                ? error.message
+                : "Couldn't load vehicles. Please try again.",
+            );
           })
           .finally(() => {
             if (attempt === searchAttempt.current) setSearching(false);
@@ -396,8 +442,13 @@ function VehicleSelectionStep({
   async function handleContinue() {
     setFormError(null);
 
-    if (!selectedVehicle && !(manualMode && manualTruckNumber.trim() && manualVehicleNumber.trim())) {
-      setFormError("Search and select a vehicle, or enter its truck and vehicle numbers manually.");
+    if (
+      !selectedVehicle &&
+      !(manualMode && manualTruckNumber.trim() && manualVehicleNumber.trim())
+    ) {
+      setFormError(
+        "Search and select a vehicle, or enter its truck and vehicle numbers manually.",
+      );
       return;
     }
 
@@ -413,7 +464,11 @@ function VehicleSelectionStep({
       });
       onDraftReady(detail);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setCreating(false);
     }
@@ -422,11 +477,11 @@ function VehicleSelectionStep({
   return (
     <div className="space-y-4 pb-4">
       <Card padding="lg">
-        <p className="text-xs font-semibold uppercase tracking-wide text-nelna-primary">
+        <p className="text-nelna-primary text-xs font-semibold uppercase tracking-wide">
           {DOCUMENT_CODES.FREEZER_TRUCK}
         </p>
         <h2
-          className="mt-1 text-2xl text-nelna-primary-dark"
+          className="text-nelna-primary-dark mt-1 text-2xl"
           style={{ fontFamily: "var(--nelna-font-display)" }}
         >
           Freezer truck before loading
@@ -451,13 +506,19 @@ function VehicleSelectionStep({
         {selectedVehicle ? (
           <div
             className="mt-2 flex items-center justify-between gap-2 rounded-[10px] border-2 p-3"
-            style={{ borderColor: "var(--nelna-primary)", background: "var(--nelna-success-bg)" }}
+            style={{
+              borderColor: "var(--nelna-primary)",
+              background: "var(--nelna-success-bg)",
+            }}
           >
             <div>
-              <p className="font-semibold text-nelna-primary-dark">{selectedVehicle.vehicleNumber}</p>
+              <p className="text-nelna-primary-dark font-semibold">
+                {selectedVehicle.vehicleNumber}
+              </p>
               <p className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-                {[selectedVehicle.freezerTruckNumber, selectedVehicle.transporter?.name].filter(Boolean).join(" · ") ||
-                  "No transporter on file"}
+                {[selectedVehicle.freezerTruckNumber, selectedVehicle.transporter?.name]
+                  .filter(Boolean)
+                  .join(" · ") || "No transporter on file"}
               </p>
             </div>
             <Button variant="ghost" size="md" onClick={() => setSelectedVehicle(null)}>
@@ -493,10 +554,16 @@ function VehicleSelectionStep({
                           onClick={() => selectVehicle(vehicle)}
                           className="w-full rounded-[10px] border-2 border-[var(--nelna-border)] p-3 text-left"
                         >
-                          <p className="font-semibold text-nelna-primary-dark">{vehicle.vehicleNumber}</p>
-                          <p className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-                            {[vehicle.freezerTruckNumber, vehicle.transporter?.name].filter(Boolean).join(" · ") ||
-                              "No transporter on file"}
+                          <p className="text-nelna-primary-dark font-semibold">
+                            {vehicle.vehicleNumber}
+                          </p>
+                          <p
+                            className="text-sm"
+                            style={{ color: "var(--nelna-text-secondary)" }}
+                          >
+                            {[vehicle.freezerTruckNumber, vehicle.transporter?.name]
+                              .filter(Boolean)
+                              .join(" · ") || "No transporter on file"}
                           </p>
                         </button>
                       </li>
@@ -516,9 +583,11 @@ function VehicleSelectionStep({
                 setManualMode((previous) => !previous);
                 setSelectedVehicle(null);
               }}
-              className="text-sm font-semibold text-nelna-primary"
+              className="text-nelna-primary text-sm font-semibold"
             >
-              {manualMode ? "Search for a vehicle instead" : "Enter truck & vehicle number manually"}
+              {manualMode
+                ? "Search for a vehicle instead"
+                : "Enter truck & vehicle number manually"}
             </button>
             {manualMode ? (
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -580,7 +649,14 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
 
   return (
     <Card padding="lg">
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: "0.75rem",
+        }}
+      >
         <div style={{ display: "grid", gap: "0.3rem" }}>
           <p
             style={{
@@ -595,13 +671,22 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
             {header.documentCode} · v{header.templateVersionNumber}
           </p>
           <h2
-            style={{ margin: 0, fontFamily: "var(--nelna-font-display)", fontSize: "1.3rem", color: "var(--nelna-primary-active)" }}
+            style={{
+              margin: 0,
+              fontFamily: "var(--nelna-font-display)",
+              fontSize: "1.3rem",
+              color: "var(--nelna-primary-active)",
+            }}
           >
             {header.templateTitle}
           </h2>
-          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--nelna-text-muted)" }}>Record #{header.recordNumber}</p>
+          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--nelna-text-muted)" }}>
+            Record #{header.recordNumber}
+          </p>
         </div>
-        <Badge tone={statusTone(header.status)}>{RECORD_STATUS_LABELS[header.status]}</Badge>
+        <Badge tone={statusTone(header.status)}>
+          {RECORD_STATUS_LABELS[header.status]}
+        </Badge>
       </div>
 
       <dl
@@ -613,16 +698,31 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
           fontSize: "0.9rem",
         }}
       >
-        <RecordHeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
+        <RecordHeaderField
+          label="Date"
+          value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })}
+        />
         <RecordHeaderField label="Time" value={truck?.inspectionTime ?? "—"} />
         <RecordHeaderField label="Shift" value={header.shiftLabel ?? "—"} />
         <RecordHeaderField label="Vehicle number" value={truck?.vehicleNumber ?? "—"} />
-        <RecordHeaderField label="Freezer truck number" value={truck?.freezerTruckNumber ?? "—"} />
+        <RecordHeaderField
+          label="Freezer truck number"
+          value={truck?.freezerTruckNumber ?? "—"}
+        />
         <RecordHeaderField label="Transporter" value={truck?.transporter?.name ?? "—"} />
         <RecordHeaderField label="Driver" value={truck?.driver?.fullName ?? "—"} />
-        <RecordHeaderField label="Loading reference" value={truck?.loadingReference ?? "—"} />
-        <RecordHeaderField label="Product category" value={truck?.productCategory ?? "—"} />
-        <RecordHeaderField label="Inspector / Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
+        <RecordHeaderField
+          label="Loading reference"
+          value={truck?.loadingReference ?? "—"}
+        />
+        <RecordHeaderField
+          label="Product category"
+          value={truck?.productCategory ?? "—"}
+        />
+        <RecordHeaderField
+          label="Inspector / Recorded by"
+          value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`}
+        />
         <RecordHeaderField
           label="Checked by"
           value={
@@ -638,10 +738,17 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
               ? `${header.verifiedBy.fullName} (${header.verifiedBy.employeeCode})`
               : "Pending verification"
           }
-        />      </dl>
+        />{" "}
+      </dl>
 
       {truck?.reinspectionOf ? (
-        <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "var(--nelna-text-secondary)" }}>
+        <p
+          style={{
+            marginTop: "0.75rem",
+            fontSize: "0.85rem",
+            color: "var(--nelna-text-secondary)",
+          }}
+        >
           Re-inspection of record #{truck.reinspectionOf.recordNumber}
         </p>
       ) : null}
@@ -666,7 +773,8 @@ function LoadingDecisionPanel({
   const { user } = useAuth();
   const truck = detail.truck;
   const [decision, setDecision] = useState<FinalLoadingDecision>(
-    ((truck?.loadingDecision === "PENDING" ? null : truck?.loadingDecision) ?? "LOADING_BLOCKED") as FinalLoadingDecision,
+    ((truck?.loadingDecision === "PENDING" ? null : truck?.loadingDecision) ??
+      "LOADING_BLOCKED") as FinalLoadingDecision,
   );
   const [remarks, setRemarks] = useState(truck?.remarks ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -687,7 +795,11 @@ function LoadingDecisionPanel({
       });
       onDecisionRecorded(next);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Something went wrong. Please try again.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -695,12 +807,30 @@ function LoadingDecisionPanel({
 
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: "0.75rem",
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <p style={{ margin: 0, fontWeight: 700, color: "var(--nelna-primary-dark)" }}>Loading decision</p>
-          <p style={{ margin: "0.2rem 0 0", fontSize: "0.85rem", color: "var(--nelna-text-secondary)" }}>
+          <p style={{ margin: 0, fontWeight: 700, color: "var(--nelna-primary-dark)" }}>
+            Loading decision
+          </p>
+          <p
+            style={{
+              margin: "0.2rem 0 0",
+              fontSize: "0.85rem",
+              color: "var(--nelna-text-secondary)",
+            }}
+          >
             System recommendation:{" "}
-            {truck.recommendedDecision ? LOADING_DECISION_LABELS[truck.recommendedDecision] : "—"}
+            {truck.recommendedDecision
+              ? LOADING_DECISION_LABELS[truck.recommendedDecision]
+              : "—"}
           </p>
         </div>
         <Badge tone={LOADING_DECISION_TONES[truck.loadingDecision]}>
@@ -709,13 +839,25 @@ function LoadingDecisionPanel({
       </div>
 
       {truck.decidedBy ? (
-        <p style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>
+        <p
+          style={{
+            marginTop: "0.5rem",
+            fontSize: "0.8rem",
+            color: "var(--nelna-text-muted)",
+          }}
+        >
           Decided by {truck.decidedBy.fullName} ({truck.decidedBy.employeeCode})
           {truck.decidedAt ? ` · ${new Date(truck.decidedAt).toLocaleString()}` : ""}
           {truck.remarks ? ` — "${truck.remarks}"` : ""}
         </p>
       ) : (
-        <p style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>
+        <p
+          style={{
+            marginTop: "0.5rem",
+            fontSize: "0.8rem",
+            color: "var(--nelna-text-muted)",
+          }}
+        >
           Awaiting a final decision from a supervisor or QA.
         </p>
       )}
@@ -723,15 +865,17 @@ function LoadingDecisionPanel({
       {truck.recommendedDecision === "LOADING_BLOCKED" ? (
         <div style={{ marginTop: "0.75rem" }}>
           <Alert tone="danger" title="Critical failure — loading cannot be approved">
-            This inspection recorded a critical failure. The final decision can only be &quot;Loading temporarily
-            blocked&quot; or &quot;Rejected&quot;.
+            This inspection recorded a critical failure. The final decision can only be
+            &quot;Loading temporarily blocked&quot; or &quot;Rejected&quot;.
           </Alert>
         </div>
       ) : null}
 
       {canDecide ? (
         <div style={{ marginTop: "1rem" }}>
-          <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", fontWeight: 600 }}>Record final decision</p>
+          <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", fontWeight: 600 }}>
+            Record final decision
+          </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {allowed.map((option) => (
               <button
@@ -741,7 +885,8 @@ function LoadingDecisionPanel({
                 onClick={() => setDecision(option)}
                 className="min-h-12 rounded-[var(--nelna-radius)] border-2 px-3 text-sm font-semibold"
                 style={{
-                  borderColor: decision === option ? "var(--nelna-primary)" : "var(--nelna-border)",
+                  borderColor:
+                    decision === option ? "var(--nelna-primary)" : "var(--nelna-border)",
                   background: decision === option ? "var(--nelna-success-bg)" : "white",
                 }}
               >
@@ -750,7 +895,13 @@ function LoadingDecisionPanel({
             ))}
           </div>
           <div style={{ marginTop: "0.75rem" }}>
-            <Textarea label="Remarks" hint="Optional" value={remarks} onChange={(event) => setRemarks(event.target.value)} rows={2} />
+            <Textarea
+              label="Remarks"
+              hint="Optional"
+              value={remarks}
+              onChange={(event) => setRemarks(event.target.value)}
+              rows={2}
+            />
           </div>
           {error ? (
             <div style={{ marginTop: "0.5rem" }}>
@@ -771,14 +922,32 @@ function LoadingDecisionPanel({
 function ReviewCountsCard({
   counts,
 }: {
-  counts: { acceptable: number; failed: number; notApplicable: number; unanswered: number; total: number };
+  counts: {
+    acceptable: number;
+    failed: number;
+    notApplicable: number;
+    unanswered: number;
+    total: number;
+  };
 }) {
   return (
     <Card>
-      <p style={{ margin: "0 0 0.65rem", fontWeight: 700, color: "var(--nelna-primary-dark)" }}>
+      <p
+        style={{
+          margin: "0 0 0.65rem",
+          fontWeight: 700,
+          color: "var(--nelna-primary-dark)",
+        }}
+      >
         Review before submitting
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))",
+          gap: "0.75rem",
+        }}
+      >
         <CountStat label="Acceptable" value={counts.acceptable} tone="success" />
         <CountStat label="Unacceptable" value={counts.failed} tone="danger" />
         <CountStat label="N/A" value={counts.notApplicable} tone="neutral" />
@@ -805,13 +974,19 @@ function CountStat({
   };
   return (
     <div style={{ textAlign: "center" }}>
-      <p style={{ margin: 0, fontSize: "1.6rem", fontWeight: 700, color: colors[tone] }}>{value}</p>
-      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: "1.6rem", fontWeight: 700, color: colors[tone] }}>
+        {value}
+      </p>
+      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>
+        {label}
+      </p>
     </div>
   );
 }
 
-function statusTone(status: InspectionRecordDetail["header"]["status"]): "neutral" | "success" | "warning" | "danger" | "information" {
+function statusTone(
+  status: InspectionRecordDetail["header"]["status"],
+): "neutral" | "success" | "warning" | "danger" | "information" {
   switch (status) {
     case "DRAFT":
       return "neutral";
@@ -841,7 +1016,14 @@ function TruckRecordSuccessScreen({
   return (
     <div className="space-y-4">
       <Card padding="lg">
-        <div style={{ textAlign: "center", display: "grid", gap: "0.5rem", justifyItems: "center" }}>
+        <div
+          style={{
+            textAlign: "center",
+            display: "grid",
+            gap: "0.5rem",
+            justifyItems: "center",
+          }}
+        >
           <span
             aria-hidden
             style={{
@@ -857,7 +1039,14 @@ function TruckRecordSuccessScreen({
           >
             ✓
           </span>
-          <h2 style={{ margin: 0, fontFamily: "var(--nelna-font-display)", fontSize: "1.4rem", color: "var(--nelna-primary-active)" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: "var(--nelna-font-display)",
+              fontSize: "1.4rem",
+              color: "var(--nelna-primary-active)",
+            }}
+          >
             Freezer truck inspection submitted
           </h2>
           <p style={{ margin: 0, color: "var(--nelna-text-secondary)" }}>
@@ -872,12 +1061,19 @@ function TruckRecordSuccessScreen({
 
         {result.hasCriticalFailure ? (
           <Alert tone="danger" title="Critical failure recorded">
-            This inspection includes at least one critical failure. Loading is automatically blocked and cannot be
-            overridden by the operator.
+            This inspection includes at least one critical failure. Loading is
+            automatically blocked and cannot be overridden by the operator.
           </Alert>
         ) : null}
 
-        <div style={{ marginTop: "1.25rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: "0.75rem" }}>
+        <div
+          style={{
+            marginTop: "1.25rem",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))",
+            gap: "0.75rem",
+          }}
+        >
           <CountStat label="Acceptable" value={result.counts.acceptable} tone="success" />
           <CountStat label="Unacceptable" value={result.counts.failed} tone="danger" />
           <CountStat label="N/A" value={result.counts.notApplicable} tone="neutral" />
@@ -886,9 +1082,10 @@ function TruckRecordSuccessScreen({
 
         {result.correctiveActionsCreated > 0 ? (
           <p style={{ marginTop: "1rem", color: "var(--nelna-text-secondary)" }}>
-            {result.correctiveActionsCreated} corrective action{result.correctiveActionsCreated === 1 ? "" : "s"}{" "}
-            {result.correctiveActionsCreated === 1 ? "was" : "were"} automatically opened for the failing items that
-            require one.
+            {result.correctiveActionsCreated} corrective action
+            {result.correctiveActionsCreated === 1 ? "" : "s"}{" "}
+            {result.correctiveActionsCreated === 1 ? "was" : "were"} automatically opened
+            for the failing items that require one.
           </p>
         ) : null}
 
@@ -898,7 +1095,15 @@ function TruckRecordSuccessScreen({
             : "No further action is required."}
         </p>
 
-        <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+        <div
+          style={{
+            marginTop: "1.5rem",
+            display: "flex",
+            gap: "0.5rem",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
           <Link href="/tasks">
             <Button variant="primary">Return to Today&apos;s Tasks</Button>
           </Link>

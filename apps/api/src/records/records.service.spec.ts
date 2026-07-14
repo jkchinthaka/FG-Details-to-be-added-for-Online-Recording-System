@@ -57,7 +57,9 @@ describe("RecordsService", () => {
       const prismaMock = buildPrismaMock();
       const service = buildService(prismaMock);
 
-      await service.getRecentRecords(buildUser({ id: "operator-9", roles: ["FG_OPERATOR"] }));
+      await service.getRecentRecords(
+        buildUser({ id: "operator-9", roles: ["FG_OPERATOR"] }),
+      );
 
       expect(prismaMock.inspectionRecord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { createdById: "operator-9" } }),
@@ -81,7 +83,9 @@ describe("RecordsService", () => {
 
       await service.getRecentRecords(buildUser(), 500);
 
-      expect(prismaMock.inspectionRecord.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 20 }));
+      expect(prismaMock.inspectionRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 20 }),
+      );
     });
 
     it("falls back to the default limit for an invalid input", async () => {
@@ -90,12 +94,16 @@ describe("RecordsService", () => {
 
       await service.getRecentRecords(buildUser(), Number.NaN);
 
-      expect(prismaMock.inspectionRecord.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 5 }));
+      expect(prismaMock.inspectionRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 5 }),
+      );
     });
 
     it("degrades to an empty list instead of throwing when Postgres is unreachable", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.inspectionRecord.findMany.mockRejectedValue(new Error("connect ECONNREFUSED"));
+      prismaMock.inspectionRecord.findMany.mockRejectedValue(
+        new Error("connect ECONNREFUSED"),
+      );
       const service = buildService(prismaMock);
 
       const result = await service.getRecentRecords(buildUser());

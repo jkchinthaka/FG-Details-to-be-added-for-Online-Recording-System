@@ -19,7 +19,10 @@ export function toVehicleSummary(vehicle: VehicleWithTransporter): VehicleSummar
   };
 }
 
-export function toTransporterSummary(transporter: { id: string; name: string }): TransporterSummary {
+export function toTransporterSummary(transporter: {
+  id: string;
+  name: string;
+}): TransporterSummary {
   return { id: transporter.id, name: transporter.name };
 }
 
@@ -29,7 +32,12 @@ export function toDriverSummary(driver: {
   licenseNumber: string;
   phone: string | null;
 }): DriverSummary {
-  return { id: driver.id, fullName: driver.fullName, licenseNumber: driver.licenseNumber, phone: driver.phone };
+  return {
+    id: driver.id,
+    fullName: driver.fullName,
+    licenseNumber: driver.licenseNumber,
+    phone: driver.phone,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -39,13 +47,25 @@ export function toDriverSummary(driver: {
 // types so the operator vehicle selector's payload shape stays unchanged.
 // ---------------------------------------------------------------------------
 
-export type AdminVehicleSummary = VehicleSummary & { qrIdentifier: string | null; transporterId: string | null };
+export type AdminVehicleSummary = VehicleSummary & {
+  qrIdentifier: string | null;
+  transporterId: string | null;
+};
 
-export function toAdminVehicleSummary(vehicle: VehicleWithTransporter): AdminVehicleSummary {
-  return { ...toVehicleSummary(vehicle), qrIdentifier: vehicle.qrIdentifier, transporterId: vehicle.transporterId };
+export function toAdminVehicleSummary(
+  vehicle: VehicleWithTransporter,
+): AdminVehicleSummary {
+  return {
+    ...toVehicleSummary(vehicle),
+    qrIdentifier: vehicle.qrIdentifier,
+    transporterId: vehicle.transporterId,
+  };
 }
 
-export type AdminDriverSummary = DriverSummary & { isActive: boolean; transporterId: string | null };
+export type AdminDriverSummary = DriverSummary & {
+  isActive: boolean;
+  transporterId: string | null;
+};
 
 export function toAdminDriverSummary(driver: {
   id: string;
@@ -55,5 +75,9 @@ export function toAdminDriverSummary(driver: {
   isActive: boolean;
   transporterId: string | null;
 }): AdminDriverSummary {
-  return { ...toDriverSummary(driver), isActive: driver.isActive, transporterId: driver.transporterId };
+  return {
+    ...toDriverSummary(driver),
+    isActive: driver.isActive,
+    transporterId: driver.transporterId,
+  };
 }

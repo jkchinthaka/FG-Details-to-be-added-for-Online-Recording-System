@@ -10,7 +10,7 @@ export default function SystemStatusPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--nelna-text-muted)]">
-        <Link href="/" className="font-semibold text-nelna-primary">
+        <Link href="/" className="text-nelna-primary font-semibold">
           ← Back to home
         </Link>
       </p>

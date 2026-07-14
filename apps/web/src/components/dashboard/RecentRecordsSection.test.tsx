@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import * as useRecentRecordsModule from "@/lib/dashboard/useRecentRecords";
 import { RecentRecordsSection } from "./RecentRecordsSection";
 
-function mockResource(overrides: Partial<ReturnType<typeof useRecentRecordsModule.useRecentRecords>>) {
+function mockResource(
+  overrides: Partial<ReturnType<typeof useRecentRecordsModule.useRecentRecords>>,
+) {
   vi.spyOn(useRecentRecordsModule, "useRecentRecords").mockReturnValue({
     status: "loading",
     data: null,

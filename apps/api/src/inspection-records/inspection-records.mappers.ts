@@ -11,9 +11,17 @@ import {
   type RecordStatus as SharedRecordStatus,
   type TruckInspectionDetailPayload,
 } from "@nelna/shared";
-import type { ChecklistItemType, Prisma, ResultStatus } from "../../generated/prisma-client";
+import type {
+  ChecklistItemType,
+  Prisma,
+  ResultStatus,
+} from "../../generated/prisma-client";
 import { ResultStatus as ResultStatusEnum } from "../../generated/prisma-client";
-import { toDriverSummary, toTransporterSummary, toVehicleSummary } from "../vehicles/vehicles.mappers";
+import {
+  toDriverSummary,
+  toTransporterSummary,
+  toVehicleSummary,
+} from "../vehicles/vehicles.mappers";
 
 export const TRUCK_DETAIL_INCLUDE = {
   vehicle: { include: { transporter: true } },
@@ -98,7 +106,9 @@ export function toHeader(
 /** Normalizes either half of the shared `ResultStatus` vocabulary
  *  (Acceptable/Unacceptable vs. Pass/Fail — see schema.prisma) onto the
  *  engine's generic PASS/FAIL/NOT_APPLICABLE value. */
-export function normalizedStatusFromResultStatus(status: ResultStatus): NormalizedStatusValue {
+export function normalizedStatusFromResultStatus(
+  status: ResultStatus,
+): NormalizedStatusValue {
   switch (status) {
     case ResultStatusEnum.ACCEPTABLE:
     case ResultStatusEnum.PASS:
@@ -123,7 +133,9 @@ export function resultStatusFromNormalized(
   if (itemType === "PASS_FAIL_NA") {
     return normalized === "PASS" ? ResultStatusEnum.PASS : ResultStatusEnum.FAIL;
   }
-  return normalized === "PASS" ? ResultStatusEnum.ACCEPTABLE : ResultStatusEnum.UNACCEPTABLE;
+  return normalized === "PASS"
+    ? ResultStatusEnum.ACCEPTABLE
+    : ResultStatusEnum.UNACCEPTABLE;
 }
 
 export function toResponseMap(results: ResultWithAttachments[]): ChecklistResponseMap {
@@ -151,7 +163,9 @@ export function toResponseMap(results: ResultWithAttachments[]): ChecklistRespon
 /** Maps a record's optional `truckDetail` relation onto the shared
  *  `TruckInspectionDetailPayload` — `null` for every non-truck document
  *  code (e.g. Daily Cleaning Verification never has a `truckDetail`). */
-export function toTruckDetail(record: RecordWithHeaderRelations): TruckInspectionDetailPayload | null {
+export function toTruckDetail(
+  record: RecordWithHeaderRelations,
+): TruckInspectionDetailPayload | null {
   const detail = record.truckDetail;
   if (!detail) return null;
 
@@ -173,7 +187,11 @@ export function toTruckDetail(record: RecordWithHeaderRelations): TruckInspectio
     recommendedDecision: (detail.recommendedDecision as LoadingDecision | null) ?? null,
     loadingDecision: detail.loadingDecision as LoadingDecision,
     decidedBy: detail.decidedBy
-      ? { id: detail.decidedBy.id, fullName: detail.decidedBy.fullName, employeeCode: detail.decidedBy.employeeCode }
+      ? {
+          id: detail.decidedBy.id,
+          fullName: detail.decidedBy.fullName,
+          employeeCode: detail.decidedBy.employeeCode,
+        }
       : null,
     decidedAt: detail.decidedAt ? detail.decidedAt.toISOString() : null,
     remarks: detail.remarks,

@@ -20,7 +20,12 @@ type QueueMode = "check" | "verify";
 
 function failedItems(detail: InspectionRecordDetail) {
   return Object.entries(detail.responses).filter(([, response]) => {
-    if (!response?.value || typeof response.value !== "object" || !("value" in response.value)) return false;
+    if (
+      !response?.value ||
+      typeof response.value !== "object" ||
+      !("value" in response.value)
+    )
+      return false;
     const v = (response.value as { value?: string }).value;
     return v === "FAIL" || v === "UNACCEPTABLE";
   });
@@ -39,12 +44,17 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
     setLoading(true);
     setError(null);
     try {
-      const list = mode === "check" ? await fetchPendingCheckQueue() : await fetchPendingVerificationQueue();
+      const list =
+        mode === "check"
+          ? await fetchPendingCheckQueue()
+          : await fetchPendingVerificationQueue();
       setItems(list);
       if (list.length > 0) setSelectedId((prev) => prev ?? list[0]!.header.id);
       else setSelectedId(null);
     } catch (err) {
-      setError(err instanceof InspectionRecordApiError ? err.message : "Failed to load queue");
+      setError(
+        err instanceof InspectionRecordApiError ? err.message : "Failed to load queue",
+      );
     } finally {
       setLoading(false);
     }
@@ -75,8 +85,10 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
     setBusy(true);
     setError(null);
     try {
-      if (action === "check") await checkInspectionRecord(selectedId, comment || undefined);
-      if (action === "verify") await verifyInspectionRecord(selectedId, comment || undefined);
+      if (action === "check")
+        await checkInspectionRecord(selectedId, comment || undefined);
+      if (action === "verify")
+        await verifyInspectionRecord(selectedId, comment || undefined);
       if (action === "return") await returnInspectionRecord(selectedId, comment.trim());
       if (action === "reject") await rejectInspectionRecord(selectedId, comment.trim());
       setComment("");
@@ -97,12 +109,18 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
           {mode === "check" ? "Pending check" : "Pending verification"}
         </h1>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Exception-first review — failed items shown first. Passed items remain on the record.
+          Exception-first review — failed items shown first. Passed items remain on the
+          record.
         </p>
-        {error ? <p className="mt-2 text-sm text-[var(--color-danger)]">{error}</p> : null}
+        {error ? (
+          <p className="mt-2 text-sm text-[var(--color-danger)]">{error}</p>
+        ) : null}
         <ul className="mt-4 space-y-2">
           {items.length === 0 ? (
-            <EmptyState title="Queue empty" description="No records waiting in this queue." />
+            <EmptyState
+              title="Queue empty"
+              description="No records waiting in this queue."
+            />
           ) : (
             items.map((item) => (
               <li key={item.header.id}>
@@ -117,7 +135,8 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
                 >
                   <div className="font-medium">{item.header.documentCode}</div>
                   <div className="text-[var(--color-text-muted)]">
-                    {RECORD_STATUS_LABELS[item.header.status]} · {item.header.areaLabel ?? "—"}
+                    {RECORD_STATUS_LABELS[item.header.status]} ·{" "}
+                    {item.header.areaLabel ?? "—"}
                   </div>
                 </button>
               </li>
@@ -128,7 +147,10 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
 
       <section className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
         {!selected ? (
-          <EmptyState title="Select a record" description="Choose a record from the queue to review." />
+          <EmptyState
+            title="Select a record"
+            description="Choose a record from the queue to review."
+          />
         ) : (
           <>
             <header className="flex flex-wrap items-start justify-between gap-2 border-b border-[var(--color-border)] pb-3">
@@ -138,9 +160,14 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
                   {selected.header.recordNumber ?? selected.header.id} ·{" "}
                   {RECORD_STATUS_LABELS[selected.header.status]}
                 </p>
-                <p className="text-sm">Recorded by: {selected.header.recordedBy.fullName}</p>
+                <p className="text-sm">
+                  Recorded by: {selected.header.recordedBy.fullName}
+                </p>
               </div>
-              <Link className="text-sm text-[var(--color-brand-primary)] underline" href={`/records`}>
+              <Link
+                className="text-sm text-[var(--color-brand-primary)] underline"
+                href={`/records`}
+              >
                 Records list
               </Link>
             </header>
@@ -151,10 +178,15 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
               </h3>
               <ul className="mt-2 space-y-2">
                 {failedItems(selected).length === 0 ? (
-                  <li className="text-sm text-[var(--color-text-muted)]">No failed items on this record.</li>
+                  <li className="text-sm text-[var(--color-text-muted)]">
+                    No failed items on this record.
+                  </li>
                 ) : (
                   failedItems(selected).map(([itemId, response]) => (
-                    <li key={itemId} className="rounded-md bg-[var(--color-danger-soft,#fde8e8)] px-3 py-2 text-sm">
+                    <li
+                      key={itemId}
+                      className="rounded-md bg-[var(--color-danger-soft,#fde8e8)] px-3 py-2 text-sm"
+                    >
                       <div className="font-medium">{itemId}</div>
                       {response.remark ? <div>Remark: {response.remark}</div> : null}
                     </li>
@@ -171,14 +203,19 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
                 {history.length === 0 ? (
                   <li className="text-[var(--color-text-muted)]">No approvals yet.</li>
                 ) : (
-                  (history as Array<{ approvalType: string; decision: string; comments?: string | null; decidedAt?: string | null }>).map(
-                    (row, idx) => (
-                      <li key={idx}>
-                        {row.approvalType} · {row.decision}
-                        {row.comments ? ` — ${row.comments}` : ""}
-                      </li>
-                    ),
-                  )
+                  (
+                    history as Array<{
+                      approvalType: string;
+                      decision: string;
+                      comments?: string | null;
+                      decidedAt?: string | null;
+                    }>
+                  ).map((row, idx) => (
+                    <li key={idx}>
+                      {row.approvalType} · {row.decision}
+                      {row.comments ? ` — ${row.comments}` : ""}
+                    </li>
+                  ))
                 )}
               </ol>
             </div>
@@ -195,20 +232,38 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
 
             <div className="sticky bottom-0 mt-4 flex flex-wrap gap-2 border-t border-[var(--color-border)] bg-white py-3">
               {mode === "check" ? (
-                <Button type="button" disabled={busy} onClick={() => void runAction("check")}>
+                <Button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void runAction("check")}
+                >
                   Check
                 </Button>
               ) : (
                 <>
-                  <Button type="button" disabled={busy} onClick={() => void runAction("verify")}>
+                  <Button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void runAction("verify")}
+                  >
                     Verify
                   </Button>
-                  <Button type="button" variant="secondary" disabled={busy} onClick={() => void runAction("reject")}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void runAction("reject")}
+                  >
                     Reject
                   </Button>
                 </>
               )}
-              <Button type="button" variant="secondary" disabled={busy} onClick={() => void runAction("return")}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void runAction("return")}
+              >
                 Return for correction
               </Button>
             </div>

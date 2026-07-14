@@ -8,7 +8,9 @@ export class AddSectionDto {
   @MaxLength(200)
   name!: string;
 
-  @ApiPropertyOptional({ description: "Defaults to appending at the end of the version's sections" })
+  @ApiPropertyOptional({
+    description: "Defaults to appending at the end of the version's sections",
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

@@ -1,5 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { RECORD_TYPE_META, recordTypeForDocumentCode, type RecentRecordSummary, type RecentRecordsResponse, type RecordStatus } from "@nelna/shared";
+import {
+  RECORD_TYPE_META,
+  recordTypeForDocumentCode,
+  type RecentRecordSummary,
+  type RecentRecordsResponse,
+  type RecordStatus,
+} from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RequestUser } from "../auth/auth.types";
 
@@ -25,12 +31,16 @@ export class RecordsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getRecentRecords(user: RequestUser, limitInput?: number): Promise<RecentRecordsResponse> {
+  async getRecentRecords(
+    user: RequestUser,
+    limitInput?: number,
+  ): Promise<RecentRecordsResponse> {
     const take = clampLimit(limitInput);
     // A pure FG Operator only ever sees their own recent submissions; every
     // other role (supervisor/QA/food safety/auditor/admin) gets factory-wide
     // recent activity, matching their broader oversight scope.
-    const isOperatorOnly = user.roles.length > 0 && user.roles.every((role) => role === "FG_OPERATOR");
+    const isOperatorOnly =
+      user.roles.length > 0 && user.roles.every((role) => role === "FG_OPERATOR");
 
     const records = await this.safeQuery(
       () =>
@@ -46,7 +56,11 @@ export class RecordsService {
     return { records: records.map(toRecentRecordSummary) };
   }
 
-  private async safeQuery<T>(run: () => Promise<T>, fallback: T, label: string): Promise<T> {
+  private async safeQuery<T>(
+    run: () => Promise<T>,
+    fallback: T,
+    label: string,
+  ): Promise<T> {
     try {
       return await run();
     } catch (error) {

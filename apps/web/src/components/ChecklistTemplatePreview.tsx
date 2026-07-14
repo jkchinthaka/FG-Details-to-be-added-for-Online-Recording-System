@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { ChecklistResponseMap, ChecklistTemplateVersionDefinition } from "@nelna/shared";
+import type {
+  ChecklistResponseMap,
+  ChecklistTemplateVersionDefinition,
+} from "@nelna/shared";
 import { Badge, Card, Checkbox, ChecklistRenderer, type BadgeTone } from "@nelna/ui";
 
 type Viewport = "mobile" | "tablet" | "desktop";
@@ -35,18 +38,28 @@ export function ChecklistTemplatePreview({ version }: ChecklistTemplatePreviewPr
   const [responses, setResponses] = useState<ChecklistResponseMap>({});
   const [showValidationSummary, setShowValidationSummary] = useState(false);
 
-  const activeViewport = VIEWPORTS.find((entry) => entry.id === viewport) ?? DEFAULT_VIEWPORT;
+  const activeViewport =
+    VIEWPORTS.find((entry) => entry.id === viewport) ?? DEFAULT_VIEWPORT;
 
   return (
     <div style={{ display: "grid", gap: "1.25rem" }}>
       <Card>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "1rem" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            gap: "1rem",
+          }}
+        >
           <div style={{ display: "grid", gap: "0.35rem" }}>
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
               <Badge tone={STATUS_TONE[version.status]}>
                 {version.status} · v{version.versionNumber}
               </Badge>
-              <span style={{ fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>{version.code}</span>
+              <span style={{ fontSize: "0.8rem", color: "var(--nelna-text-muted)" }}>
+                {version.code}
+              </span>
             </div>
             <h2
               style={{
@@ -59,13 +72,23 @@ export function ChecklistTemplatePreview({ version }: ChecklistTemplatePreviewPr
               {version.title}
             </h2>
             {version.description ? (
-              <p style={{ margin: 0, color: "var(--nelna-text-secondary)", maxWidth: "60ch" }}>
+              <p
+                style={{
+                  margin: 0,
+                  color: "var(--nelna-text-secondary)",
+                  maxWidth: "60ch",
+                }}
+              >
                 {version.description}
               </p>
             ) : null}
           </div>
 
-          <div role="group" aria-label="Preview viewport" style={{ display: "flex", gap: "0.4rem" }}>
+          <div
+            role="group"
+            aria-label="Preview viewport"
+            style={{ display: "flex", gap: "0.4rem" }}
+          >
             {VIEWPORTS.map((entry) => (
               <button
                 key={entry.id}

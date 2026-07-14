@@ -19,7 +19,11 @@ export type ChecklistSectionViewProps = {
   registerItemRef?: (itemId: string, node: HTMLDivElement | null) => void;
 };
 
-function errorsForItem(errors: ChecklistValidationError[], itemId: string, code: ChecklistValidationError["code"]) {
+function errorsForItem(
+  errors: ChecklistValidationError[],
+  itemId: string,
+  code: ChecklistValidationError["code"],
+) {
   return errors.find((error) => error.itemId === itemId && error.code === code)?.message;
 }
 
@@ -38,7 +42,14 @@ export function ChecklistSectionView({
 
   return (
     <Card padding="lg" role="region" aria-label={section.name}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: "1rem",
+        }}
+      >
         <h3
           style={{
             margin: 0,
@@ -51,19 +62,32 @@ export function ChecklistSectionView({
         </h3>
       </div>
       <div style={{ marginTop: "0.5rem", marginBottom: "0.75rem" }}>
-        <ProgressIndicator value={progress.percent} label={`${progress.answered} / ${progress.total} answered`} />
+        <ProgressIndicator
+          value={progress.percent}
+          label={`${progress.answered} / ${progress.total} answered`}
+        />
       </div>
       <div style={{ display: "grid" }}>
         {items.map((item) => (
-          <div key={item.id} ref={registerItemRef ? (node) => registerItemRef(item.id, node) : undefined}>
+          <div
+            key={item.id}
+            ref={registerItemRef ? (node) => registerItemRef(item.id, node) : undefined}
+          >
             <ChecklistItemCard
               item={item}
               response={responses[item.id]}
               onChange={onItemChange}
               disabled={disabled}
-              error={errorsForItem(errors, item.id, "REQUIRED") ?? errorsForItem(errors, item.id, "NOT_APPLICABLE_NOT_ALLOWED")}
+              error={
+                errorsForItem(errors, item.id, "REQUIRED") ??
+                errorsForItem(errors, item.id, "NOT_APPLICABLE_NOT_ALLOWED")
+              }
               remarkError={errorsForItem(errors, item.id, "REMARK_REQUIRED")}
-              correctiveActionError={errorsForItem(errors, item.id, "CORRECTIVE_ACTION_REQUIRED")}
+              correctiveActionError={errorsForItem(
+                errors,
+                item.id,
+                "CORRECTIVE_ACTION_REQUIRED",
+              )}
               evidenceError={errorsForItem(errors, item.id, "EVIDENCE_REQUIRED")}
             />
           </div>

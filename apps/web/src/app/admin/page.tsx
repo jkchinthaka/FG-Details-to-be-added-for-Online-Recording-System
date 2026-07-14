@@ -12,7 +12,8 @@ const ADMIN_LINKS: AdminLink[] = [
   {
     href: "/admin/users",
     title: "Users",
-    description: "Create, activate/deactivate, assign departments and roles, reset passwords.",
+    description:
+      "Create, activate/deactivate, assign departments and roles, reset passwords.",
   },
   {
     href: "/admin/vehicles",
@@ -32,7 +33,8 @@ const ADMIN_LINKS: AdminLink[] = [
   {
     href: "/admin/master-data",
     title: "Master data",
-    description: "Departments, sections, shifts, failure reasons, corrective action categories, temperature profiles, loading decision policies.",
+    description:
+      "Departments, sections, shifts, failure reasons, corrective action categories, temperature profiles, loading decision policies.",
   },
   {
     href: "/admin/templates/preview",
@@ -53,7 +55,7 @@ export default function AdminPage() {
         {ADMIN_LINKS.map((link) => (
           <Card key={link.href}>
             <h2
-              className="text-lg text-nelna-primary-dark"
+              className="text-nelna-primary-dark text-lg"
               style={{ fontFamily: "var(--nelna-font-display)" }}
             >
               {link.title}
@@ -61,7 +63,10 @@ export default function AdminPage() {
             <p className="mt-1 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
               {link.description}
             </p>
-            <Link href={link.href} className="mt-3 inline-block font-semibold text-nelna-primary">
+            <Link
+              href={link.href}
+              className="text-nelna-primary mt-3 inline-block font-semibold"
+            >
               Open {link.title.toLowerCase()} →
             </Link>
           </Card>
@@ -69,17 +74,17 @@ export default function AdminPage() {
       </div>
       <Card muted>
         <h2
-          className="text-lg text-nelna-primary-dark"
+          className="text-nelna-primary-dark text-lg"
           style={{ fontFamily: "var(--nelna-font-display)" }}
         >
           Developer references
         </h2>
         <p className="mt-1 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-          <Link href="/system-status" className="font-semibold text-nelna-primary">
+          <Link href="/system-status" className="text-nelna-primary font-semibold">
             System status
           </Link>{" "}
           ·{" "}
-          <Link href="/about" className="font-semibold text-nelna-primary">
+          <Link href="/about" className="text-nelna-primary font-semibold">
             About
           </Link>
         </p>

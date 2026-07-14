@@ -33,8 +33,25 @@ describe("workflow policy helpers used by InspectionRecordsService", () => {
   });
 
   it("enforces creator and checker cannot self-verify under default policy", () => {
-    expect(assertVerifySegregationOfDuty(DEFAULT_WORKFLOW_POLICY, "creator", "creator", "checker").ok).toBe(false);
-    expect(assertVerifySegregationOfDuty(DEFAULT_WORKFLOW_POLICY, "checker", "creator", "checker").ok).toBe(false);
-    expect(assertVerifySegregationOfDuty(DEFAULT_WORKFLOW_POLICY, "qa", "creator", "checker").ok).toBe(true);
+    expect(
+      assertVerifySegregationOfDuty(
+        DEFAULT_WORKFLOW_POLICY,
+        "creator",
+        "creator",
+        "checker",
+      ).ok,
+    ).toBe(false);
+    expect(
+      assertVerifySegregationOfDuty(
+        DEFAULT_WORKFLOW_POLICY,
+        "checker",
+        "creator",
+        "checker",
+      ).ok,
+    ).toBe(false);
+    expect(
+      assertVerifySegregationOfDuty(DEFAULT_WORKFLOW_POLICY, "qa", "creator", "checker")
+        .ok,
+    ).toBe(true);
   });
 });

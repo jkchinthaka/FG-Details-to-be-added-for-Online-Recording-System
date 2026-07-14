@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  REPORT_KIND_LABELS,
-  type ReportKind,
-  type ReportResult,
-} from "@nelna/shared";
+import { REPORT_KIND_LABELS, type ReportKind, type ReportResult } from "@nelna/shared";
 import { Button, Card, EmptyState, Input, LoadingState, Select } from "@nelna/ui";
 import { AppShell } from "@/components/AppShell";
 
@@ -55,7 +51,9 @@ function ReportsWorkspace() {
     setError(null);
     try {
       const qs = new URLSearchParams({ fromDate, toDate, page: "1", pageSize: "25" });
-      const result = await apiJson<ReportResult>(`/reports/run/${encodeURIComponent(kind)}?${qs}`);
+      const result = await apiJson<ReportResult>(
+        `/reports/run/${encodeURIComponent(kind)}?${qs}`,
+      );
       setReport(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Report failed");
@@ -67,7 +65,10 @@ function ReportsWorkspace() {
 
   function downloadCsv() {
     const qs = new URLSearchParams({ fromDate, toDate });
-    window.open(`${API_BASE_URL}/reports/run/${encodeURIComponent(kind)}/csv?${qs}`, "_blank");
+    window.open(
+      `${API_BASE_URL}/reports/run/${encodeURIComponent(kind)}/csv?${qs}`,
+      "_blank",
+    );
   }
 
   if (loading) return <LoadingState message="Loading reports…" />;
@@ -75,10 +76,13 @@ function ReportsWorkspace() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4">
       <header>
-        <h1 className="font-display text-2xl text-[var(--color-brand-primary)]">Reports</h1>
+        <h1 className="font-display text-2xl text-[var(--color-brand-primary)]">
+          Reports
+        </h1>
         <p className="text-sm text-[var(--color-text-muted)]">
-          Operational compliance, queues, truck and corrective-action reports with CSV export. Official PDFs use
-          electronic approval language — not cryptographic digital signatures.
+          Operational compliance, queues, truck and corrective-action reports with CSV
+          export. Official PDFs use electronic approval language — not cryptographic
+          digital signatures.
         </p>
       </header>
 
@@ -88,32 +92,57 @@ function ReportsWorkspace() {
             label="Report"
             value={kind}
             onChange={(e) => setKind(e.target.value as ReportKind)}
-            options={(kinds.length ? kinds : Object.entries(REPORT_KIND_LABELS).map(([k, title]) => ({ kind: k as ReportKind, title }))).map(
-              (k) => ({ value: k.kind, label: k.title }),
-            )}
+            options={(kinds.length
+              ? kinds
+              : Object.entries(REPORT_KIND_LABELS).map(([k, title]) => ({
+                  kind: k as ReportKind,
+                  title,
+                }))
+            ).map((k) => ({ value: k.kind, label: k.title }))}
           />
-          <Input label="From date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-          <Input label="To date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <Input
+            label="From date"
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
+          <Input
+            label="To date"
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
           <div className="flex items-end gap-2">
             <Button type="button" disabled={busy} onClick={() => void run()}>
               Run
             </Button>
-            <Button type="button" variant="secondary" disabled={!report} onClick={downloadCsv}>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!report}
+              onClick={downloadCsv}
+            >
               CSV
             </Button>
           </div>
         </div>
-        {error ? <p className="mt-3 text-sm text-[var(--color-danger)]">{error}</p> : null}
+        {error ? (
+          <p className="mt-3 text-sm text-[var(--color-danger)]">{error}</p>
+        ) : null}
       </Card>
 
       {!report ? (
-        <EmptyState title="No report loaded" description="Choose a report and date range, then Run." />
+        <EmptyState
+          title="No report loaded"
+          description="Choose a report and date range, then Run."
+        />
       ) : (
         <Card>
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold">{report.title}</h2>
             <p className="text-xs text-[var(--color-text-muted)]">
-              {report.totalRows} row(s) · page {report.page} · generated {report.generatedAt}
+              {report.totalRows} row(s) · page {report.page} · generated{" "}
+              {report.generatedAt}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -132,7 +161,9 @@ function ReportsWorkspace() {
                   <tr key={idx} className="odd:bg-[var(--color-brand-cream)]/40">
                     {report.columns.map((col) => (
                       <td key={col} className="border-b px-2 py-1 align-top">
-                        {row[col] === null || row[col] === undefined ? "—" : String(row[col])}
+                        {row[col] === null || row[col] === undefined
+                          ? "—"
+                          : String(row[col])}
                       </td>
                     ))}
                   </tr>

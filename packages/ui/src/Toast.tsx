@@ -57,10 +57,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="nelna-toast-viewport" aria-live="polite" role="status">
         {toasts.map((toast) => (
-          <div key={toast.id} className={`nelna-toast nelna-toast-${toast.tone ?? "information"}`}>
+          <div
+            key={toast.id}
+            className={`nelna-toast nelna-toast-${toast.tone ?? "information"}`}
+          >
             <div style={{ flex: 1 }}>
-              {toast.title ? <p style={{ margin: 0, fontWeight: 700 }}>{toast.title}</p> : null}
-              <p style={{ margin: toast.title ? "0.15rem 0 0" : 0 }}>{toast.description}</p>
+              {toast.title ? (
+                <p style={{ margin: 0, fontWeight: 700 }}>{toast.title}</p>
+              ) : null}
+              <p style={{ margin: toast.title ? "0.15rem 0 0" : 0 }}>
+                {toast.description}
+              </p>
             </div>
             <button
               type="button"

@@ -11,8 +11,8 @@
 9. **Void / amendment UX polish** — Void API present; amendment workflow thin (DEF-005 partial)  
 10. **Database restore** — Not proven (DEF-011)  
 11. **Formal multi-role plant UAT** — Unsigned (DEF-012)  
-12. **Prettier format:check** — Drift remains  
-13. **Dependency advisories** — Open  
+12. **Prettier format:check** — Cleared in Prompt 35 (`pnpm format`).  
+13. **Dependency advisories** — Reviewed; see `docs/engineering/DEPENDENCY_REVIEW.md` (no unsafe bulk upgrades).  
 14. Open BD-01–BD-25 remain PENDING in `docs/approvals/APPROVED_BUSINESS_DECISIONS.md` 
 
 These limitations bound the CONDITIONAL GO — see `GO_LIVE_DECISION.md`.

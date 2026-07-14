@@ -53,7 +53,7 @@ function RecordTypeCard({
       <Card interactive>
         <Badge tone="neutral">{code}</Badge>
         <h2
-          className="mt-2 text-lg text-nelna-primary-dark"
+          className="text-nelna-primary-dark mt-2 text-lg"
           style={{ fontFamily: "var(--nelna-font-display)" }}
         >
           {title}

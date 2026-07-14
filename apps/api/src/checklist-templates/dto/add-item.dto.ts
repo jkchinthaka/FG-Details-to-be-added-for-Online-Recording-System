@@ -30,13 +30,18 @@ export class AddItemDto {
   @MaxLength(1000)
   helpText?: string;
 
-  @ApiPropertyOptional({ description: "Defaults to appending at the end of the section's items" })
+  @ApiPropertyOptional({
+    description: "Defaults to appending at the end of the section's items",
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
   sortOrder?: number;
 
-  @ApiPropertyOptional({ enum: CHECKLIST_ITEM_TYPES, default: "ACCEPTABLE_UNACCEPTABLE_NA" })
+  @ApiPropertyOptional({
+    enum: CHECKLIST_ITEM_TYPES,
+    default: "ACCEPTABLE_UNACCEPTABLE_NA",
+  })
   @IsOptional()
   @IsIn(CHECKLIST_ITEM_TYPES)
   itemType?: ChecklistItemType;
@@ -56,7 +61,10 @@ export class AddItemDto {
   @IsBoolean()
   requiresEvidenceOnFail?: boolean;
 
-  @ApiPropertyOptional({ default: false, description: "A failing response on this item is a critical failure" })
+  @ApiPropertyOptional({
+    default: false,
+    description: "A failing response on this item is a critical failure",
+  })
   @IsOptional()
   @IsBoolean()
   isCriticalFailure?: boolean;
@@ -71,12 +79,16 @@ export class AddItemDto {
   @IsBoolean()
   correctiveActionRequiredOnFail?: boolean;
 
-  @ApiPropertyOptional({ description: "Inclusive lower bound for NUMBER/TEMPERATURE items" })
+  @ApiPropertyOptional({
+    description: "Inclusive lower bound for NUMBER/TEMPERATURE items",
+  })
   @IsOptional()
   @IsNumber()
   minValue?: number;
 
-  @ApiPropertyOptional({ description: "Inclusive upper bound for NUMBER/TEMPERATURE items" })
+  @ApiPropertyOptional({
+    description: "Inclusive upper bound for NUMBER/TEMPERATURE items",
+  })
   @IsOptional()
   @IsNumber()
   maxValue?: number;
@@ -87,7 +99,10 @@ export class AddItemDto {
   @MaxLength(200)
   defaultResponse?: string;
 
-  @ApiPropertyOptional({ type: [ItemOptionDto], description: "Required for SINGLE_SELECT items" })
+  @ApiPropertyOptional({
+    type: [ItemOptionDto],
+    description: "Required for SINGLE_SELECT items",
+  })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)

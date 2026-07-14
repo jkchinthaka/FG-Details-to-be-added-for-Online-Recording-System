@@ -16,10 +16,13 @@ export default function UnauthorizedPage() {
       />
       <Card>
         <p className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-          If you need access, ask a System Administrator to review your roles. Local draft data on this device was
-          not submitted.
+          If you need access, ask a System Administrator to review your roles. Local draft
+          data on this device was not submitted.
         </p>
-        <Link href="/tasks" className="mt-4 inline-block font-semibold text-nelna-primary">
+        <Link
+          href="/tasks"
+          className="text-nelna-primary mt-4 inline-block font-semibold"
+        >
           Return to Today&apos;s Tasks →
         </Link>
       </Card>

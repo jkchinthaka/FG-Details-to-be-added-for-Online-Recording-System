@@ -11,7 +11,10 @@ import { buildOfficialRecordPdf } from "./record-pdf.builder";
 
 describe("ReportsService helpers and PDF builder", () => {
   it("rejects inverted filters via shared schema", () => {
-    expect(reportFiltersSchema.safeParse({ fromDate: "2026-07-10", toDate: "2026-07-01" }).success).toBe(false);
+    expect(
+      reportFiltersSchema.safeParse({ fromDate: "2026-07-10", toDate: "2026-07-01" })
+        .success,
+    ).toBe(false);
   });
 
   it("escapes CSV injection prefixes", () => {
@@ -47,7 +50,15 @@ describe("ReportsService helpers and PDF builder", () => {
           caCount: 1,
         },
       ],
-      approvals: [{ type: "VERIFY", decision: "APPROVED", by: "QA", at: "2026-07-14T12:00:00.000Z", comments: null }],
+      approvals: [
+        {
+          type: "VERIFY",
+          decision: "APPROVED",
+          by: "QA",
+          at: "2026-07-14T12:00:00.000Z",
+          comments: null,
+        },
+      ],
       disclaimer: OFFICIAL_RECORD_APPROVAL_DISCLAIMER,
       generatedAt: "2026-07-14T13:00:00.000Z",
       auditReference: "cuid-example",
@@ -55,7 +66,9 @@ describe("ReportsService helpers and PDF builder", () => {
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.length).toBeGreaterThan(500);
     expect(buffer.subarray(0, 4).toString("utf8")).toBe("%PDF");
-    expect(OFFICIAL_RECORD_APPROVAL_DISCLAIMER.toLowerCase()).toContain("not a cryptographic");
+    expect(OFFICIAL_RECORD_APPROVAL_DISCLAIMER.toLowerCase()).toContain(
+      "not a cryptographic",
+    );
   });
 });
 

@@ -1,9 +1,15 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { DEFAULT_ITEM_RULES, type ChecklistItemDefinition, type ChecklistItemResponse } from "@nelna/shared";
+import {
+  DEFAULT_ITEM_RULES,
+  type ChecklistItemDefinition,
+  type ChecklistItemResponse,
+} from "@nelna/shared";
 import { ChecklistItemCard } from "./ChecklistItemCard";
 
-function makeItem(overrides: Partial<ChecklistItemDefinition> = {}): ChecklistItemDefinition {
+function makeItem(
+  overrides: Partial<ChecklistItemDefinition> = {},
+): ChecklistItemDefinition {
   return {
     id: "item-1",
     label: "Floor is clean",
@@ -17,43 +23,75 @@ function makeItem(overrides: Partial<ChecklistItemDefinition> = {}): ChecklistIt
 
 describe("ChecklistItemCard — failure detail visibility", () => {
   it("does not render the failure detail panel when unanswered", () => {
-    render(<ChecklistItemCard item={makeItem()} response={undefined} onChange={() => {}} />);
+    render(
+      <ChecklistItemCard item={makeItem()} response={undefined} onChange={() => {}} />,
+    );
     expect(screen.queryByText(/what failed/i)).toBeNull();
   });
 
   it("does not render the failure detail panel for a passing response", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "status", value: "PASS" } };
-    render(<ChecklistItemCard item={makeItem()} response={response} onChange={() => {}} />);
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "status", value: "PASS" },
+    };
+    render(
+      <ChecklistItemCard item={makeItem()} response={response} onChange={() => {}} />,
+    );
     expect(screen.queryByText(/what failed/i)).toBeNull();
   });
 
   it("renders the failure detail panel once the response is a failure", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "status", value: "FAIL" } };
-    render(<ChecklistItemCard item={makeItem()} response={response} onChange={() => {}} />);
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "status", value: "FAIL" },
+    };
+    render(
+      <ChecklistItemCard item={makeItem()} response={response} onChange={() => {}} />,
+    );
     expect(screen.queryByText(/what failed/i)).not.toBeNull();
   });
 
   it("shows a critical failure marker only when isCriticalFailure and failing", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "status", value: "FAIL" } };
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "status", value: "FAIL" },
+    };
     render(
-      <ChecklistItemCard item={makeItem({ isCriticalFailure: true })} response={response} onChange={() => {}} />,
+      <ChecklistItemCard
+        item={makeItem({ isCriticalFailure: true })}
+        response={response}
+        onChange={() => {}}
+      />,
     );
     expect(screen.queryByText("Critical failure")).not.toBeNull();
   });
 
   it("does not show the critical failure marker when passing, even if isCriticalFailure is set", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "status", value: "PASS" } };
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "status", value: "PASS" },
+    };
     render(
-      <ChecklistItemCard item={makeItem({ isCriticalFailure: true })} response={response} onChange={() => {}} />,
+      <ChecklistItemCard
+        item={makeItem({ isCriticalFailure: true })}
+        response={response}
+        onChange={() => {}}
+      />,
     );
     expect(screen.queryByText("Critical failure")).toBeNull();
   });
 
   it("marks remark/corrective action/evidence as required only per the item's configured rules", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "status", value: "FAIL" } };
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "status", value: "FAIL" },
+    };
     render(
       <ChecklistItemCard
-        item={makeItem({ remarkRequiredOnFail: true, correctiveActionRequiredOnFail: false })}
+        item={makeItem({
+          remarkRequiredOnFail: true,
+          correctiveActionRequiredOnFail: false,
+        })}
         response={response}
         onChange={() => {}}
       />,
@@ -64,14 +102,22 @@ describe("ChecklistItemCard — failure detail visibility", () => {
 
   it("hides the N/A option when allowNotApplicable is false", () => {
     render(
-      <ChecklistItemCard item={makeItem({ allowNotApplicable: false })} response={undefined} onChange={() => {}} />,
+      <ChecklistItemCard
+        item={makeItem({ allowNotApplicable: false })}
+        response={undefined}
+        onChange={() => {}}
+      />,
     );
     expect(screen.queryByRole("button", { name: "N/A" })).toBeNull();
   });
 
   it("offers the N/A option when allowNotApplicable is true", () => {
     render(
-      <ChecklistItemCard item={makeItem({ allowNotApplicable: true })} response={undefined} onChange={() => {}} />,
+      <ChecklistItemCard
+        item={makeItem({ allowNotApplicable: true })}
+        response={undefined}
+        onChange={() => {}}
+      />,
     );
     expect(screen.queryByRole("button", { name: "N/A" })).not.toBeNull();
   });
@@ -83,7 +129,9 @@ describe("ChecklistItemCard — failure detail visibility", () => {
       value: { kind: "status", value: "FAIL" },
       remark: "Grease build-up near drain",
     };
-    render(<ChecklistItemCard item={makeItem()} response={response} onChange={onChange} />);
+    render(
+      <ChecklistItemCard item={makeItem()} response={response} onChange={onChange} />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Acceptable" }));
 
@@ -95,7 +143,10 @@ describe("ChecklistItemCard — failure detail visibility", () => {
   });
 
   it("flags an out-of-range numeric reading as a failure and shows the range error", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "number", value: 12 } };
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "number", value: 12 },
+    };
     render(
       <ChecklistItemCard
         item={makeItem({ itemType: "TEMPERATURE", minValue: -5, maxValue: 4 })}
@@ -107,7 +158,10 @@ describe("ChecklistItemCard — failure detail visibility", () => {
   });
 
   it("does not flag an in-range numeric reading", () => {
-    const response: ChecklistItemResponse = { itemId: "item-1", value: { kind: "number", value: 2 } };
+    const response: ChecklistItemResponse = {
+      itemId: "item-1",
+      value: { kind: "number", value: 2 },
+    };
     render(
       <ChecklistItemCard
         item={makeItem({ itemType: "TEMPERATURE", minValue: -5, maxValue: 4 })}

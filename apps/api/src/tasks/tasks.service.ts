@@ -53,7 +53,10 @@ export class TasksService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getTodaysTasks(user: RequestUser, dateOverride?: string): Promise<TodaysTasksResponse> {
+  async getTodaysTasks(
+    user: RequestUser,
+    dateOverride?: string,
+  ): Promise<TodaysTasksResponse> {
     const referenceDate = parseReferenceDate(dateOverride);
     const cards: TaskCard[] = [];
     const complianceIndicators: ComplianceIndicator[] = [];
@@ -90,7 +93,10 @@ export class TasksService {
   // FG Operator / FG Supervisor — their own assigned checklists for today
   // -------------------------------------------------------------------------
 
-  private async buildOwnAssignmentCards(userId: string, referenceDate: Date): Promise<TaskCard[]> {
+  private async buildOwnAssignmentCards(
+    userId: string,
+    referenceDate: Date,
+  ): Promise<TaskCard[]> {
     const assignments = await this.safeQuery(
       () =>
         this.prisma.taskAssignment.findMany({
@@ -112,7 +118,9 @@ export class TasksService {
     return assignments.map((assignment) => {
       const recordType = recordTypeForDocumentCode(assignment.templateCode);
       const status = assignment.status as TaskStatus;
-      const title = recordType ? RECORD_TYPE_META[recordType].title : assignment.templateCode;
+      const title = recordType
+        ? RECORD_TYPE_META[recordType].title
+        : assignment.templateCode;
       const shiftLabel = assignment.shift?.name ?? null;
 
       return {
@@ -126,7 +134,10 @@ export class TasksService {
         status,
         bucket: bucketForOwnTaskStatus(status),
         action: actionForOwnTaskStatus(status),
-        href: hrefForRecordType(recordType, { assignmentId: assignment.id, recordId: assignment.recordId }),
+        href: hrefForRecordType(recordType, {
+          assignmentId: assignment.id,
+          recordId: assignment.recordId,
+        }),
       } satisfies TaskCard;
     });
   }
@@ -147,7 +158,9 @@ export class TasksService {
       "pending checks",
     );
 
-    return records.map((record) => this.mapQueueRecord(record, "Pending your check", "REVIEW", "pending", "/records"));
+    return records.map((record) =>
+      this.mapQueueRecord(record, "Pending your check", "REVIEW", "pending", "/records"),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -168,7 +181,13 @@ export class TasksService {
     );
 
     return records.map((record) =>
-      this.mapQueueRecord(record, "Pending your verification", "REVIEW", "pending", "/records"),
+      this.mapQueueRecord(
+        record,
+        "Pending your verification",
+        "REVIEW",
+        "pending",
+        "/records",
+      ),
     );
   }
 
@@ -185,7 +204,13 @@ export class TasksService {
     );
 
     return records.map((record) =>
-      this.mapQueueRecord(record, "Rejected — needs follow-up", "REVIEW", "attention", "/corrective-actions"),
+      this.mapQueueRecord(
+        record,
+        "Rejected — needs follow-up",
+        "REVIEW",
+        "attention",
+        "/corrective-actions",
+      ),
     );
   }
 
@@ -218,26 +243,37 @@ export class TasksService {
   // Food Safety Team Leader — compact compliance indicators (no charts)
   // -------------------------------------------------------------------------
 
-  private async buildComplianceIndicators(referenceDate: Date): Promise<ComplianceIndicator[]> {
+  private async buildComplianceIndicators(
+    referenceDate: Date,
+  ): Promise<ComplianceIndicator[]> {
     const nextDay = new Date(referenceDate);
     nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     const [recordsToday, verifiedToday, openCorrectiveActions] = await Promise.all([
       this.safeQuery(
-        () => this.prisma.inspectionRecord.count({ where: { recordDate: { gte: referenceDate, lt: nextDay } } }),
+        () =>
+          this.prisma.inspectionRecord.count({
+            where: { recordDate: { gte: referenceDate, lt: nextDay } },
+          }),
         0,
         "records today count",
       ),
       this.safeQuery(
         () =>
           this.prisma.inspectionRecord.count({
-            where: { recordDate: { gte: referenceDate, lt: nextDay }, status: "VERIFIED" },
+            where: {
+              recordDate: { gte: referenceDate, lt: nextDay },
+              status: "VERIFIED",
+            },
           }),
         0,
         "verified today count",
       ),
       this.safeQuery(
-        () => this.prisma.correctiveAction.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } }),
+        () =>
+          this.prisma.correctiveAction.count({
+            where: { status: { in: ["OPEN", "IN_PROGRESS"] } },
+          }),
         0,
         "open corrective actions count",
       ),
@@ -248,7 +284,10 @@ export class TasksService {
         id: "verified-today",
         label: "Verified today",
         value: `${verifiedToday}/${recordsToday}`,
-        tone: recordsToday === 0 || verifiedToday === recordsToday ? "success" : "information",
+        tone:
+          recordsToday === 0 || verifiedToday === recordsToday
+            ? "success"
+            : "information",
       },
       {
         id: "open-corrective-actions",
@@ -292,7 +331,11 @@ export class TasksService {
 
   /** Never lets one widget's query failure (e.g. Postgres unreachable) crash
    *  the whole dashboard response — logs and falls back instead. */
-  private async safeQuery<T>(run: () => Promise<T>, fallback: T, label: string): Promise<T> {
+  private async safeQuery<T>(
+    run: () => Promise<T>,
+    fallback: T,
+    label: string,
+  ): Promise<T> {
     try {
       return await run();
     } catch (error) {

@@ -47,11 +47,9 @@ export const dailyCleaningVerificationSchema = z.object({
   documentCode: z.literal("NMS/PPU/CL/24"),
   recordedAt: z.string().datetime(),
   shift: z.enum(WORK_SHIFTS),
-  lines: z
-    .array(cleaningLineSchema)
-    .length(ALL_CLEANING_ITEMS.length, {
-      message: "All cleaning checklist items must be recorded",
-    }),
+  lines: z.array(cleaningLineSchema).length(ALL_CLEANING_ITEMS.length, {
+    message: "All cleaning checklist items must be recorded",
+  }),
 });
 
 export type DailyCleaningVerificationInput = z.infer<
@@ -103,9 +101,7 @@ export const freezerTruckInspectionSchema = z
     }
   });
 
-export type FreezerTruckInspectionInput = z.infer<
-  typeof freezerTruckInspectionSchema
->;
+export type FreezerTruckInspectionInput = z.infer<typeof freezerTruckInspectionSchema>;
 
 /** Marks every checklist line acceptable — low-click happy path */
 export function markAllCleaningAcceptable(): DailyCleaningVerificationInput["lines"] {

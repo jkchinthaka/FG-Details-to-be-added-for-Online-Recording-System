@@ -114,7 +114,10 @@ export class AuthService {
     };
   }
 
-  async refresh(refreshTokenRaw: string | undefined, meta: RequestMeta = {}): Promise<AuthResult> {
+  async refresh(
+    refreshTokenRaw: string | undefined,
+    meta: RequestMeta = {},
+  ): Promise<AuthResult> {
     const config = getAuthConfig();
     if (!refreshTokenRaw) {
       throw new SessionExpiredException();
@@ -163,13 +166,18 @@ export class AuthService {
     const tokens = await this.issueTokens(user, roles, permissions, config, meta);
 
     const newTokenHash = hashToken(tokens.refreshToken);
-    const newRow = await this.prisma.refreshToken.findUnique({ where: { tokenHash: newTokenHash } });
+    const newRow = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: newTokenHash },
+    });
     await this.prisma.refreshToken.update({
       where: { id: stored.id },
       data: { revokedAt: new Date(), replacedByTokenId: newRow?.id },
     });
 
-    return { user: this.toCurrentUser(user, roles, permissions, user.lastLoginAt), tokens };
+    return {
+      user: this.toCurrentUser(user, roles, permissions, user.lastLoginAt),
+      tokens,
+    };
   }
 
   /** Best-effort: revokes the presented refresh token. Never throws — logout always succeeds client-side. */
@@ -197,10 +205,18 @@ export class AuthService {
       throw new AccountInactiveException();
     }
 
-    return this.toCurrentUser(user, this.rolesOf(user), this.permissionsOf(user), user.lastLoginAt);
+    return this.toCurrentUser(
+      user,
+      this.rolesOf(user),
+      this.permissionsOf(user),
+      user.lastLoginAt,
+    );
   }
 
-  private async recordFailedAttempt(user: UserWithRoles, config: AuthConfig): Promise<void> {
+  private async recordFailedAttempt(
+    user: UserWithRoles,
+    config: AuthConfig,
+  ): Promise<void> {
     const attempts = user.failedLoginAttempts + 1;
     const shouldLock = attempts >= config.loginMaxAttempts;
     await this.prisma.user.update({

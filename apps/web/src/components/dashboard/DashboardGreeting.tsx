@@ -15,11 +15,11 @@ export function DashboardGreeting({ firstName }: { firstName: string | null }) {
 
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-nelna-primary">
+      <p className="text-nelna-primary text-xs font-semibold uppercase tracking-[0.14em]">
         {now ? formatDashboardDate(now) : "\u00A0"}
       </p>
       <h1
-        className="mt-1 text-[1.55rem] leading-tight text-nelna-primary-dark sm:text-[1.75rem]"
+        className="text-nelna-primary-dark mt-1 text-[1.55rem] leading-tight sm:text-[1.75rem]"
         style={{ fontFamily: "var(--nelna-font-display)" }}
       >
         {greeting}

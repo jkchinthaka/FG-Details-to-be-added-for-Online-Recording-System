@@ -71,7 +71,11 @@ export function UiShowcase() {
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <IconButton icon={<span aria-hidden>+</span>} label="Add item" />
-          <IconButton icon={<span aria-hidden>+</span>} label="Add item" variant="solid" />
+          <IconButton
+            icon={<span aria-hidden>+</span>}
+            label="Add item"
+            variant="solid"
+          />
           <NelnaButton variant="gold">Legacy NelnaButton alias</NelnaButton>
         </div>
       </Section>
@@ -85,7 +89,11 @@ export function UiShowcase() {
           />
           <Input label="Vehicle number" error="Enter vehicle number" />
           <Select label="Shift" placeholder="Select shift" options={SHIFT_OPTIONS} />
-          <Textarea label="Corrective action" hint="Only required after a Fail" rows={3} />
+          <Textarea
+            label="Corrective action"
+            hint="Only required after a Fail"
+            rows={3}
+          />
         </div>
         <div className="mt-4">
           <Checkbox
@@ -164,7 +172,11 @@ export function UiShowcase() {
         >
           <p>Modals use a portal, close on Escape and dim the page behind them.</p>
         </Modal>
-        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Example drawer">
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          title="Example drawer"
+        >
           <p>Drawers power the mobile “More” navigation menu in the app shell.</p>
         </Drawer>
       </Section>
@@ -240,7 +252,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-3">
       <h2
-        className="text-lg font-semibold text-nelna-primary-dark"
+        className="text-nelna-primary-dark text-lg font-semibold"
         style={{ fontFamily: "var(--nelna-font-display)" }}
       >
         {title}

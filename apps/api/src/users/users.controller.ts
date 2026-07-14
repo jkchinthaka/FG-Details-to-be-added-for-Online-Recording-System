@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Patch, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Patch,
+  Query,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
@@ -17,7 +27,9 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @ApiOperation({ summary: "List users (paginated, filterable by search/department/status/role)" })
+  @ApiOperation({
+    summary: "List users (paginated, filterable by search/department/status/role)",
+  })
   list(
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
@@ -69,7 +81,9 @@ export class UsersController {
 
   @Post(":id/deactivate")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Deactivate a user (blocked for the last active System Administrator)" })
+  @ApiOperation({
+    summary: "Deactivate a user (blocked for the last active System Administrator)",
+  })
   deactivate(@Param("id") id: string, @CurrentUser() actor: RequestUser) {
     return this.usersService.deactivate(id, actor.id);
   }
@@ -82,15 +96,29 @@ export class UsersController {
 
   @Patch(":id/roles")
   @RequirePermissions("users:manage", "roles:manage")
-  @ApiOperation({ summary: "Replace a user's role set (blocked if it would remove the last active admin)" })
-  assignRoles(@Param("id") id: string, @Body() dto: AssignRolesDto, @CurrentUser() actor: RequestUser) {
+  @ApiOperation({
+    summary:
+      "Replace a user's role set (blocked if it would remove the last active admin)",
+  })
+  assignRoles(
+    @Param("id") id: string,
+    @Body() dto: AssignRolesDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
     return this.usersService.assignRoles(id, dto, actor.id);
   }
 
   @Post(":id/reset-password")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Admin-issued temporary password reset (returned once, never stored in plaintext)" })
-  resetPassword(@Param("id") id: string, @Body() dto: ResetPasswordDto, @CurrentUser() actor: RequestUser) {
+  @ApiOperation({
+    summary:
+      "Admin-issued temporary password reset (returned once, never stored in plaintext)",
+  })
+  resetPassword(
+    @Param("id") id: string,
+    @Body() dto: ResetPasswordDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
     return this.usersService.resetPassword(id, dto, actor.id);
   }
 }

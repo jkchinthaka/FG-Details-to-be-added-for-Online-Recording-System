@@ -59,7 +59,9 @@ describe("VehiclesService", () => {
 
     it("returns recently-inspected vehicles when no query is given", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.truckInspectionDetail.findMany.mockResolvedValue([{ vehicle: makeVehicle() }]);
+      prismaMock.truckInspectionDetail.findMany.mockResolvedValue([
+        { vehicle: makeVehicle() },
+      ]);
       const service = buildService(prismaMock);
 
       const result = await service.search(undefined);
@@ -84,7 +86,9 @@ describe("VehiclesService", () => {
 
     it("treats a vehicle with no transporter as transporter: null", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.vehicle.findMany.mockResolvedValue([makeVehicle({ transporter: null, transporterId: null })]);
+      prismaMock.vehicle.findMany.mockResolvedValue([
+        makeVehicle({ transporter: null, transporterId: null }),
+      ]);
       const service = buildService(prismaMock);
 
       const result = await service.search("WP");

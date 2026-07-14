@@ -21,7 +21,10 @@ export async function getVerifiedServerSession(): Promise<CurrentUser | null> {
 
 export async function assertServerRouteAccess(
   pathname: string,
-): Promise<{ ok: true; user: CurrentUser } | { ok: false; reason: "unauthenticated" | "forbidden" | "inactive" }> {
+): Promise<
+  | { ok: true; user: CurrentUser }
+  | { ok: false; reason: "unauthenticated" | "forbidden" | "inactive" }
+> {
   const store = await cookies();
   const parts: string[] = [];
   for (const name of Object.values(AUTH_COOKIE_NAMES)) {
@@ -47,6 +50,7 @@ export function serverUserMay(
   permissions?: readonly PermissionKey[],
 ): boolean {
   if (roles?.some((role) => user.roles.includes(role))) return true;
-  if (permissions?.some((permission) => user.permissions.includes(permission))) return true;
+  if (permissions?.some((permission) => user.permissions.includes(permission)))
+    return true;
   return !roles && !permissions;
 }

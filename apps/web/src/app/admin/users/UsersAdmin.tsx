@@ -2,7 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { USER_ROLES, USER_ROLE_LABELS, type UserRole } from "@nelna/shared";
-import { Alert, Badge, Button, Card, Checkbox, EmptyState, Input, LoadingState, Modal, PageHeader } from "@nelna/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  Input,
+  LoadingState,
+  Modal,
+  PageHeader,
+} from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   AdminApiError,
@@ -47,7 +58,8 @@ export function UsersAdmin() {
     fetchUsers()
       .then((response) => setListState({ status: "ready", users: response.items }))
       .catch((error: unknown) => {
-        const message = error instanceof AdminApiError ? error.message : "Failed to load users.";
+        const message =
+          error instanceof AdminApiError ? error.message : "Failed to load users.";
         setListState({ status: "error", message });
       });
   }, []);
@@ -72,7 +84,9 @@ export function UsersAdmin() {
       setCreateForm(EMPTY_CREATE_FORM);
       reload();
     } catch (error) {
-      setCreateError(error instanceof AdminApiError ? error.message : "Failed to create user.");
+      setCreateError(
+        error instanceof AdminApiError ? error.message : "Failed to create user.",
+      );
     } finally {
       setCreating(false);
     }
@@ -100,9 +114,13 @@ export function UsersAdmin() {
     setActionMessage(null);
     try {
       const result = await resetUserPassword(target.id);
-      setActionMessage(`Temporary password for ${target.fullName}: ${result.temporaryPassword}`);
+      setActionMessage(
+        `Temporary password for ${target.fullName}: ${result.temporaryPassword}`,
+      );
     } catch (error) {
-      setActionError(error instanceof AdminApiError ? error.message : "Password reset failed.");
+      setActionError(
+        error instanceof AdminApiError ? error.message : "Password reset failed.",
+      );
     }
   }
 
@@ -121,7 +139,9 @@ export function UsersAdmin() {
       setRolesTarget(null);
       reload();
     } catch (error) {
-      setActionError(error instanceof AdminApiError ? error.message : "Failed to update roles.");
+      setActionError(
+        error instanceof AdminApiError ? error.message : "Failed to update roles.",
+      );
     } finally {
       setSavingRoles(false);
     }
@@ -162,16 +182,30 @@ export function UsersAdmin() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Create user
         </h2>
-        <form onSubmit={handleCreate} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <form
+          onSubmit={handleCreate}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
             <Input
               label="Employee code"
               required
               value={createForm.employeeCode}
-              onChange={(e) => setCreateForm((f) => ({ ...f, employeeCode: e.target.value }))}
+              onChange={(e) =>
+                setCreateForm((f) => ({ ...f, employeeCode: e.target.value }))
+              }
             />
             <Input
               label="Full name"
@@ -236,13 +270,19 @@ export function UsersAdmin() {
         </Alert>
       ) : null}
       {listState.status === "ready" && listState.users.length === 0 ? (
-        <EmptyState title="No users yet" description="Create the first user account above." />
+        <EmptyState
+          title="No users yet"
+          description="Create the first user account above."
+        />
       ) : null}
 
       {listState.status === "ready" && listState.users.length > 0 ? (
         <Card padding="lg">
           <div style={{ overflowX: "auto" }}>
-            <table className="nelna-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table
+              className="nelna-table"
+              style={{ width: "100%", borderCollapse: "collapse" }}
+            >
               <thead>
                 <tr>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Employee</th>
@@ -270,12 +310,21 @@ export function UsersAdmin() {
                       )}
                     </td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status}</Badge>
+                      <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>
+                        {u.status}
+                      </Badge>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "Never"}
                     </td>
-                    <td style={{ padding: "0.5rem", display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                    <td
+                      style={{
+                        padding: "0.5rem",
+                        display: "flex",
+                        gap: "0.4rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <Button variant="secondary" onClick={() => openRolesModal(u)}>
                         Roles
                       </Button>
@@ -297,7 +346,10 @@ export function UsersAdmin() {
         </Card>
       ) : null}
 
-      <Modal open={rolesTarget !== null} onClose={() => setRolesTarget(null)} title={`Roles — ${rolesTarget?.fullName ?? ""}`}
+      <Modal
+        open={rolesTarget !== null}
+        onClose={() => setRolesTarget(null)}
+        title={`Roles — ${rolesTarget?.fullName ?? ""}`}
         footer={
           <>
             <Button variant="ghost" onClick={() => setRolesTarget(null)}>

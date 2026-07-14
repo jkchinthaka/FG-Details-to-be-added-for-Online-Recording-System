@@ -48,8 +48,18 @@ function makeVersion(): ChecklistTemplateVersionDefinition {
         name: "Cold storage",
         sortOrder: 1,
         items: [
-          item({ id: "item-3", label: "Cold room already failed", sortOrder: 0, isCriticalFailure: true }),
-          item({ id: "item-4", label: "Remark required item", sortOrder: 1, remarkRequiredOnFail: true }),
+          item({
+            id: "item-3",
+            label: "Cold room already failed",
+            sortOrder: 0,
+            isCriticalFailure: true,
+          }),
+          item({
+            id: "item-4",
+            label: "Remark required item",
+            sortOrder: 1,
+            remarkRequiredOnFail: true,
+          }),
         ],
       },
     ],
@@ -60,18 +70,37 @@ describe("ChecklistRenderer — Mark All Acceptable", () => {
   it("fills only unanswered eligible items and leaves an existing failure untouched", () => {
     const version = makeVersion();
     const responses: ChecklistResponseMap = {
-      "item-3": { itemId: "item-3", value: { kind: "status", value: "FAIL" }, remark: "Compressor fault" },
+      "item-3": {
+        itemId: "item-3",
+        value: { kind: "status", value: "FAIL" },
+        remark: "Compressor fault",
+      },
     };
     const onResponsesChange = vi.fn();
 
-    render(<ChecklistRenderer version={version} responses={responses} onResponsesChange={onResponsesChange} />);
+    render(
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={onResponsesChange}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /mark all 3 items acceptable/i }));
 
     const next = onResponsesChange.mock.calls[0][0] as ChecklistResponseMap;
-    expect(next["item-1"]).toEqual({ itemId: "item-1", value: { kind: "status", value: "PASS" } });
-    expect(next["item-2"]).toEqual({ itemId: "item-2", value: { kind: "status", value: "PASS" } });
-    expect(next["item-4"]).toEqual({ itemId: "item-4", value: { kind: "status", value: "PASS" } });
+    expect(next["item-1"]).toEqual({
+      itemId: "item-1",
+      value: { kind: "status", value: "PASS" },
+    });
+    expect(next["item-2"]).toEqual({
+      itemId: "item-2",
+      value: { kind: "status", value: "PASS" },
+    });
+    expect(next["item-4"]).toEqual({
+      itemId: "item-4",
+      value: { kind: "status", value: "PASS" },
+    });
     // The existing manual failure — including its remark — must survive untouched.
     expect(next["item-3"]).toEqual(responses["item-3"]);
   });
@@ -85,9 +114,17 @@ describe("ChecklistRenderer — Mark All Acceptable", () => {
       "item-4": { itemId: "item-4", value: { kind: "status", value: "PASS" } },
     };
 
-    render(<ChecklistRenderer version={version} responses={responses} onResponsesChange={() => {}} />);
+    render(
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={() => {}}
+      />,
+    );
 
-    const button = screen.getByRole("button", { name: /mark all 0 items acceptable/i }) as HTMLButtonElement;
+    const button = screen.getByRole("button", {
+      name: /mark all 0 items acceptable/i,
+    }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
   });
 
@@ -96,13 +133,21 @@ describe("ChecklistRenderer — Mark All Acceptable", () => {
     const responses: ChecklistResponseMap = {
       "item-3": { itemId: "item-3", value: { kind: "status", value: "FAIL" } },
     };
-    render(<ChecklistRenderer version={version} responses={responses} onResponsesChange={() => {}} />);
+    render(
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={() => {}}
+      />,
+    );
     expect(screen.queryByText(/critical failure detected/i)).not.toBeNull();
   });
 
   it("does not surface a critical failure banner when the critical item is unanswered", () => {
     const version = makeVersion();
-    render(<ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} />);
+    render(
+      <ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} />,
+    );
     expect(screen.queryByText(/critical failure detected/i)).toBeNull();
   });
 });
@@ -114,7 +159,13 @@ describe("ChecklistRenderer — Clear All", () => {
       "item-1": { itemId: "item-1", value: { kind: "status", value: "PASS" } },
     };
     const onResponsesChange = vi.fn();
-    render(<ChecklistRenderer version={version} responses={responses} onResponsesChange={onResponsesChange} />);
+    render(
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={onResponsesChange}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /clear all responses/i }));
     expect(screen.queryByRole("dialog")).not.toBeNull();
@@ -129,7 +180,13 @@ describe("ChecklistRenderer — Clear All", () => {
       "item-1": { itemId: "item-1", value: { kind: "status", value: "PASS" } },
     };
     const onResponsesChange = vi.fn();
-    render(<ChecklistRenderer version={version} responses={responses} onResponsesChange={onResponsesChange} />);
+    render(
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={onResponsesChange}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /clear all responses/i }));
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
@@ -139,8 +196,12 @@ describe("ChecklistRenderer — Clear All", () => {
 
   it("disables Clear All when there is nothing recorded yet", () => {
     const version = makeVersion();
-    render(<ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} />);
-    const button = screen.getByRole("button", { name: /clear all responses/i }) as HTMLButtonElement;
+    render(
+      <ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} />,
+    );
+    const button = screen.getByRole("button", {
+      name: /clear all responses/i,
+    }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
   });
 });
@@ -148,15 +209,26 @@ describe("ChecklistRenderer — Clear All", () => {
 describe("ChecklistRenderer — dynamic validation", () => {
   it("lists a required-response error in the jump-to summary once enabled", () => {
     const version = makeVersion();
-    render(<ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} showValidationSummary />);
+    render(
+      <ChecklistRenderer
+        version={version}
+        responses={{}}
+        onResponsesChange={() => {}}
+        showValidationSummary
+      />,
+    );
 
     // The summary renders each error as a clickable jump-to-item button.
-    expect(screen.getByRole("button", { name: /"Floor clean" requires a response/i })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /"Floor clean" requires a response/i }),
+    ).toBeTruthy();
   });
 
   it("does not render the validation summary (or inline errors) unless the caller opts in", () => {
     const version = makeVersion();
-    render(<ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} />);
+    render(
+      <ChecklistRenderer version={version} responses={{}} onResponsesChange={() => {}} />,
+    );
     expect(screen.queryByText(/requires a response/i)).toBeNull();
   });
 
@@ -166,7 +238,12 @@ describe("ChecklistRenderer — dynamic validation", () => {
       "item-4": { itemId: "item-4", value: { kind: "status", value: "FAIL" } },
     };
     render(
-      <ChecklistRenderer version={version} responses={responses} onResponsesChange={() => {}} showValidationSummary />,
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={() => {}}
+        showValidationSummary
+      />,
     );
 
     expect(
@@ -177,12 +254,25 @@ describe("ChecklistRenderer — dynamic validation", () => {
   it("clears the remark-required error once a remark is recorded for the failing item", () => {
     const version = makeVersion();
     const responses: ChecklistResponseMap = {
-      "item-4": { itemId: "item-4", value: { kind: "status", value: "FAIL" }, remark: "Grease trap overdue" },
+      "item-4": {
+        itemId: "item-4",
+        value: { kind: "status", value: "FAIL" },
+        remark: "Grease trap overdue",
+      },
     };
     render(
-      <ChecklistRenderer version={version} responses={responses} onResponsesChange={() => {}} showValidationSummary />,
+      <ChecklistRenderer
+        version={version}
+        responses={responses}
+        onResponsesChange={() => {}}
+        showValidationSummary
+      />,
     );
 
-    expect(screen.queryByRole("button", { name: /describe why "remark required item" failed/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", {
+        name: /describe why "remark required item" failed/i,
+      }),
+    ).toBeNull();
   });
 });

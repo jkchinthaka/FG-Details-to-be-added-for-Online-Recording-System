@@ -82,7 +82,12 @@ export function EvidenceUploader({
               <img
                 src={photo.url}
                 alt={photo.fileName}
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
               />
               <div style={{ position: "absolute", top: 2, right: 2 }}>
                 <IconButton

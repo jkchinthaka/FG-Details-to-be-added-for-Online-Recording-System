@@ -39,7 +39,9 @@ describe("requirement field coverage", () => {
 
   it("implements CL/30 Final Loading Decision and Time", () => {
     const decision = REQUIREMENT_FIELD_COVERAGE.find(
-      (row) => row.documentCode === "NMS/PPU/CL/30" && row.sourceField === "Final Loading Decision",
+      (row) =>
+        row.documentCode === "NMS/PPU/CL/30" &&
+        row.sourceField === "Final Loading Decision",
     );
     const time = REQUIREMENT_FIELD_COVERAGE.find(
       (row) => row.documentCode === "NMS/PPU/CL/30" && row.sourceField === "Time",

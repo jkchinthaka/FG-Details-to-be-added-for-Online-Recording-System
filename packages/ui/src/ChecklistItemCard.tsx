@@ -16,7 +16,10 @@ import { EvidenceUploader } from "./EvidenceUploader";
 import { Input } from "./Input";
 import { Select } from "./Select";
 import { Textarea } from "./Textarea";
-import { SegmentedStatusSelector, type SegmentedStatusTone } from "./SegmentedStatusSelector";
+import {
+  SegmentedStatusSelector,
+  type SegmentedStatusTone,
+} from "./SegmentedStatusSelector";
 
 export type ChecklistItemCardProps = {
   item: ChecklistItemDefinition;
@@ -138,7 +141,13 @@ export function ChecklistItemCard({
             ) : null}
           </span>
           {item.helpText ? (
-            <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "var(--nelna-text-muted)" }}>
+            <p
+              style={{
+                margin: "0.25rem 0 0",
+                fontSize: "0.85rem",
+                color: "var(--nelna-text-muted)",
+              }}
+            >
               {item.helpText}
             </p>
           ) : null}
@@ -186,7 +195,14 @@ export function ChecklistItemCard({
       ) : null}
 
       {error ? (
-        <p role="alert" style={{ margin: "0.5rem 0 0", color: "var(--nelna-danger)", fontSize: "0.9rem" }}>
+        <p
+          role="alert"
+          style={{
+            margin: "0.5rem 0 0",
+            color: "var(--nelna-danger)",
+            fontSize: "0.9rem",
+          }}
+        >
           {error}
         </p>
       ) : null}
@@ -220,7 +236,9 @@ export function ChecklistItemCard({
             label="Response"
             hideLabel
             value={textValue(current.value)}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setValue({ kind: "text", value: e.target.value })}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setValue({ kind: "text", value: e.target.value })
+            }
             disabled={disabled}
             maxLength={500}
           />
@@ -266,7 +284,9 @@ export function ChecklistItemCard({
             hideLabel
             type="date"
             value={dateValue(current.value)}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setValue({ kind: "date", value: e.target.value })}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setValue({ kind: "date", value: e.target.value })
+            }
             disabled={disabled}
           />
         );
@@ -277,7 +297,9 @@ export function ChecklistItemCard({
             hideLabel
             type="time"
             value={timeValue(current.value)}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setValue({ kind: "time", value: e.target.value })}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setValue({ kind: "time", value: e.target.value })
+            }
             disabled={disabled}
           />
         );
@@ -286,7 +308,10 @@ export function ChecklistItemCard({
           <Select
             label="Response"
             placeholder="Select…"
-            options={item.options.map((option) => ({ value: option.value, label: option.label }))}
+            options={item.options.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
             value={selectValue(current.value)}
             onChange={(e) => setValue({ kind: "select", value: e.target.value })}
             disabled={disabled}
@@ -297,7 +322,9 @@ export function ChecklistItemCard({
           <EvidenceUploader
             label="Response photo"
             value={photoValue(current.value)}
-            onChange={(photos) => setValue(photos.length > 0 ? { kind: "photo", value: photos } : null)}
+            onChange={(photos) =>
+              setValue(photos.length > 0 ? { kind: "photo", value: photos } : null)
+            }
             disabled={disabled}
           />
         );
@@ -313,7 +340,13 @@ export function ChecklistItemCard({
               const signedByName = e.target.value;
               setValue(
                 signedByName.trim().length > 0
-                  ? { kind: "signature", value: { signedByName, signedAt: signedAt ?? new Date().toISOString() } }
+                  ? {
+                      kind: "signature",
+                      value: {
+                        signedByName,
+                        signedAt: signedAt ?? new Date().toISOString(),
+                      },
+                    }
                   : null,
               );
             }}

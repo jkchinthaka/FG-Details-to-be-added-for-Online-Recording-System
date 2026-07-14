@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, EmptyState, Input, LoadingState, PageHeader } from "@nelna/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  LoadingState,
+  PageHeader,
+} from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   AdminApiError,
@@ -34,7 +43,8 @@ export function TransportersAdmin() {
     fetchAdminTransporters()
       .then((transporters) => setListState({ status: "ready", transporters }))
       .catch((error: unknown) => {
-        const messageText = error instanceof AdminApiError ? error.message : "Failed to load transporters.";
+        const messageText =
+          error instanceof AdminApiError ? error.message : "Failed to load transporters.";
         setListState({ status: "error", message: messageText });
       });
   }, []);
@@ -57,7 +67,11 @@ export function TransportersAdmin() {
       setForm(EMPTY_FORM);
       reload();
     } catch (error) {
-      setCreateError(error instanceof AdminApiError ? error.message : "Failed to register transporter.");
+      setCreateError(
+        error instanceof AdminApiError
+          ? error.message
+          : "Failed to register transporter.",
+      );
     } finally {
       setCreating(false);
     }
@@ -68,7 +82,9 @@ export function TransportersAdmin() {
     setMessage(null);
     try {
       await setTransporterActive(transporter.id, !transporter.isActive);
-      setMessage(`${transporter.name} ${transporter.isActive ? "deactivated" : "activated"}.`);
+      setMessage(
+        `${transporter.name} ${transporter.isActive ? "deactivated" : "activated"}.`,
+      );
       reload();
     } catch (error) {
       setActionError(error instanceof AdminApiError ? error.message : "Action failed.");
@@ -84,7 +100,8 @@ export function TransportersAdmin() {
       <div style={{ display: "grid", gap: "1.25rem" }}>
         <PageHeader eyebrow="Administration" title="Transporters" />
         <Alert tone="danger" title="Not authorized">
-          Managing fleet master data requires the &quot;master_data:manage&quot; permission.
+          Managing fleet master data requires the &quot;master_data:manage&quot;
+          permission.
         </Alert>
       </div>
     );
@@ -110,11 +127,23 @@ export function TransportersAdmin() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Register transporter
         </h2>
-        <form onSubmit={handleCreate} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <form
+          onSubmit={handleCreate}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
             <Input
               label="Name"
               required
@@ -146,14 +175,19 @@ export function TransportersAdmin() {
         </form>
       </Card>
 
-      {listState.status === "loading" ? <LoadingState message="Loading transporters…" /> : null}
+      {listState.status === "loading" ? (
+        <LoadingState message="Loading transporters…" />
+      ) : null}
       {listState.status === "error" ? (
         <Alert tone="danger" title="Could not load transporters">
           {listState.message}
         </Alert>
       ) : null}
       {listState.status === "ready" && listState.transporters.length === 0 ? (
-        <EmptyState title="No transporters yet" description="Register the first transporter above." />
+        <EmptyState
+          title="No transporters yet"
+          description="Register the first transporter above."
+        />
       ) : null}
 
       {listState.status === "ready" && listState.transporters.length > 0 ? (
@@ -176,10 +210,15 @@ export function TransportersAdmin() {
                     <td style={{ padding: "0.5rem" }}>{t.contactPhone ?? "—"}</td>
                     <td style={{ padding: "0.5rem" }}>{t.contactEmail ?? "—"}</td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Badge tone={t.isActive ? "success" : "neutral"}>{t.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                      <Badge tone={t.isActive ? "success" : "neutral"}>
+                        {t.isActive ? "ACTIVE" : "INACTIVE"}
+                      </Badge>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Button variant={t.isActive ? "danger" : "secondary"} onClick={() => handleToggleActive(t)}>
+                      <Button
+                        variant={t.isActive ? "danger" : "secondary"}
+                        onClick={() => handleToggleActive(t)}
+                      >
                         {t.isActive ? "Deactivate" : "Activate"}
                       </Button>
                     </td>

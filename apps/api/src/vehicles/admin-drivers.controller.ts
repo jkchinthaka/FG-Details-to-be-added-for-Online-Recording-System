@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Patch, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Patch,
+  Query,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
 import { AdminFleetService } from "./admin-fleet.service";
@@ -17,7 +27,9 @@ export class AdminDriversController {
   }
 
   @Post()
-  @ApiOperation({ summary: "Register a new driver (409 warning on duplicate license number)" })
+  @ApiOperation({
+    summary: "Register a new driver (409 warning on duplicate license number)",
+  })
   create(@Body() dto: CreateDriverDto) {
     return this.fleetService.createDriver(dto);
   }

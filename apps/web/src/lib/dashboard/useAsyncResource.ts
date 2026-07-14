@@ -19,8 +19,15 @@ const DEFAULT_ERROR_MESSAGE = "Something went wrong. Please try again.";
  * Each widget gets its own loading/error/retry state so one failing endpoint
  * never blocks the rest of the "Today's Tasks" page (see docs/records.md).
  */
-export function useAsyncResource<T>(fetcher: () => Promise<T>, deps: unknown[] = []): AsyncResource<T> {
-  const [state, setState] = useState<AsyncResourceState<T>>({ status: "loading", data: null, error: null });
+export function useAsyncResource<T>(
+  fetcher: () => Promise<T>,
+  deps: unknown[] = [],
+): AsyncResource<T> {
+  const [state, setState] = useState<AsyncResourceState<T>>({
+    status: "loading",
+    data: null,
+    error: null,
+  });
   const [attempt, setAttempt] = useState(0);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;

@@ -9,7 +9,11 @@
  * Run with: pnpm --filter @nelna/api exec prisma db seed
  */
 import bcrypt from "bcrypt";
-import { PrismaClient, TemplateStatus, type ChecklistItemType } from "../generated/prisma-client";
+import {
+  PrismaClient,
+  TemplateStatus,
+  type ChecklistItemType,
+} from "../generated/prisma-client";
 import {
   CHECKLIST_TEMPLATE_SEEDS,
   DEPARTMENT_SEEDS,
@@ -95,7 +99,9 @@ async function seedOrganization() {
       update: shift,
     });
   }
-  console.log(`Seeded ${DEPARTMENT_SEEDS.length} departments and ${SHIFT_SEEDS.length} shifts`);
+  console.log(
+    `Seeded ${DEPARTMENT_SEEDS.length} departments and ${SHIFT_SEEDS.length} shifts`,
+  );
 }
 
 async function seedChecklistTemplate(template: ChecklistTemplateSeed) {
@@ -139,12 +145,14 @@ async function seedChecklistTemplate(template: ChecklistTemplateSeed) {
               label: item.label,
               helpText: item.helpText,
               sortOrder: itemIndex,
-              itemType: (item.itemType ?? "ACCEPTABLE_UNACCEPTABLE_NA") as ChecklistItemType,
+              itemType: (item.itemType ??
+                "ACCEPTABLE_UNACCEPTABLE_NA") as ChecklistItemType,
               allowNotApplicable: item.allowNotApplicable ?? false,
               requiresEvidenceOnFail: item.requiresEvidenceOnFail ?? false,
               isCriticalFailure: item.isCriticalFailure ?? false,
               remarkRequiredOnFail: item.remarkRequiredOnFail ?? false,
-              correctiveActionRequiredOnFail: item.correctiveActionRequiredOnFail ?? false,
+              correctiveActionRequiredOnFail:
+                item.correctiveActionRequiredOnFail ?? false,
               minValue: item.minValue,
               maxValue: item.maxValue,
             })),
@@ -178,7 +186,9 @@ async function seedFleet() {
   }
 
   for (const vehicle of VEHICLE_SEEDS) {
-    const transporter = await prisma.transporter.findUnique({ where: { name: vehicle.transporterName } });
+    const transporter = await prisma.transporter.findUnique({
+      where: { name: vehicle.transporterName },
+    });
     await prisma.vehicle.upsert({
       where: { vehicleNumber: vehicle.vehicleNumber },
       create: {
@@ -194,7 +204,9 @@ async function seedFleet() {
   }
 
   for (const driver of DRIVER_SEEDS) {
-    const transporter = await prisma.transporter.findUnique({ where: { name: driver.transporterName } });
+    const transporter = await prisma.transporter.findUnique({
+      where: { name: driver.transporterName },
+    });
     await prisma.driver.upsert({
       where: { licenseNumber: driver.licenseNumber },
       create: {
@@ -263,10 +275,14 @@ async function seedSampleUsers() {
  */
 async function seedTaskAssignments() {
   const users = resolveAllSeedUsers(process.env);
-  const operatorCodes = users.filter((user) => user.role === "FG_OPERATOR").map((user) => user.employeeCode);
+  const operatorCodes = users
+    .filter((user) => user.role === "FG_OPERATOR")
+    .map((user) => user.employeeCode);
 
   if (operatorCodes.length === 0) {
-    console.log("No seeded FG Operator accounts — skipping Today's Tasks sample assignments");
+    console.log(
+      "No seeded FG Operator accounts — skipping Today's Tasks sample assignments",
+    );
     return;
   }
 
@@ -278,7 +294,9 @@ async function seedTaskAssignments() {
     if (!operator) continue;
 
     for (const assignment of assignmentSeeds) {
-      const shift = await prisma.shift.findUnique({ where: { code: assignment.shiftCode } });
+      const shift = await prisma.shift.findUnique({
+        where: { code: assignment.shiftCode },
+      });
 
       await prisma.taskAssignment.upsert({
         where: {
@@ -305,7 +323,9 @@ async function seedTaskAssignments() {
     }
   }
 
-  console.log(`Seeded ${created} Today's Tasks assignment(s) for ${operatorCodes.length} operator(s)`);
+  console.log(
+    `Seeded ${created} Today's Tasks assignment(s) for ${operatorCodes.length} operator(s)`,
+  );
 }
 
 async function main() {

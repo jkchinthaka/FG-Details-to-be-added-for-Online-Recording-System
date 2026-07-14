@@ -16,7 +16,11 @@ import type {
   UpdateTemperatureProfileDto,
   UpsertLoadingDecisionPolicyDto,
 } from "./dto/master-data.dto";
-import { MasterDataCodeConflictException, MasterDataNotFoundException, PRISMA_UNIQUE_CONSTRAINT_CODE } from "./master-data.errors";
+import {
+  MasterDataCodeConflictException,
+  MasterDataNotFoundException,
+  PRISMA_UNIQUE_CONSTRAINT_CODE,
+} from "./master-data.errors";
 
 const PRIORITY_LABELS: Record<string, string> = {
   LOW: "Low",
@@ -47,12 +51,20 @@ export class MasterDataService {
   }
 
   async updateDepartment(id: string, dto: UpdateDepartmentDto) {
-    await this.assertExists("Department", () => this.prisma.department.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "Department",
+      () => this.prisma.department.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.department.update({ where: { id }, data: dto });
   }
 
   async setDepartmentActive(id: string, isActive: boolean) {
-    await this.assertExists("Department", () => this.prisma.department.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "Department",
+      () => this.prisma.department.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.department.update({ where: { id }, data: { isActive } });
   }
 
@@ -62,7 +74,10 @@ export class MasterDataService {
 
   listSections(departmentId?: string, activeOnly?: boolean) {
     return this.prisma.section.findMany({
-      where: { ...(departmentId ? { departmentId } : {}), ...(activeOnly ? { isActive: true } : {}) },
+      where: {
+        ...(departmentId ? { departmentId } : {}),
+        ...(activeOnly ? { isActive: true } : {}),
+      },
       orderBy: { name: "asc" },
     });
   }
@@ -74,12 +89,20 @@ export class MasterDataService {
   }
 
   async updateSection(id: string, dto: UpdateSectionDto) {
-    await this.assertExists("Section", () => this.prisma.section.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "Section",
+      () => this.prisma.section.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.section.update({ where: { id }, data: dto });
   }
 
   async setSectionActive(id: string, isActive: boolean) {
-    await this.assertExists("Section", () => this.prisma.section.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "Section",
+      () => this.prisma.section.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.section.update({ where: { id }, data: { isActive } });
   }
 
@@ -95,16 +118,26 @@ export class MasterDataService {
   }
 
   createShift(dto: CreateShiftDto) {
-    return this.withUniqueConflict("Shift", dto.code, () => this.prisma.shift.create({ data: dto }));
+    return this.withUniqueConflict("Shift", dto.code, () =>
+      this.prisma.shift.create({ data: dto }),
+    );
   }
 
   async updateShift(id: string, dto: UpdateShiftDto) {
-    await this.assertExists("Shift", () => this.prisma.shift.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "Shift",
+      () => this.prisma.shift.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.shift.update({ where: { id }, data: dto });
   }
 
   async setShiftActive(id: string, isActive: boolean) {
-    await this.assertExists("Shift", () => this.prisma.shift.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "Shift",
+      () => this.prisma.shift.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.shift.update({ where: { id }, data: { isActive } });
   }
 
@@ -126,12 +159,20 @@ export class MasterDataService {
   }
 
   async updateFailureReason(id: string, dto: UpdateFailureReasonDto) {
-    await this.assertExists("FailureReason", () => this.prisma.failureReason.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "FailureReason",
+      () => this.prisma.failureReason.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.failureReason.update({ where: { id }, data: dto });
   }
 
   async setFailureReasonActive(id: string, isActive: boolean) {
-    await this.assertExists("FailureReason", () => this.prisma.failureReason.findUnique({ where: { id } }), id);
+    await this.assertExists(
+      "FailureReason",
+      () => this.prisma.failureReason.findUnique({ where: { id } }),
+      id,
+    );
     return this.prisma.failureReason.update({ where: { id }, data: { isActive } });
   }
 
@@ -152,7 +193,10 @@ export class MasterDataService {
     );
   }
 
-  async updateCorrectiveActionCategory(id: string, dto: UpdateCorrectiveActionCategoryDto) {
+  async updateCorrectiveActionCategory(
+    id: string,
+    dto: UpdateCorrectiveActionCategoryDto,
+  ) {
     await this.assertExists(
       "CorrectiveActionCategory",
       () => this.prisma.correctiveActionCategory.findUnique({ where: { id } }),
@@ -167,7 +211,10 @@ export class MasterDataService {
       () => this.prisma.correctiveActionCategory.findUnique({ where: { id } }),
       id,
     );
-    return this.prisma.correctiveActionCategory.update({ where: { id }, data: { isActive } });
+    return this.prisma.correctiveActionCategory.update({
+      where: { id },
+      data: { isActive },
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -210,7 +257,10 @@ export class MasterDataService {
   // -------------------------------------------------------------------------
 
   listPriorities(): Array<{ value: string; label: string }> {
-    return Object.values(Priority).map((value) => ({ value, label: PRIORITY_LABELS[value] ?? value }));
+    return Object.values(Priority).map((value) => ({
+      value,
+      label: PRIORITY_LABELS[value] ?? value,
+    }));
   }
 
   // -------------------------------------------------------------------------
@@ -257,11 +307,18 @@ export class MasterDataService {
     if (!record) throw new MasterDataNotFoundException(entityLabel, id);
   }
 
-  private async withUniqueConflict<T>(entityLabel: string, code: string, run: () => Promise<T>): Promise<T> {
+  private async withUniqueConflict<T>(
+    entityLabel: string,
+    code: string,
+    run: () => Promise<T>,
+  ): Promise<T> {
     try {
       return await run();
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_UNIQUE_CONSTRAINT_CODE) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_UNIQUE_CONSTRAINT_CODE
+      ) {
         throw new MasterDataCodeConflictException(entityLabel, code);
       }
       throw error;

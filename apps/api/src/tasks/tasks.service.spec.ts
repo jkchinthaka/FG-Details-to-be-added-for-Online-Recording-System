@@ -5,7 +5,10 @@ import type { RequestUser } from "../auth/auth.types";
 function buildPrismaMock() {
   return {
     taskAssignment: { findMany: jest.fn().mockResolvedValue([]) },
-    inspectionRecord: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+    inspectionRecord: {
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+    },
     correctiveAction: { count: jest.fn().mockResolvedValue(0) },
   };
 }
@@ -112,7 +115,10 @@ describe("TasksService", () => {
 
       expect(prismaMock.taskAssignment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { assignedToId: "user-42", dueDate: new Date("2026-07-14T00:00:00.000Z") },
+          where: {
+            assignedToId: "user-42",
+            dueDate: new Date("2026-07-14T00:00:00.000Z"),
+          },
         }),
       );
     });
@@ -130,7 +136,9 @@ describe("TasksService", () => {
   describe("degrading gracefully when Postgres is unreachable", () => {
     it("never throws, and returns an empty (zeroed) dashboard when every query rejects", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.taskAssignment.findMany.mockRejectedValue(new Error("connect ECONNREFUSED"));
+      prismaMock.taskAssignment.findMany.mockRejectedValue(
+        new Error("connect ECONNREFUSED"),
+      );
       const service = buildService(prismaMock);
 
       const result = await service.getTodaysTasks(buildUser());
@@ -147,13 +155,17 @@ describe("TasksService", () => {
 
     it("still returns the widgets from roles whose queries succeeded when another role's query fails", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.taskAssignment.findMany.mockRejectedValue(new Error("connect ECONNREFUSED"));
+      prismaMock.taskAssignment.findMany.mockRejectedValue(
+        new Error("connect ECONNREFUSED"),
+      );
       prismaMock.inspectionRecord.findMany.mockResolvedValue([
         { id: "rec-1", documentCode: "NMS/PPU/CL/24", areaLabel: "Finished Goods" },
       ]);
       const service = buildService(prismaMock);
 
-      const result = await service.getTodaysTasks(buildUser({ roles: ["FG_SUPERVISOR"] }));
+      const result = await service.getTodaysTasks(
+        buildUser({ roles: ["FG_SUPERVISOR"] }),
+      );
 
       expect(result.tasks).toHaveLength(1);
       expect(result.tasks[0]?.bucket).toBe("pending");
@@ -168,7 +180,9 @@ describe("TasksService", () => {
       ]);
       const service = buildService(prismaMock);
 
-      const result = await service.getTodaysTasks(buildUser({ roles: ["FG_SUPERVISOR"] }));
+      const result = await service.getTodaysTasks(
+        buildUser({ roles: ["FG_SUPERVISOR"] }),
+      );
 
       expect(result.tasks[0]).toMatchObject({
         title: "Inspection of Freezer Truck Before Loading",
@@ -183,14 +197,20 @@ describe("TasksService", () => {
     it("surfaces both a pending verification and a quality exception card", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.inspectionRecord.findMany
-        .mockResolvedValueOnce([{ id: "rec-checked", documentCode: "NMS/PPU/CL/24", areaLabel: "FG" }])
-        .mockResolvedValueOnce([{ id: "rec-rejected", documentCode: "NMS/PPU/CL/30", areaLabel: "Dispatch" }]);
+        .mockResolvedValueOnce([
+          { id: "rec-checked", documentCode: "NMS/PPU/CL/24", areaLabel: "FG" },
+        ])
+        .mockResolvedValueOnce([
+          { id: "rec-rejected", documentCode: "NMS/PPU/CL/30", areaLabel: "Dispatch" },
+        ]);
       const service = buildService(prismaMock);
 
       const result = await service.getTodaysTasks(buildUser({ roles: ["QA_EXECUTIVE"] }));
 
       expect(result.tasks).toHaveLength(2);
-      expect(result.tasks.find((t) => t.id === "record-rec-checked")).toMatchObject({ bucket: "pending" });
+      expect(result.tasks.find((t) => t.id === "record-rec-checked")).toMatchObject({
+        bucket: "pending",
+      });
       expect(result.tasks.find((t) => t.id === "record-rec-rejected")).toMatchObject({
         bucket: "attention",
         href: "/corrective-actions",
@@ -206,11 +226,23 @@ describe("TasksService", () => {
       prismaMock.correctiveAction.count.mockResolvedValue(3);
       const service = buildService(prismaMock);
 
-      const result = await service.getTodaysTasks(buildUser({ roles: ["FOOD_SAFETY_TEAM_LEADER"] }));
+      const result = await service.getTodaysTasks(
+        buildUser({ roles: ["FOOD_SAFETY_TEAM_LEADER"] }),
+      );
 
       expect(result.complianceIndicators).toEqual([
-        { id: "verified-today", label: "Verified today", value: "2/4", tone: "information" },
-        { id: "open-corrective-actions", label: "Open corrective actions", value: "3", tone: "warning" },
+        {
+          id: "verified-today",
+          label: "Verified today",
+          value: "2/4",
+          tone: "information",
+        },
+        {
+          id: "open-corrective-actions",
+          label: "Open corrective actions",
+          value: "3",
+          tone: "warning",
+        },
       ]);
     });
   });
@@ -220,11 +252,15 @@ describe("TasksService", () => {
       const prismaMock = buildPrismaMock();
       const service = buildService(prismaMock);
 
-      const result = await service.getTodaysTasks(buildUser({ roles: ["SYSTEM_ADMINISTRATOR"] }));
+      const result = await service.getTodaysTasks(
+        buildUser({ roles: ["SYSTEM_ADMINISTRATOR"] }),
+      );
 
       expect(result.tasks).toEqual([]);
       expect(result.adminShortcuts.length).toBeGreaterThan(0);
-      expect(result.adminShortcuts.map((s) => s.href)).toContain("/admin/templates/preview");
+      expect(result.adminShortcuts.map((s) => s.href)).toContain(
+        "/admin/templates/preview",
+      );
     });
   });
 
@@ -232,11 +268,20 @@ describe("TasksService", () => {
     it("unions widgets for every role the user holds", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.taskAssignment.findMany.mockResolvedValue([
-        { id: "assign-1", templateCode: "NMS/PPU/CL/24", areaLabel: "FG", status: "ASSIGNED", recordId: null, shift: null },
+        {
+          id: "assign-1",
+          templateCode: "NMS/PPU/CL/24",
+          areaLabel: "FG",
+          status: "ASSIGNED",
+          recordId: null,
+          shift: null,
+        },
       ]);
       const service = buildService(prismaMock);
 
-      const result = await service.getTodaysTasks(buildUser({ roles: ["FG_OPERATOR", "SYSTEM_ADMINISTRATOR"] }));
+      const result = await service.getTodaysTasks(
+        buildUser({ roles: ["FG_OPERATOR", "SYSTEM_ADMINISTRATOR"] }),
+      );
 
       expect(result.tasks).toHaveLength(1);
       expect(result.adminShortcuts.length).toBeGreaterThan(0);

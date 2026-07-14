@@ -48,7 +48,9 @@ export const reportFiltersSchema = z
   .object({
     fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    documentCode: z.enum([DOCUMENT_CODES.DAILY_CLEANING, DOCUMENT_CODES.FREEZER_TRUCK]).optional(),
+    documentCode: z
+      .enum([DOCUMENT_CODES.DAILY_CLEANING, DOCUMENT_CODES.FREEZER_TRUCK])
+      .optional(),
     sectionId: z.string().min(1).optional(),
     shiftCode: z.enum(WORK_SHIFTS).optional(),
     status: z.enum(RECORD_STATUSES).optional(),
@@ -62,7 +64,10 @@ export const reportFiltersSchema = z
   })
   .superRefine((value, ctx) => {
     if (value.fromDate > value.toDate) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "fromDate must be on or before toDate" });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "fromDate must be on or before toDate",
+      });
     }
     const from = Date.parse(`${value.fromDate}T00:00:00.000Z`);
     const to = Date.parse(`${value.toDate}T00:00:00.000Z`);

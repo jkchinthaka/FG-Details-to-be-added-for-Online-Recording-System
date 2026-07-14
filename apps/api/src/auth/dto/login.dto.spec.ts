@@ -9,7 +9,10 @@ async function validateLogin(payload: Record<string, unknown>) {
 
 describe("LoginDto validation", () => {
   it("accepts a well-formed email and non-empty password", async () => {
-    const errors = await validateLogin({ email: "operator@example.local", password: "s3cret!" });
+    const errors = await validateLogin({
+      email: "operator@example.local",
+      password: "s3cret!",
+    });
     expect(errors).toHaveLength(0);
   });
 

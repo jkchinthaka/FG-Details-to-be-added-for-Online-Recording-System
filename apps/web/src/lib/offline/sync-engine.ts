@@ -3,7 +3,11 @@ import {
   type OfflineConflictReason,
   type SubmitInspectionRecordInput,
 } from "@nelna/shared";
-import { submitInspectionRecord, InspectionRecordApiError, fetchInspectionRecord } from "@/lib/inspection-records/api";
+import {
+  submitInspectionRecord,
+  InspectionRecordApiError,
+  fetchInspectionRecord,
+} from "@/lib/inspection-records/api";
 import {
   clearSyncedOfflineItems,
   getOfflineQueueItem,
@@ -13,11 +17,21 @@ import {
   type OfflineQueueItem,
 } from "./queue-store";
 
-function classifyConflict(status: number, message: string, serverStatus?: string): OfflineConflictReason | null {
+function classifyConflict(
+  status: number,
+  message: string,
+  serverStatus?: string,
+): OfflineConflictReason | null {
   const lower = message.toLowerCase();
-  if (serverStatus === "CHECKED" || serverStatus === "PENDING_VERIFICATION") return "RECORD_ALREADY_CHECKED";
-  if (serverStatus === "VERIFIED" || serverStatus === "COMPLETED") return "RECORD_ALREADY_VERIFIED";
-  if (serverStatus && serverStatus !== "DRAFT" && serverStatus !== "RETURNED_FOR_CORRECTION") {
+  if (serverStatus === "CHECKED" || serverStatus === "PENDING_VERIFICATION")
+    return "RECORD_ALREADY_CHECKED";
+  if (serverStatus === "VERIFIED" || serverStatus === "COMPLETED")
+    return "RECORD_ALREADY_VERIFIED";
+  if (
+    serverStatus &&
+    serverStatus !== "DRAFT" &&
+    serverStatus !== "RETURNED_FOR_CORRECTION"
+  ) {
     return "SERVER_RECORD_ALREADY_SUBMITTED";
   }
   if (lower.includes("template")) return "TEMPLATE_VERSION_CHANGED";
@@ -46,7 +60,10 @@ async function syncOne(item: OfflineQueueItem): Promise<void> {
         return;
       }
     }
-    if (item.templateVersionNumber != null && server.header.templateVersionNumber !== item.templateVersionNumber) {
+    if (
+      item.templateVersionNumber != null &&
+      server.header.templateVersionNumber !== item.templateVersionNumber
+    ) {
       await updateOfflineQueueItem(item.id, {
         state: "CONFLICT_REQUIRES_REVIEW",
         conflictReason: "TEMPLATE_VERSION_CHANGED",
@@ -57,7 +74,9 @@ async function syncOne(item: OfflineQueueItem): Promise<void> {
     if (!server.editable) {
       await updateOfflineQueueItem(item.id, {
         state: "CONFLICT_REQUIRES_REVIEW",
-        conflictReason: classifyConflict(409, "not editable", server.header.status) ?? "SERVER_RECORD_ALREADY_SUBMITTED",
+        conflictReason:
+          classifyConflict(409, "not editable", server.header.status) ??
+          "SERVER_RECORD_ALREADY_SUBMITTED",
         lastError: `Record status is ${server.header.status}`,
       });
       return;
@@ -67,13 +86,22 @@ async function syncOne(item: OfflineQueueItem): Promise<void> {
       // CA draft sync is retained locally until a dedicated CA submit API exists.
       await updateOfflineQueueItem(item.id, {
         state: "SAVED_ON_DEVICE",
-        lastError: "Corrective-action online submit API not available; draft kept on device.",
+        lastError:
+          "Corrective-action online submit API not available; draft kept on device.",
       });
       return;
     }
 
-    await submitInspectionRecord(item.recordId, item.payload as SubmitInspectionRecordInput, item.idempotencyKey);
-    await updateOfflineQueueItem(item.id, { state: "SYNCED", conflictReason: null, lastError: null });
+    await submitInspectionRecord(
+      item.recordId,
+      item.payload as SubmitInspectionRecordInput,
+      item.idempotencyKey,
+    );
+    await updateOfflineQueueItem(item.id, {
+      state: "SYNCED",
+      conflictReason: null,
+      lastError: null,
+    });
   } catch (error) {
     const status = error instanceof InspectionRecordApiError ? error.status : 0;
     const message = error instanceof Error ? error.message : "Sync failed";
@@ -81,7 +109,10 @@ async function syncOne(item: OfflineQueueItem): Promise<void> {
     if (status === 409 || /locked|already|submitted/i.test(message)) {
       try {
         const server = await fetchInspectionRecord(item.recordId);
-        if (server.header.status !== "DRAFT" && server.header.status !== "RETURNED_FOR_CORRECTION") {
+        if (
+          server.header.status !== "DRAFT" &&
+          server.header.status !== "RETURNED_FOR_CORRECTION"
+        ) {
           await updateOfflineQueueItem(item.id, {
             state: "SYNCED",
             conflictReason: null,
@@ -114,7 +145,9 @@ async function syncOne(item: OfflineQueueItem): Promise<void> {
 }
 
 /** Processes waiting / due failed items. Never reports success unless SYNCED. */
-export async function processOfflineQueue(options?: { force?: boolean }): Promise<{ processed: number; synced: number }> {
+export async function processOfflineQueue(options?: {
+  force?: boolean;
+}): Promise<{ processed: number; synced: number }> {
   if (typeof indexedDB === "undefined") {
     return { processed: 0, synced: 0 };
   }
@@ -126,9 +159,19 @@ export async function processOfflineQueue(options?: { force?: boolean }): Promis
   let processed = 0;
   let synced = 0;
   for (const item of items) {
-    if (item.state === "SYNCED" || item.state === "CONFLICT_REQUIRES_REVIEW" || item.state === "SYNCING") continue;
+    if (
+      item.state === "SYNCED" ||
+      item.state === "CONFLICT_REQUIRES_REVIEW" ||
+      item.state === "SYNCING"
+    )
+      continue;
     if (item.state === "SAVED_ON_DEVICE") continue;
-    if (item.state === "SYNC_FAILED" && item.nextRetryAt && new Date(item.nextRetryAt).getTime() > now && !options?.force) {
+    if (
+      item.state === "SYNC_FAILED" &&
+      item.nextRetryAt &&
+      new Date(item.nextRetryAt).getTime() > now &&
+      !options?.force
+    ) {
       continue;
     }
     if (item.state !== "WAITING_TO_SYNC" && item.state !== "SYNC_FAILED") continue;
@@ -143,6 +186,10 @@ export async function processOfflineQueue(options?: { force?: boolean }): Promis
 }
 
 export async function retryOfflineItem(id: string): Promise<void> {
-  await updateOfflineQueueItem(id, { state: "WAITING_TO_SYNC", nextRetryAt: null, lastError: null });
+  await updateOfflineQueueItem(id, {
+    state: "WAITING_TO_SYNC",
+    nextRetryAt: null,
+    lastError: null,
+  });
   await processOfflineQueue({ force: true });
 }

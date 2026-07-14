@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
 import {
   DOCUMENT_CODES,
   OFFICIAL_RECORD_APPROVAL_DISCLAIMER,
@@ -33,10 +38,17 @@ export class ReportsService {
 
   listKinds(user: RequestUser): Array<{ kind: ReportKind; title: string }> {
     this.assertCanReadReports(user);
-    return this.allowedKinds(user).map((kind) => ({ kind, title: REPORT_KIND_LABELS[kind] }));
+    return this.allowedKinds(user).map((kind) => ({
+      kind,
+      title: REPORT_KIND_LABELS[kind],
+    }));
   }
 
-  async runReport(user: RequestUser, kind: string, rawFilters: unknown): Promise<ReportResult> {
+  async runReport(
+    user: RequestUser,
+    kind: string,
+    rawFilters: unknown,
+  ): Promise<ReportResult> {
     this.assertCanReadReports(user);
     if (!(REPORT_KINDS as readonly string[]).includes(kind)) {
       throw new BadRequestException(`Unknown report kind: ${kind}`);
@@ -50,7 +62,11 @@ export class ReportsService {
       throw new BadRequestException(parsed.error.issues.map((i) => i.message).join("; "));
     }
     const filters = this.applyRoleScope(user, parsed.data);
-    const { rows, totalRows, columns } = await this.computeReport(reportKind, filters, user);
+    const { rows, totalRows, columns } = await this.computeReport(
+      reportKind,
+      filters,
+      user,
+    );
     const page = filters.page;
     const pageSize = filters.pageSize;
     const start = (page - 1) * pageSize;
@@ -69,7 +85,11 @@ export class ReportsService {
     };
   }
 
-  async exportCsv(user: RequestUser, kind: string, rawFilters: unknown): Promise<{ filename: string; body: string }> {
+  async exportCsv(
+    user: RequestUser,
+    kind: string,
+    rawFilters: unknown,
+  ): Promise<{ filename: string; body: string }> {
     const report = await this.runReport(user, kind, {
       ...(typeof rawFilters === "object" && rawFilters ? rawFilters : {}),
       page: 1,
@@ -98,7 +118,10 @@ export class ReportsService {
     };
   }
 
-  async buildRecordPdf(user: RequestUser, recordId: string): Promise<{ filename: string; buffer: Buffer }> {
+  async buildRecordPdf(
+    user: RequestUser,
+    recordId: string,
+  ): Promise<{ filename: string; buffer: Buffer }> {
     const record = await this.prisma.inspectionRecord.findUnique({
       where: { id: recordId },
       include: {
@@ -179,7 +202,10 @@ export class ReportsService {
 
   private allowedKinds(user: RequestUser): ReportKind[] {
     let kinds = reportKindsForRoles(user.roles);
-    if (kinds.length === 0 && (hasPermission(user, "reports:read") || hasPermission(user, "records:check"))) {
+    if (
+      kinds.length === 0 &&
+      (hasPermission(user, "reports:read") || hasPermission(user, "records:check"))
+    ) {
       kinds = [...REPORT_KINDS];
     }
     if (!hasPermission(user, "audit:read")) {
@@ -275,7 +301,15 @@ export class ReportsService {
           orderBy: { createdAt: "desc" },
           take: 5000,
         });
-        const columns = ["recordDate", "documentCode", "itemId", "itemLabel", "status", "issueReason", "recordId"];
+        const columns = [
+          "recordDate",
+          "documentCode",
+          "itemId",
+          "itemLabel",
+          "status",
+          "issueReason",
+          "recordId",
+        ];
         const rows = results.map((r) => ({
           recordDate: r.record.recordDate.toISOString().slice(0, 10),
           documentCode: r.record.documentCode,
@@ -288,26 +322,31 @@ export class ReportsService {
         return { columns, rows, totalRows: rows.length };
       }
       case "pending_checks": {
-        return this.listStatusRows({ ...where, status: { in: ["PENDING_CHECK", "SUBMITTED", "RESUBMITTED"] } }, [
-          "PENDING_CHECK",
-          "SUBMITTED",
-          "RESUBMITTED",
-        ]);
+        return this.listStatusRows({
+          ...where,
+          status: { in: ["PENDING_CHECK", "SUBMITTED", "RESUBMITTED"] },
+        });
       }
       case "pending_verifications": {
-        return this.listStatusRows({ ...where, status: { in: ["PENDING_VERIFICATION", "CHECKED"] } }, [
-          "PENDING_VERIFICATION",
-          "CHECKED",
-        ]);
+        return this.listStatusRows({
+          ...where,
+          status: { in: ["PENDING_VERIFICATION", "CHECKED"] },
+        });
       }
       case "cleaning_compliance": {
-        return this.complianceRows({ ...where, documentCode: DOCUMENT_CODES.DAILY_CLEANING });
+        return this.complianceRows({
+          ...where,
+          documentCode: DOCUMENT_CODES.DAILY_CLEANING,
+        });
       }
       case "finished_goods_section_compliance": {
         return this.complianceRows({
           ...where,
           documentCode: DOCUMENT_CODES.DAILY_CLEANING,
-          OR: [{ areaLabel: { contains: "Finished", mode: "insensitive" } }, { areaLabel: { contains: "FG", mode: "insensitive" } }],
+          OR: [
+            { areaLabel: { contains: "Finished", mode: "insensitive" } },
+            { areaLabel: { contains: "FG", mode: "insensitive" } },
+          ],
         });
       }
       case "changing_room_compliance": {
@@ -318,7 +357,10 @@ export class ReportsService {
         });
       }
       case "truck_inspections": {
-        return this.listStatusRows({ ...where, documentCode: DOCUMENT_CODES.FREEZER_TRUCK }, undefined);
+        return this.listStatusRows({
+          ...where,
+          documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+        });
       }
       case "truck_pass_fail_trend": {
         const trucks = await this.prisma.truckInspectionDetail.groupBy({
@@ -327,7 +369,10 @@ export class ReportsService {
           _count: { _all: true },
         });
         const columns = ["loadingDecision", "count"];
-        const rows = trucks.map((t) => ({ loadingDecision: t.loadingDecision, count: t._count._all }));
+        const rows = trucks.map((t) => ({
+          loadingDecision: t.loadingDecision,
+          count: t._count._all,
+        }));
         return { columns, rows, totalRows: rows.length };
       }
       case "blocked_trucks": {
@@ -342,7 +387,14 @@ export class ReportsService {
           orderBy: { record: { recordDate: "desc" } },
           take: 5000,
         });
-        const columns = ["recordDate", "freezerTruckNumber", "vehicleNumber", "loadingDecision", "status", "recordId"];
+        const columns = [
+          "recordDate",
+          "freezerTruckNumber",
+          "vehicleNumber",
+          "loadingDecision",
+          "status",
+          "recordId",
+        ];
         const rows = blocked.map((b) => ({
           recordDate: b.record.recordDate.toISOString().slice(0, 10),
           freezerTruckNumber: b.freezerTruckNumber,
@@ -366,7 +418,10 @@ export class ReportsService {
           take: 100,
         });
         const columns = ["issueReason", "count"];
-        const rows = failed.map((f) => ({ issueReason: f.issueReason, count: f._count._all }));
+        const rows = failed.map((f) => ({
+          issueReason: f.issueReason,
+          count: f._count._all,
+        }));
         return { columns, rows, totalRows: rows.length };
       }
       case "corrective_action_status": {
@@ -374,13 +429,19 @@ export class ReportsService {
           by: ["status", "priority"],
           where: {
             ...(filters.priority ? { priority: filters.priority } : {}),
-            ...(filters.correctiveActionOwnerId ? { assignedToId: filters.correctiveActionOwnerId } : {}),
+            ...(filters.correctiveActionOwnerId
+              ? { assignedToId: filters.correctiveActionOwnerId }
+              : {}),
             record: where,
           },
           _count: { _all: true },
         });
         const columns = ["status", "priority", "count"];
-        const rows = grouped.map((g) => ({ status: g.status, priority: g.priority, count: g._count._all }));
+        const rows = grouped.map((g) => ({
+          status: g.status,
+          priority: g.priority,
+          count: g._count._all,
+        }));
         return { columns, rows, totalRows: rows.length };
       }
       case "overdue_corrective_actions": {
@@ -389,7 +450,9 @@ export class ReportsService {
           where: {
             dueDate: { lt: now },
             status: { in: ["OPEN", "IN_PROGRESS"] },
-            ...(filters.correctiveActionOwnerId ? { assignedToId: filters.correctiveActionOwnerId } : {}),
+            ...(filters.correctiveActionOwnerId
+              ? { assignedToId: filters.correctiveActionOwnerId }
+              : {}),
             ...(filters.priority ? { priority: filters.priority } : {}),
             record: where,
           },
@@ -405,7 +468,16 @@ export class ReportsService {
           orderBy: { dueDate: "asc" },
           take: 5000,
         });
-        const columns = ["dueDate", "title", "status", "priority", "assignee", "documentCode", "recordId", "caId"];
+        const columns = [
+          "dueDate",
+          "title",
+          "status",
+          "priority",
+          "assignee",
+          "documentCode",
+          "recordId",
+          "caId",
+        ];
         const rows = overdue.map((o) => ({
           dueDate: o.dueDate?.toISOString().slice(0, 10) ?? null,
           title: o.title,
@@ -445,7 +517,9 @@ export class ReportsService {
           where,
           _count: { _all: true },
         });
-        const sectionIds = grouped.map((g) => g.sectionId).filter((id): id is string => Boolean(id));
+        const sectionIds = grouped
+          .map((g) => g.sectionId)
+          .filter((id): id is string => Boolean(id));
         const sections = await this.prisma.section.findMany({
           where: { id: { in: sectionIds } },
           select: { id: true, name: true, code: true },
@@ -453,8 +527,10 @@ export class ReportsService {
         const byId = new Map(sections.map((s) => [s.id, s]));
         const columns = ["sectionCode", "sectionName", "status", "count"];
         const rows = grouped.map((g) => ({
-          sectionCode: g.sectionId ? byId.get(g.sectionId)?.code ?? g.sectionId : null,
-          sectionName: g.sectionId ? byId.get(g.sectionId)?.name ?? null : "(unassigned)",
+          sectionCode: g.sectionId ? (byId.get(g.sectionId)?.code ?? g.sectionId) : null,
+          sectionName: g.sectionId
+            ? (byId.get(g.sectionId)?.name ?? null)
+            : "(unassigned)",
           status: g.status,
           count: g._count._all,
         }));
@@ -462,7 +538,9 @@ export class ReportsService {
       }
       case "audit_activity_summary": {
         if (!hasPermission(user, "audit:read") && !hasPermission(user, "reports:read")) {
-          throw new ForbiddenException("Audit activity summary requires audit or reports access");
+          throw new ForbiddenException(
+            "Audit activity summary requires audit or reports access",
+          );
         }
         const from = new Date(`${filters.fromDate}T00:00:00.000Z`);
         const to = new Date(`${filters.toDate}T23:59:59.999Z`);
@@ -484,7 +562,6 @@ export class ReportsService {
 
   private async listStatusRows(
     where: Prisma.InspectionRecordWhereInput,
-    _statuses: string[] | undefined,
   ): Promise<{ rows: ReportRow[]; totalRows: number; columns: string[] }> {
     const records = await this.prisma.inspectionRecord.findMany({
       where,
@@ -499,7 +576,15 @@ export class ReportsService {
       orderBy: { recordDate: "desc" },
       take: 5000,
     });
-    const columns = ["recordDate", "documentCode", "status", "areaLabel", "employeeCode", "fullName", "recordId"];
+    const columns = [
+      "recordDate",
+      "documentCode",
+      "status",
+      "areaLabel",
+      "employeeCode",
+      "fullName",
+      "recordId",
+    ];
     const rows = records.map((r) => ({
       recordDate: r.recordDate.toISOString().slice(0, 10),
       documentCode: r.documentCode,
@@ -524,13 +609,20 @@ export class ReportsService {
     const verified = grouped
       .filter((g) => g.status === "VERIFIED" || g.status === "COMPLETED")
       .reduce((sum, g) => sum + g._count._all, 0);
-    const columns = ["status", "count", "total", "verifiedOrCompleted", "complianceRatePercent"];
+    const columns = [
+      "status",
+      "count",
+      "total",
+      "verifiedOrCompleted",
+      "complianceRatePercent",
+    ];
     const rows: ReportRow[] = grouped.map((g) => ({
       status: g.status,
       count: g._count._all,
       total,
       verifiedOrCompleted: verified,
-      complianceRatePercent: total === 0 ? null : Math.round((verified / total) * 1000) / 10,
+      complianceRatePercent:
+        total === 0 ? null : Math.round((verified / total) * 1000) / 10,
     }));
     if (rows.length === 0) {
       rows.push({

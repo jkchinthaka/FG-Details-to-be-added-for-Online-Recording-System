@@ -7,9 +7,7 @@ describe("detectCurrentShift", () => {
   });
 
   it("returns afternoon between 14:00 and 22:00", () => {
-    expect(detectCurrentShift(new Date("2026-07-13T16:00:00"))).toBe(
-      "AFTERNOON",
-    );
+    expect(detectCurrentShift(new Date("2026-07-13T16:00:00"))).toBe("AFTERNOON");
   });
 
   it("returns night from 22:00", () => {

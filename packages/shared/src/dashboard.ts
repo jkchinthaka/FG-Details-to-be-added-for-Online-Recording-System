@@ -103,7 +103,8 @@ export function computeDashboardSummary(cards: TaskCard[]): DashboardSummary {
   const pending = cards.filter((card) => card.bucket === "pending").length;
   const attentionRequired = cards.filter((card) => card.bucket === "attention").length;
   const totalCount = cards.length;
-  const completionPercent = totalCount === 0 ? 0 : Math.round((completed / totalCount) * 100);
+  const completionPercent =
+    totalCount === 0 ? 0 : Math.round((completed / totalCount) * 100);
 
   return { completed, pending, attentionRequired, totalCount, completionPercent };
 }

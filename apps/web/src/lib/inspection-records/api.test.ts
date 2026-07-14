@@ -67,11 +67,16 @@ describe("inspection-records api client", () => {
   });
 
   it("throws an InspectionRecordApiError carrying validation errors on a 400 submit failure", async () => {
-    const validationErrors = [{ itemId: "item-1", code: "REQUIRED", message: '"Wall" requires a response' }];
+    const validationErrors = [
+      { itemId: "item-1", code: "REQUIRED", message: '"Wall" requires a response' },
+    ];
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({ message: "This record has validation errors and cannot be submitted", errors: validationErrors }),
+      json: async () => ({
+        message: "This record has validation errors and cannot be submitted",
+        errors: validationErrors,
+      }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -96,7 +101,9 @@ describe("inspection-records api client", () => {
       "fetch",
       vi.fn((_url: string, init: RequestInit) => {
         return new Promise((_resolve, reject) => {
-          init.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+          init.signal?.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
         });
       }),
     );

@@ -11,7 +11,9 @@ export class RecordsController {
   constructor(private readonly recordsService: RecordsService) {}
 
   @Get("recent")
-  @ApiOperation({ summary: "Compact list of the most recent records visible to the current user" })
+  @ApiOperation({
+    summary: "Compact list of the most recent records visible to the current user",
+  })
   getRecentRecords(
     @CurrentUser() user: RequestUser,
     @Query("limit") limit?: string,

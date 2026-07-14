@@ -28,14 +28,26 @@ describe("TaskCardsSection", () => {
 
   it("groups tasks under Needs attention, Pending and Completed headings, attention first", () => {
     const tasks = [
-      makeTask({ id: "a", title: "Completed one", bucket: "completed", status: "VERIFIED" }),
-      makeTask({ id: "b", title: "Attention one", bucket: "attention", status: "REJECTED" }),
+      makeTask({
+        id: "a",
+        title: "Completed one",
+        bucket: "completed",
+        status: "VERIFIED",
+      }),
+      makeTask({
+        id: "b",
+        title: "Attention one",
+        bucket: "attention",
+        status: "REJECTED",
+      }),
       makeTask({ id: "c", title: "Pending one", bucket: "pending", status: "ASSIGNED" }),
     ];
 
     render(<TaskCardsSection tasks={tasks} />);
 
-    const headings = screen.getAllByRole("heading", { level: 2 }).map((node) => node.textContent);
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((node) => node.textContent);
     expect(headings).toEqual(["Needs attention", "Pending", "Completed"]);
 
     expect(screen.getByText("Attention one")).toBeInTheDocument();
@@ -47,7 +59,9 @@ describe("TaskCardsSection", () => {
     render(<TaskCardsSection tasks={[makeTask({ id: "a", bucket: "pending" })]} />);
 
     expect(screen.getByRole("heading", { name: "Pending" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Needs attention" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Needs attention" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Completed" })).not.toBeInTheDocument();
   });
 });

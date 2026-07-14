@@ -8,7 +8,11 @@ import {
   type PermissionKey,
 } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
-import { Prisma, TemplateStatus, type ChecklistItemType } from "../../generated/prisma-client";
+import {
+  Prisma,
+  TemplateStatus,
+  type ChecklistItemType,
+} from "../../generated/prisma-client";
 import type { AddItemDto } from "./dto/add-item.dto";
 import type { AddSectionDto } from "./dto/add-section.dto";
 import type { CreateTemplateDto } from "./dto/create-template.dto";
@@ -26,7 +30,11 @@ import {
   VersionNotDraftException,
   VersionNotEditableException,
 } from "./checklist-templates.errors";
-import { VERSION_WITH_CONTENT_INCLUDE, mapVersionToDefinition, type VersionWithContent } from "./checklist-templates.mappers";
+import {
+  VERSION_WITH_CONTENT_INCLUDE,
+  mapVersionToDefinition,
+  type VersionWithContent,
+} from "./checklist-templates.mappers";
 
 const templateWithVersionsInclude = {
   currentVersion: true,
@@ -62,7 +70,9 @@ function toTemplateSummary(template: TemplateWithVersions): ChecklistTemplateSum
     title: template.title,
     description: template.description,
     isActive: template.isActive,
-    currentVersion: template.currentVersion ? toVersionSummary(template.currentVersion) : null,
+    currentVersion: template.currentVersion
+      ? toVersionSummary(template.currentVersion)
+      : null,
     versions: template.versions.map(toVersionSummary),
   };
 }
@@ -127,7 +137,9 @@ export class ChecklistTemplatesService {
     const version = await this.findVersionOrThrow(code, versionNumber);
 
     if (version.status !== TemplateStatus.PUBLISHED) {
-      const canViewDrafts = requesterPermissions.some((permission) => CAN_VIEW_DRAFTS.includes(permission));
+      const canViewDrafts = requesterPermissions.some((permission) =>
+        CAN_VIEW_DRAFTS.includes(permission),
+      );
       if (!canViewDrafts) {
         throw new TemplateVersionNotFoundException(versionNumber);
       }
@@ -140,8 +152,13 @@ export class ChecklistTemplatesService {
   // Draft template / version lifecycle
   // -------------------------------------------------------------------------
 
-  async createTemplate(dto: CreateTemplateDto, userId: string): Promise<ChecklistTemplateVersionDefinition> {
-    const existing = await this.prisma.checklistTemplate.findUnique({ where: { code: dto.code } });
+  async createTemplate(
+    dto: CreateTemplateDto,
+    userId: string,
+  ): Promise<ChecklistTemplateVersionDefinition> {
+    const existing = await this.prisma.checklistTemplate.findUnique({
+      where: { code: dto.code },
+    });
     if (existing) throw new TemplateCodeConflictException(dto.code);
 
     const template = await this.prisma.checklistTemplate.create({
@@ -170,9 +187,13 @@ export class ChecklistTemplatesService {
    * to make a small revision. See `cloneDraftFromVersion` for the explicit
    * "clone this specific version" entry point.
    */
-  async createDraftVersion(code: string, fromVersionNumber?: number): Promise<ChecklistTemplateVersionDefinition> {
+  async createDraftVersion(
+    code: string,
+    fromVersionNumber?: number,
+  ): Promise<ChecklistTemplateVersionDefinition> {
     const template = await this.findTemplateOrThrow(code);
-    const nextVersionNumber = Math.max(0, ...template.versions.map((v) => v.versionNumber)) + 1;
+    const nextVersionNumber =
+      Math.max(0, ...template.versions.map((v) => v.versionNumber)) + 1;
     const source = await this.resolveCloneSource(template, fromVersionNumber);
 
     const created = await this.prisma.checklistTemplateVersion.create({
@@ -180,7 +201,9 @@ export class ChecklistTemplatesService {
         templateId: template.id,
         versionNumber: nextVersionNumber,
         status: TemplateStatus.DRAFT,
-        sections: source ? { create: buildClonedSectionsInput(source.sections) } : undefined,
+        sections: source
+          ? { create: buildClonedSectionsInput(source.sections) }
+          : undefined,
       },
       include: VERSION_WITH_CONTENT_INCLUDE,
     });
@@ -190,7 +213,10 @@ export class ChecklistTemplatesService {
   /** Explicit "clone this specific version into a new draft" entry point —
    *  same cloning logic as `createDraftVersion`, but always requires a
    *  source version rather than falling back to the latest published one. */
-  async cloneDraftFromVersion(code: string, fromVersionNumber: number): Promise<ChecklistTemplateVersionDefinition> {
+  async cloneDraftFromVersion(
+    code: string,
+    fromVersionNumber: number,
+  ): Promise<ChecklistTemplateVersionDefinition> {
     return this.createDraftVersion(code, fromVersionNumber);
   }
 
@@ -223,13 +249,19 @@ export class ChecklistTemplatesService {
     this.assertDraft(version);
 
     const existingIds = new Set(version.sections.map((section) => section.id));
-    if (orderedIds.length !== existingIds.size || !orderedIds.every((id) => existingIds.has(id))) {
+    if (
+      orderedIds.length !== existingIds.size ||
+      !orderedIds.every((id) => existingIds.has(id))
+    ) {
       throw new SectionNotFoundException();
     }
 
     await this.prisma.$transaction(
       orderedIds.map((id, index) =>
-        this.prisma.checklistSection.update({ where: { id }, data: { sortOrder: index } }),
+        this.prisma.checklistSection.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
       ),
     );
 
@@ -301,8 +333,8 @@ export class ChecklistTemplatesService {
     this.assertValidItemRules(
       updateItemRulesSchema.safeParse({
         ...dto,
-        minValue: dto.minValue ?? (item.minValue ?? undefined),
-        maxValue: dto.maxValue ?? (item.maxValue ?? undefined),
+        minValue: dto.minValue ?? item.minValue ?? undefined,
+        maxValue: dto.maxValue ?? item.maxValue ?? undefined,
         itemType: dto.itemType ?? item.itemType,
         options: dto.options ?? item.options,
       }),
@@ -357,7 +389,10 @@ export class ChecklistTemplatesService {
     if (!section) throw new SectionNotFoundException();
 
     const existingIds = new Set(section.items.map((item) => item.id));
-    if (orderedIds.length !== existingIds.size || !orderedIds.every((id) => existingIds.has(id))) {
+    if (
+      orderedIds.length !== existingIds.size ||
+      !orderedIds.every((id) => existingIds.has(id))
+    ) {
       throw new ItemNotFoundException();
     }
 
@@ -385,7 +420,10 @@ export class ChecklistTemplatesService {
       throw new VersionNotDraftException();
     }
 
-    const itemCount = version.sections.reduce((sum, section) => sum + section.items.length, 0);
+    const itemCount = version.sections.reduce(
+      (sum, section) => sum + section.items.length,
+      0,
+    );
     if (version.sections.length === 0 || itemCount === 0) {
       throw new EmptyTemplateException();
     }
@@ -409,13 +447,18 @@ export class ChecklistTemplatesService {
     return this.getVersionByNumber(code, versionNumber, CAN_VIEW_DRAFTS);
   }
 
-  async archiveVersion(code: string, versionNumber: number): Promise<ChecklistTemplateVersionDefinition> {
+  async archiveVersion(
+    code: string,
+    versionNumber: number,
+  ): Promise<ChecklistTemplateVersionDefinition> {
     const version = await this.findVersionOrThrow(code, versionNumber);
     if (version.status === TemplateStatus.ARCHIVED) {
       throw new VersionAlreadyArchivedException();
     }
 
-    const template = await this.prisma.checklistTemplate.findUniqueOrThrow({ where: { id: version.templateId } });
+    const template = await this.prisma.checklistTemplate.findUniqueOrThrow({
+      where: { id: version.templateId },
+    });
 
     await this.prisma.$transaction([
       this.prisma.checklistTemplateVersion.update({
@@ -451,10 +494,14 @@ export class ChecklistTemplatesService {
       return this.findVersionOrThrow(template.code, fromVersionNumber);
     }
 
-    const publishedVersions = template.versions.filter((v) => v.status === TemplateStatus.PUBLISHED);
+    const publishedVersions = template.versions.filter(
+      (v) => v.status === TemplateStatus.PUBLISHED,
+    );
     if (publishedVersions.length === 0) return null;
 
-    const highest = publishedVersions.reduce((a, b) => (b.versionNumber > a.versionNumber ? b : a));
+    const highest = publishedVersions.reduce((a, b) =>
+      b.versionNumber > a.versionNumber ? b : a,
+    );
     return this.prisma.checklistTemplateVersion.findUnique({
       where: { id: highest.id },
       include: VERSION_WITH_CONTENT_INCLUDE,
@@ -470,7 +517,10 @@ export class ChecklistTemplatesService {
     return template;
   }
 
-  private async findVersionOrThrow(code: string, versionNumber: number): Promise<VersionWithContent> {
+  private async findVersionOrThrow(
+    code: string,
+    versionNumber: number,
+  ): Promise<VersionWithContent> {
     const template = await this.prisma.checklistTemplate.findUnique({ where: { code } });
     if (!template) throw new TemplateNotFoundException(code);
 
@@ -488,9 +538,14 @@ export class ChecklistTemplatesService {
     }
   }
 
-  private assertValidItemRules(result: { success: boolean; error?: { issues: Array<{ message: string }> } }): void {
+  private assertValidItemRules(result: {
+    success: boolean;
+    error?: { issues: Array<{ message: string }> };
+  }): void {
     if (!result.success) {
-      const message = result.error?.issues.map((issue) => issue.message).join("; ") ?? "Invalid item rules";
+      const message =
+        result.error?.issues.map((issue) => issue.message).join("; ") ??
+        "Invalid item rules";
       throw new InvalidItemRulesException(message);
     }
   }

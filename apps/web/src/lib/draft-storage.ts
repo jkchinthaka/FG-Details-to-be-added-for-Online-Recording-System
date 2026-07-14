@@ -21,9 +21,17 @@ export function loadDraft<T>(key: string): T | null {
  * the server. This prevents an old offline snapshot from silently overwriting
  * a newer edit made after another user recovered or updated the record.
  */
-export function loadRecoverableDraft<T>(key: string, serverUpdatedAt: string | undefined): SavedDraft<T> | null {
+export function loadRecoverableDraft<T>(
+  key: string,
+  serverUpdatedAt: string | undefined,
+): SavedDraft<T> | null {
   const draft = loadDraft<SavedDraft<T>>(key);
-  if (!draft || typeof draft !== "object" || typeof draft.savedAt !== "string" || !("responses" in draft)) {
+  if (
+    !draft ||
+    typeof draft !== "object" ||
+    typeof draft.savedAt !== "string" ||
+    !("responses" in draft)
+  ) {
     return null;
   }
 

@@ -19,7 +19,11 @@ export class InspectionRecordApiError extends Error {
    *  the form instead of just showing a generic error toast. */
   readonly validationErrors?: ChecklistValidationError[];
 
-  constructor(status: number, message: string, validationErrors?: ChecklistValidationError[]) {
+  constructor(
+    status: number,
+    message: string,
+    validationErrors?: ChecklistValidationError[],
+  ) {
     super(message);
     this.name = "InspectionRecordApiError";
     this.status = status;
@@ -40,9 +44,15 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     });
   } catch {
     if (timeoutController.signal.aborted) {
-      throw new InspectionRecordApiError(0, "The request timed out. Check your connection and try again.");
+      throw new InspectionRecordApiError(
+        0,
+        "The request timed out. Check your connection and try again.",
+      );
     }
-    throw new InspectionRecordApiError(0, "Could not reach the server. Check your connection and try again.");
+    throw new InspectionRecordApiError(
+      0,
+      "Could not reach the server. Check your connection and try again.",
+    );
   } finally {
     clearTimeout(timeout);
   }
@@ -59,7 +69,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     let message = `Request failed (${response.status})`;
     let validationErrors: ChecklistValidationError[] | undefined;
     try {
-      const body = (await response.json()) as { message?: string; errors?: ChecklistValidationError[] };
+      const body = (await response.json()) as {
+        message?: string;
+        errors?: ChecklistValidationError[];
+      };
       if (body.message) message = body.message;
       if (body.errors) validationErrors = body.errors;
     } catch {
@@ -72,7 +85,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /** Creates (or resumes) today's Daily Cleaning Verification draft for the current operator. */
-export function createCleaningDraft(input: CreateCleaningDraftInput): Promise<InspectionRecordDetail> {
+export function createCleaningDraft(
+  input: CreateCleaningDraftInput,
+): Promise<InspectionRecordDetail> {
   return apiFetch<InspectionRecordDetail>("/inspection-records/cleaning/draft", {
     method: "POST",
     body: JSON.stringify(input),
@@ -80,7 +95,9 @@ export function createCleaningDraft(input: CreateCleaningDraftInput): Promise<In
 }
 
 /** Creates (or resumes) a Freezer Truck Inspection Before Loading draft for the selected/manually-entered vehicle. */
-export function createTruckDraft(input: CreateTruckDraftInput): Promise<InspectionRecordDetail> {
+export function createTruckDraft(
+  input: CreateTruckDraftInput,
+): Promise<InspectionRecordDetail> {
   return apiFetch<InspectionRecordDetail>("/inspection-records/truck/draft", {
     method: "POST",
     body: JSON.stringify(input),
@@ -92,23 +109,34 @@ export function recordLoadingDecision(
   id: string,
   input: LoadingDecisionInput,
 ): Promise<InspectionRecordDetail> {
-  return apiFetch<InspectionRecordDetail>(`/inspection-records/${encodeURIComponent(id)}/loading-decision`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return apiFetch<InspectionRecordDetail>(
+    `/inspection-records/${encodeURIComponent(id)}/loading-decision`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 /** Retrieves a record's header, template version and current responses. */
 export function fetchInspectionRecord(id: string): Promise<InspectionRecordDetail> {
-  return apiFetch<InspectionRecordDetail>(`/inspection-records/${encodeURIComponent(id)}`);
+  return apiFetch<InspectionRecordDetail>(
+    `/inspection-records/${encodeURIComponent(id)}`,
+  );
 }
 
 /** Autosaves/saves the current draft responses without submitting. */
-export function saveInspectionDraft(id: string, input: SaveDraftResponsesInput): Promise<InspectionRecordDetail> {
-  return apiFetch<InspectionRecordDetail>(`/inspection-records/${encodeURIComponent(id)}/draft`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  });
+export function saveInspectionDraft(
+  id: string,
+  input: SaveDraftResponsesInput,
+): Promise<InspectionRecordDetail> {
+  return apiFetch<InspectionRecordDetail>(
+    `/inspection-records/${encodeURIComponent(id)}/draft`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 /** Validates and submits a record, locking it from further operator edits. */
@@ -117,11 +145,14 @@ export function submitInspectionRecord(
   input: SubmitInspectionRecordInput,
   idempotencyKey?: string,
 ): Promise<SubmitRecordResult> {
-  return apiFetch<SubmitRecordResult>(`/inspection-records/${encodeURIComponent(id)}/submit`, {
-    method: "POST",
-    body: JSON.stringify(input),
-    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
-  });
+  return apiFetch<SubmitRecordResult>(
+    `/inspection-records/${encodeURIComponent(id)}/submit`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+    },
+  );
 }
 
 export function fetchPendingCheckQueue(): Promise<InspectionRecordDetail[]> {
@@ -132,28 +163,40 @@ export function fetchPendingVerificationQueue(): Promise<InspectionRecordDetail[
   return apiFetch("/inspection-records/queues/pending-verification");
 }
 
-export function checkInspectionRecord(id: string, comment?: string): Promise<InspectionRecordDetail> {
+export function checkInspectionRecord(
+  id: string,
+  comment?: string,
+): Promise<InspectionRecordDetail> {
   return apiFetch(`/inspection-records/${encodeURIComponent(id)}/check`, {
     method: "POST",
     body: JSON.stringify({ comment }),
   });
 }
 
-export function verifyInspectionRecord(id: string, comment?: string): Promise<InspectionRecordDetail> {
+export function verifyInspectionRecord(
+  id: string,
+  comment?: string,
+): Promise<InspectionRecordDetail> {
   return apiFetch(`/inspection-records/${encodeURIComponent(id)}/verify`, {
     method: "POST",
     body: JSON.stringify({ comment }),
   });
 }
 
-export function returnInspectionRecord(id: string, comment: string): Promise<InspectionRecordDetail> {
+export function returnInspectionRecord(
+  id: string,
+  comment: string,
+): Promise<InspectionRecordDetail> {
   return apiFetch(`/inspection-records/${encodeURIComponent(id)}/return`, {
     method: "POST",
     body: JSON.stringify({ comment }),
   });
 }
 
-export function rejectInspectionRecord(id: string, comment: string): Promise<InspectionRecordDetail> {
+export function rejectInspectionRecord(
+  id: string,
+  comment: string,
+): Promise<InspectionRecordDetail> {
   return apiFetch(`/inspection-records/${encodeURIComponent(id)}/reject`, {
     method: "POST",
     body: JSON.stringify({ comment }),

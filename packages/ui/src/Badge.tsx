@@ -1,13 +1,7 @@
 import type { ReactNode } from "react";
 
 export type BadgeTone =
-  | "neutral"
-  | "primary"
-  | "success"
-  | "warning"
-  | "danger"
-  | "information"
-  | "gold";
+  "neutral" | "primary" | "success" | "warning" | "danger" | "information" | "gold";
 
 export type BadgeProps = {
   tone?: BadgeTone;

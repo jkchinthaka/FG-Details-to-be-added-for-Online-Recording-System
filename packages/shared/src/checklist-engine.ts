@@ -41,7 +41,9 @@ export const STATUS_ITEM_TYPES = [
 
 export type StatusItemType = (typeof STATUS_ITEM_TYPES)[number];
 
-export function isStatusItemType(itemType: ChecklistItemType): itemType is StatusItemType {
+export function isStatusItemType(
+  itemType: ChecklistItemType,
+): itemType is StatusItemType {
   return (STATUS_ITEM_TYPES as readonly string[]).includes(itemType);
 }
 
@@ -70,83 +72,84 @@ export type ChecklistItemTypeMeta = {
   statusOptions?: Array<{ value: NormalizedStatusValue; label: string }>;
 };
 
-export const CHECKLIST_ITEM_TYPE_META: Record<ChecklistItemType, ChecklistItemTypeMeta> = {
-  PASS_FAIL_NA: {
-    label: "Pass / Fail / N/A",
-    description: "Binary pass-fail inspection result",
-    control: "status",
-    statusOptions: [
-      { value: "PASS", label: "Pass" },
-      { value: "FAIL", label: "Fail" },
-      { value: "NOT_APPLICABLE", label: "N/A" },
-    ],
-  },
-  ACCEPTABLE_UNACCEPTABLE_NA: {
-    label: "Acceptable / Unacceptable / N/A",
-    description: "Exception-based cleaning/condition result",
-    control: "status",
-    statusOptions: [
-      { value: "PASS", label: "Acceptable" },
-      { value: "FAIL", label: "Unacceptable" },
-      { value: "NOT_APPLICABLE", label: "N/A" },
-    ],
-  },
-  YES_NO_NA: {
-    label: "Yes / No / N/A",
-    description: "Simple yes/no confirmation",
-    control: "status",
-    statusOptions: [
-      { value: "PASS", label: "Yes" },
-      { value: "FAIL", label: "No" },
-      { value: "NOT_APPLICABLE", label: "N/A" },
-    ],
-  },
-  SHORT_TEXT: {
-    label: "Short text",
-    description: "Single-line free text",
-    control: "short_text",
-  },
-  LONG_TEXT: {
-    label: "Long text",
-    description: "Multi-line free text",
-    control: "long_text",
-  },
-  NUMBER: {
-    label: "Number",
-    description: "Numeric reading, optionally bounded by min/max",
-    control: "number",
-  },
-  TEMPERATURE: {
-    label: "Temperature",
-    description: "Numeric temperature reading (°C), optionally bounded by min/max",
-    control: "temperature",
-  },
-  DATE: {
-    label: "Date",
-    description: "Calendar date",
-    control: "date",
-  },
-  TIME: {
-    label: "Time",
-    description: "Time of day",
-    control: "time",
-  },
-  SINGLE_SELECT: {
-    label: "Single select",
-    description: "One choice from a preset option list",
-    control: "single_select",
-  },
-  PHOTO_EVIDENCE: {
-    label: "Photo evidence",
-    description: "Photo capture/upload as the primary response",
-    control: "photo",
-  },
-  SIGNATURE: {
-    label: "Signature / acknowledgement",
-    description: "Signature or acknowledgement metadata (name, timestamp)",
-    control: "signature",
-  },
-};
+export const CHECKLIST_ITEM_TYPE_META: Record<ChecklistItemType, ChecklistItemTypeMeta> =
+  {
+    PASS_FAIL_NA: {
+      label: "Pass / Fail / N/A",
+      description: "Binary pass-fail inspection result",
+      control: "status",
+      statusOptions: [
+        { value: "PASS", label: "Pass" },
+        { value: "FAIL", label: "Fail" },
+        { value: "NOT_APPLICABLE", label: "N/A" },
+      ],
+    },
+    ACCEPTABLE_UNACCEPTABLE_NA: {
+      label: "Acceptable / Unacceptable / N/A",
+      description: "Exception-based cleaning/condition result",
+      control: "status",
+      statusOptions: [
+        { value: "PASS", label: "Acceptable" },
+        { value: "FAIL", label: "Unacceptable" },
+        { value: "NOT_APPLICABLE", label: "N/A" },
+      ],
+    },
+    YES_NO_NA: {
+      label: "Yes / No / N/A",
+      description: "Simple yes/no confirmation",
+      control: "status",
+      statusOptions: [
+        { value: "PASS", label: "Yes" },
+        { value: "FAIL", label: "No" },
+        { value: "NOT_APPLICABLE", label: "N/A" },
+      ],
+    },
+    SHORT_TEXT: {
+      label: "Short text",
+      description: "Single-line free text",
+      control: "short_text",
+    },
+    LONG_TEXT: {
+      label: "Long text",
+      description: "Multi-line free text",
+      control: "long_text",
+    },
+    NUMBER: {
+      label: "Number",
+      description: "Numeric reading, optionally bounded by min/max",
+      control: "number",
+    },
+    TEMPERATURE: {
+      label: "Temperature",
+      description: "Numeric temperature reading (°C), optionally bounded by min/max",
+      control: "temperature",
+    },
+    DATE: {
+      label: "Date",
+      description: "Calendar date",
+      control: "date",
+    },
+    TIME: {
+      label: "Time",
+      description: "Time of day",
+      control: "time",
+    },
+    SINGLE_SELECT: {
+      label: "Single select",
+      description: "One choice from a preset option list",
+      control: "single_select",
+    },
+    PHOTO_EVIDENCE: {
+      label: "Photo evidence",
+      description: "Photo capture/upload as the primary response",
+      control: "photo",
+    },
+    SIGNATURE: {
+      label: "Signature / acknowledgement",
+      description: "Signature or acknowledgement metadata (name, timestamp)",
+      control: "signature",
+    },
+  };
 
 /** Item types eligible for the one-tap "Mark All Acceptable" action — only
  *  the status types have a well-defined, always-safe "acceptable" value.
@@ -230,7 +233,12 @@ export const FAILURE_CORRECTION_OPTIONS = [
 ] as const;
 export type FailureCorrectionOption = (typeof FAILURE_CORRECTION_OPTIONS)[number];
 
-export const RESPONSE_STATUSES = ["UNANSWERED", "PASS", "FAIL", "NOT_APPLICABLE"] as const;
+export const RESPONSE_STATUSES = [
+  "UNANSWERED",
+  "PASS",
+  "FAIL",
+  "NOT_APPLICABLE",
+] as const;
 export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
 
 /** Maps any item type's current value to a generic PASS/FAIL/N/A/UNANSWERED
@@ -250,10 +258,14 @@ export function classifyResponseStatus(
   switch (itemType) {
     case "SHORT_TEXT":
     case "LONG_TEXT":
-      return value.kind === "text" && value.value.trim().length > 0 ? "PASS" : "UNANSWERED";
+      return value.kind === "text" && value.value.trim().length > 0
+        ? "PASS"
+        : "UNANSWERED";
     case "NUMBER":
     case "TEMPERATURE":
-      return value.kind === "number" && Number.isFinite(value.value) ? "PASS" : "UNANSWERED";
+      return value.kind === "number" && Number.isFinite(value.value)
+        ? "PASS"
+        : "UNANSWERED";
     case "DATE":
       return value.kind === "date" && value.value.length > 0 ? "PASS" : "UNANSWERED";
     case "TIME":
@@ -263,13 +275,18 @@ export function classifyResponseStatus(
     case "PHOTO_EVIDENCE":
       return value.kind === "photo" && value.value.length > 0 ? "PASS" : "UNANSWERED";
     case "SIGNATURE":
-      return value.kind === "signature" && Boolean(value.value?.signedAt) ? "PASS" : "UNANSWERED";
+      return value.kind === "signature" && Boolean(value.value?.signedAt)
+        ? "PASS"
+        : "UNANSWERED";
     default:
       return "UNANSWERED";
   }
 }
 
-export function isAnswered(itemType: ChecklistItemType, response: ChecklistItemResponse | undefined): boolean {
+export function isAnswered(
+  itemType: ChecklistItemType,
+  response: ChecklistItemResponse | undefined,
+): boolean {
   return classifyResponseStatus(itemType, response?.value) !== "UNANSWERED";
 }
 
@@ -356,7 +373,9 @@ export const DEFAULT_ITEM_RULES: ChecklistItemRules = {
   defaultResponse: null,
 };
 
-export function flattenItems(sections: ChecklistSectionDefinition[]): ChecklistItemDefinition[] {
+export function flattenItems(
+  sections: ChecklistSectionDefinition[],
+): ChecklistItemDefinition[] {
   return [...sections]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .flatMap((section) => [...section.items].sort((a, b) => a.sortOrder - b.sortOrder));
@@ -379,7 +398,10 @@ export function isFailureResponse(
     return value.kind === "status" && value.value === "FAIL";
   }
 
-  if ((item.itemType === "NUMBER" || item.itemType === "TEMPERATURE") && value.kind === "number") {
+  if (
+    (item.itemType === "NUMBER" || item.itemType === "TEMPERATURE") &&
+    value.kind === "number"
+  ) {
     if (typeof item.minValue === "number" && value.value < item.minValue) return true;
     if (typeof item.maxValue === "number" && value.value > item.maxValue) return true;
     return false;
@@ -394,10 +416,15 @@ export function detectCriticalFailures(
   items: ChecklistItemDefinition[],
   responses: ChecklistResponseMap,
 ): ChecklistItemDefinition[] {
-  return items.filter((item) => item.isCriticalFailure && isFailureResponse(item, responses[item.id]));
+  return items.filter(
+    (item) => item.isCriticalFailure && isFailureResponse(item, responses[item.id]),
+  );
 }
 
-export function hasCriticalFailure(items: ChecklistItemDefinition[], responses: ChecklistResponseMap): boolean {
+export function hasCriticalFailure(
+  items: ChecklistItemDefinition[],
+  responses: ChecklistResponseMap,
+): boolean {
   return detectCriticalFailures(items, responses).length > 0;
 }
 
@@ -405,7 +432,9 @@ export function hasCriticalFailure(items: ChecklistItemDefinition[], responses: 
 // Mark All Acceptable / Clear All
 // ---------------------------------------------------------------------------
 
-function acceptableValueForItemType(itemType: ChecklistItemType): ChecklistItemValue | null {
+function acceptableValueForItemType(
+  itemType: ChecklistItemType,
+): ChecklistItemValue | null {
   return isStatusItemType(itemType) ? { kind: "status", value: "PASS" } : null;
 }
 
@@ -510,7 +539,11 @@ export function validateChecklistResponses(
 
     if (status === "UNANSWERED") {
       if (item.isRequired) {
-        errors.push({ itemId: item.id, code: "REQUIRED", message: `"${item.label}" requires a response` });
+        errors.push({
+          itemId: item.id,
+          code: "REQUIRED",
+          message: `"${item.label}" requires a response`,
+        });
       }
       continue;
     }
@@ -543,7 +576,10 @@ export function validateChecklistResponses(
           message: `Describe why "${item.label}" failed`,
         });
       }
-      if (item.requiresEvidenceOnFail && !(response?.evidence && response.evidence.length > 0)) {
+      if (
+        item.requiresEvidenceOnFail &&
+        !(response?.evidence && response.evidence.length > 0)
+      ) {
         errors.push({
           itemId: item.id,
           code: "EVIDENCE_REQUIRED",
@@ -560,7 +596,9 @@ export function validateChecklistResponses(
     }
   }
 
-  const criticalFailureItemIds = detectCriticalFailures(items, responses).map((item) => item.id);
+  const criticalFailureItemIds = detectCriticalFailures(items, responses).map(
+    (item) => item.id,
+  );
 
   return {
     isValid: errors.length === 0,
@@ -581,14 +619,20 @@ export type ChecklistProgress = {
 };
 
 function toProgress(answered: number, total: number): ChecklistProgress {
-  return { answered, total, percent: total === 0 ? 0 : Math.round((answered / total) * 100) };
+  return {
+    answered,
+    total,
+    percent: total === 0 ? 0 : Math.round((answered / total) * 100),
+  };
 }
 
 export function computeSectionProgress(
   section: ChecklistSectionDefinition,
   responses: ChecklistResponseMap,
 ): ChecklistProgress {
-  const answered = section.items.filter((item) => isAnswered(item.itemType, responses[item.id])).length;
+  const answered = section.items.filter((item) =>
+    isAnswered(item.itemType, responses[item.id]),
+  ).length;
   return toProgress(answered, section.items.length);
 }
 
@@ -597,7 +641,9 @@ export function computeOverallProgress(
   responses: ChecklistResponseMap,
 ): ChecklistProgress {
   const items = flattenItems(sections);
-  const answered = items.filter((item) => isAnswered(item.itemType, responses[item.id])).length;
+  const answered = items.filter((item) =>
+    isAnswered(item.itemType, responses[item.id]),
+  ).length;
   return toProgress(answered, items.length);
 }
 
@@ -631,11 +677,19 @@ export const itemOptionInputSchema = z.object({
   sortOrder: z.number().int().min(0).default(0),
 });
 
-function checkItemRuleInvariants<T extends { minValue?: number; maxValue?: number; itemType?: ChecklistItemType; options?: unknown[] }>(
-  data: T,
-  ctx: z.RefinementCtx,
-): void {
-  if (typeof data.minValue === "number" && typeof data.maxValue === "number" && data.minValue > data.maxValue) {
+function checkItemRuleInvariants<
+  T extends {
+    minValue?: number;
+    maxValue?: number;
+    itemType?: ChecklistItemType;
+    options?: unknown[];
+  },
+>(data: T, ctx: z.RefinementCtx): void {
+  if (
+    typeof data.minValue === "number" &&
+    typeof data.maxValue === "number" &&
+    data.minValue > data.maxValue
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "minValue must be less than or equal to maxValue",
@@ -672,7 +726,9 @@ export const addItemBaseSchema = z.object(itemFieldsShape);
 export const addItemSchema = addItemBaseSchema.superRefine(checkItemRuleInvariants);
 export type AddItemInput = z.infer<typeof addItemSchema>;
 
-export const updateItemRulesSchema = addItemBaseSchema.partial().superRefine(checkItemRuleInvariants);
+export const updateItemRulesSchema = addItemBaseSchema
+  .partial()
+  .superRefine(checkItemRuleInvariants);
 export type UpdateItemRulesInput = z.infer<typeof updateItemRulesSchema>;
 
 export const reorderItemsSchema = z.object({

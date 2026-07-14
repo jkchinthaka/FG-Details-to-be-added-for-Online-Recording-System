@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChecklistTemplateSummary, ChecklistTemplateVersionDefinition } from "@nelna/shared";
+import type {
+  ChecklistTemplateSummary,
+  ChecklistTemplateVersionDefinition,
+} from "@nelna/shared";
 import { Alert, Button, EmptyState, LoadingState, PageHeader, Select } from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ChecklistTemplatePreview } from "@/components/ChecklistTemplatePreview";
@@ -32,10 +35,13 @@ function latestVersionNumber(summary: ChecklistTemplateSummary): number | null {
 export function AdminTemplatesPreview() {
   const { status: authStatus, user } = useAuth();
   const canManageTemplates = Boolean(
-    user?.permissions.includes("templates:manage") || user?.permissions.includes("templates:publish"),
+    user?.permissions.includes("templates:manage") ||
+    user?.permissions.includes("templates:publish"),
   );
 
-  const [templatesState, setTemplatesState] = useState<TemplatesState>({ status: "loading" });
+  const [templatesState, setTemplatesState] = useState<TemplatesState>({
+    status: "loading",
+  });
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [summary, setSummary] = useState<ChecklistTemplateSummary | null>(null);
   const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null);
@@ -51,7 +57,10 @@ export function AdminTemplatesPreview() {
         if (first) setSelectedCode(first.code);
       })
       .catch((error: unknown) => {
-        const message = error instanceof ChecklistTemplateApiError ? error.message : "Failed to load templates.";
+        const message =
+          error instanceof ChecklistTemplateApiError
+            ? error.message
+            : "Failed to load templates.";
         setTemplatesState({ status: "error", message });
       });
   }, [authStatus, canManageTemplates]);
@@ -66,7 +75,10 @@ export function AdminTemplatesPreview() {
         setSelectedVersionNumber(latestVersionNumber(nextSummary));
       })
       .catch((error: unknown) => {
-        const message = error instanceof ChecklistTemplateApiError ? error.message : "Failed to load this template.";
+        const message =
+          error instanceof ChecklistTemplateApiError
+            ? error.message
+            : "Failed to load this template.";
         setVersionError(message);
       });
   }, [selectedCode]);
@@ -81,7 +93,9 @@ export function AdminTemplatesPreview() {
       .then(setVersion)
       .catch((error: unknown) => {
         const message =
-          error instanceof ChecklistTemplateApiError ? error.message : "Failed to load this version.";
+          error instanceof ChecklistTemplateApiError
+            ? error.message
+            : "Failed to load this version.";
         setVersionError(message);
       });
   }, [selectedCode, selectedVersionNumber]);
@@ -107,8 +121,8 @@ export function AdminTemplatesPreview() {
       <div style={{ display: "grid", gap: "1.25rem" }}>
         <PageHeader eyebrow="Administration" title="Checklist Templates — Preview" />
         <Alert tone="danger" title="Not authorized">
-          Previewing checklist templates requires the &quot;templates:manage&quot; or &quot;templates:publish&quot;
-          permission.
+          Previewing checklist templates requires the &quot;templates:manage&quot; or
+          &quot;templates:publish&quot; permission.
         </Alert>
       </div>
     );
@@ -122,7 +136,9 @@ export function AdminTemplatesPreview() {
         description="Inspect any draft or published version of a checklist template through the shared dynamic renderer before publishing."
       />
 
-      {templatesState.status === "loading" ? <LoadingState message="Loading templates…" /> : null}
+      {templatesState.status === "loading" ? (
+        <LoadingState message="Loading templates…" />
+      ) : null}
 
       {templatesState.status === "error" ? (
         <Alert tone="danger" title="Could not load templates">
@@ -131,12 +147,26 @@ export function AdminTemplatesPreview() {
       ) : null}
 
       {templatesState.status === "ready" && templatesState.templates.length === 0 ? (
-        <EmptyState title="No templates yet" description="Create a checklist template to preview it here." />
+        <EmptyState
+          title="No templates yet"
+          description="Create a checklist template to preview it here."
+        />
       ) : null}
 
       {templatesState.status === "ready" && templatesState.templates.length > 0 ? (
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div role="group" aria-label="Select a template" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+            alignItems: "flex-end",
+          }}
+        >
+          <div
+            role="group"
+            aria-label="Select a template"
+            style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+          >
             {templatesState.templates.map((template) => (
               <Button
                 key={template.code}
@@ -153,7 +183,9 @@ export function AdminTemplatesPreview() {
               <Select
                 label="Version"
                 options={versionOptions}
-                value={selectedVersionNumber !== null ? String(selectedVersionNumber) : ""}
+                value={
+                  selectedVersionNumber !== null ? String(selectedVersionNumber) : ""
+                }
                 onChange={(e) => setSelectedVersionNumber(Number(e.target.value))}
               />
             </div>
@@ -174,7 +206,11 @@ export function AdminTemplatesPreview() {
         />
       ) : null}
 
-      {!versionError && selectedCode && !version && summary && summary.versions.length > 0 ? (
+      {!versionError &&
+      selectedCode &&
+      !version &&
+      summary &&
+      summary.versions.length > 0 ? (
         <LoadingState message="Loading version…" />
       ) : null}
 

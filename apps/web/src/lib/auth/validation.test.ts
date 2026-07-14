@@ -3,7 +3,9 @@ import { validateLogin } from "./validation";
 
 describe("validateLogin", () => {
   it("accepts a well-formed email and non-empty password", () => {
-    expect(validateLogin({ email: "operator@example.local", password: "s3cret!" })).toBeNull();
+    expect(
+      validateLogin({ email: "operator@example.local", password: "s3cret!" }),
+    ).toBeNull();
   });
 
   it("rejects an empty email", () => {

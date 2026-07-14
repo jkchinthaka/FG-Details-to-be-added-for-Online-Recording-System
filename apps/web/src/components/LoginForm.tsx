@@ -6,17 +6,32 @@ import { NELNA_BRAND } from "@nelna/shared";
 import { Alert, Button, Input } from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/auth/api";
-import { loginFormStateForErrorCode, resolvePostLoginPath, type LoginFormState } from "@/lib/auth/session";
+import {
+  loginFormStateForErrorCode,
+  resolvePostLoginPath,
+  type LoginFormState,
+} from "@/lib/auth/session";
 import { validateLogin, type LoginFieldErrors } from "@/lib/auth/validation";
 
-const BANNER_COPY: Record<LoginFormState, { tone: "danger" | "warning"; title: string; message?: string } | null> = {
+const BANNER_COPY: Record<
+  LoginFormState,
+  { tone: "danger" | "warning"; title: string; message?: string } | null
+> = {
   idle: null,
   submitting: null,
   "invalid-credentials": { tone: "danger", title: "Invalid email or password" },
   "account-inactive": { tone: "warning", title: "Account inactive" },
   "account-locked": { tone: "warning", title: "Account temporarily locked" },
-  "session-expired": { tone: "warning", title: "Session expired", message: "Please sign in again to continue." },
-  "unknown-error": { tone: "danger", title: "Something went wrong", message: "Please try again." },
+  "session-expired": {
+    tone: "warning",
+    title: "Session expired",
+    message: "Please sign in again to continue.",
+  },
+  "unknown-error": {
+    tone: "danger",
+    title: "Something went wrong",
+    message: "Please try again.",
+  },
 };
 
 export function LoginForm() {
@@ -88,11 +103,11 @@ export function LoginForm() {
               boxShadow: "inset 0 0 0 4px var(--nelna-gold)",
             }}
           />
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-nelna-primary">
+          <p className="text-nelna-primary text-xs font-semibold uppercase tracking-[0.16em]">
             {NELNA_BRAND.name} Farm · FG
           </p>
           <h1
-            className="mt-1.5 text-[1.9rem] leading-tight text-nelna-primary-dark"
+            className="text-nelna-primary-dark mt-1.5 text-[1.9rem] leading-tight"
             style={{ fontFamily: "var(--nelna-font-display)" }}
           >
             Digital Recording
@@ -142,7 +157,9 @@ export function LoginForm() {
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={isSubmitting}
                   aria-invalid={Boolean(fieldErrors?.password)}
-                  aria-describedby={fieldErrors?.password ? "login-password-error" : undefined}
+                  aria-describedby={
+                    fieldErrors?.password ? "login-password-error" : undefined
+                  }
                   className={[
                     "nelna-control",
                     "nelna-focusable",
@@ -158,7 +175,7 @@ export function LoginForm() {
                   disabled={isSubmitting}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="nelna-focusable absolute right-1.5 top-1/2 flex h-9 w-11 -translate-y-1/2 items-center justify-center rounded-[var(--nelna-radius-sm)] text-sm font-semibold text-nelna-primary hover:bg-[var(--nelna-surface-muted)] disabled:opacity-50"
+                  className="nelna-focusable text-nelna-primary absolute right-1.5 top-1/2 flex h-9 w-11 -translate-y-1/2 items-center justify-center rounded-[var(--nelna-radius-sm)] text-sm font-semibold hover:bg-[var(--nelna-surface-muted)] disabled:opacity-50"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -176,7 +193,10 @@ export function LoginForm() {
           </div>
         </form>
 
-        <p className="mt-5 text-center text-xs" style={{ color: "var(--nelna-text-secondary)" }}>
+        <p
+          className="mt-5 text-center text-xs"
+          style={{ color: "var(--nelna-text-secondary)" }}
+        >
           Locked out or need access? Contact your System Administrator.
         </p>
       </div>

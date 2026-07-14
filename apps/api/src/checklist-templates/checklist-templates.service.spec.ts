@@ -55,7 +55,12 @@ function makeVersion(overrides: Record<string, unknown> = {}) {
     publishedAt: null,
     publishedById: null,
     sections: [],
-    template: { id: "template-1", code: "NMS/PPU/CL/24", title: "Daily Cleaning", description: null },
+    template: {
+      id: "template-1",
+      code: "NMS/PPU/CL/24",
+      title: "Daily Cleaning",
+      description: null,
+    },
     ...overrides,
   };
 }
@@ -129,16 +134,29 @@ describe("ChecklistTemplatesService", () => {
   describe("listPublished", () => {
     it("maps templates with a published current version into summaries", async () => {
       const prismaMock = buildPrismaMock();
-      const publishedVersion = { id: "v1", versionNumber: 1, status: "PUBLISHED", notes: null, publishedAt: new Date("2026-01-01") };
+      const publishedVersion = {
+        id: "v1",
+        versionNumber: 1,
+        status: "PUBLISHED",
+        notes: null,
+        publishedAt: new Date("2026-01-01"),
+      };
       prismaMock.checklistTemplate.findMany.mockResolvedValue([
-        makeTemplate({ currentVersionId: "v1", currentVersion: publishedVersion, versions: [publishedVersion] }),
+        makeTemplate({
+          currentVersionId: "v1",
+          currentVersion: publishedVersion,
+          versions: [publishedVersion],
+        }),
       ]);
       const service = buildService(prismaMock);
 
       const result = await service.listPublished();
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({ code: "NMS/PPU/CL/24", currentVersion: { status: "PUBLISHED" } });
+      expect(result[0]).toMatchObject({
+        code: "NMS/PPU/CL/24",
+        currentVersion: { status: "PUBLISHED" },
+      });
       expect(prismaMock.checklistTemplate.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { isActive: true, currentVersion: { status: "PUBLISHED" } },
@@ -153,12 +171,16 @@ describe("ChecklistTemplatesService", () => {
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(null);
       const service = buildService(prismaMock);
 
-      await expect(service.getPublishedVersion("NOPE")).rejects.toBeInstanceOf(TemplateNotFoundException);
+      await expect(service.getPublishedVersion("NOPE")).rejects.toBeInstanceOf(
+        TemplateNotFoundException,
+      );
     });
 
     it("throws PublishedVersionNotFoundException when the template has never been published", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate({ currentVersionId: null }));
+      prismaMock.checklistTemplate.findUnique.mockResolvedValue(
+        makeTemplate({ currentVersionId: null }),
+      );
       const service = buildService(prismaMock);
 
       await expect(service.getPublishedVersion("NMS/PPU/CL/24")).rejects.toBeInstanceOf(
@@ -191,7 +213,9 @@ describe("ChecklistTemplatesService", () => {
     it("returns a PUBLISHED version to any requester regardless of permissions", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(makeVersion({ status: "PUBLISHED" }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ status: "PUBLISHED" }),
+      );
       const service = buildService(prismaMock);
 
       const result = await service.getVersionByNumber("NMS/PPU/CL/24", 1, []);
@@ -201,21 +225,27 @@ describe("ChecklistTemplatesService", () => {
     it("hides a DRAFT version from a requester without templates:manage/publish", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(makeVersion({ status: "DRAFT" }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ status: "DRAFT" }),
+      );
       const service = buildService(prismaMock);
 
-      await expect(service.getVersionByNumber("NMS/PPU/CL/24", 1, ["records:read"])).rejects.toBeInstanceOf(
-        TemplateVersionNotFoundException,
-      );
+      await expect(
+        service.getVersionByNumber("NMS/PPU/CL/24", 1, ["records:read"]),
+      ).rejects.toBeInstanceOf(TemplateVersionNotFoundException);
     });
 
     it("allows a requester holding templates:manage to view a DRAFT version", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(makeVersion({ status: "DRAFT" }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ status: "DRAFT" }),
+      );
       const service = buildService(prismaMock);
 
-      const result = await service.getVersionByNumber("NMS/PPU/CL/24", 1, ["templates:manage"]);
+      const result = await service.getVersionByNumber("NMS/PPU/CL/24", 1, [
+        "templates:manage",
+      ]);
       expect(result.status).toBe("DRAFT");
     });
   });
@@ -239,11 +269,21 @@ describe("ChecklistTemplatesService", () => {
         versions: [{ id: "version-1" }],
       });
       prismaMock.checklistTemplateVersion.findUniqueOrThrow.mockResolvedValue(
-        makeVersion({ template: { id: "template-1", code: "NEW/CODE", title: "New", description: null } }),
+        makeVersion({
+          template: {
+            id: "template-1",
+            code: "NEW/CODE",
+            title: "New",
+            description: null,
+          },
+        }),
       );
       const service = buildService(prismaMock);
 
-      const result = await service.createTemplate({ code: "NEW/CODE", title: "New" }, "user-1");
+      const result = await service.createTemplate(
+        { code: "NEW/CODE", title: "New" },
+        "user-1",
+      );
 
       expect(result.code).toBe("NEW/CODE");
       expect(result.status).toBe("DRAFT");
@@ -254,15 +294,21 @@ describe("ChecklistTemplatesService", () => {
   describe("createDraftVersion — clone from published", () => {
     it("creates an empty draft when the template has never been published", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate({ versions: [] }));
-      prismaMock.checklistTemplateVersion.create.mockResolvedValue(makeVersion({ versionNumber: 1, sections: [] }));
+      prismaMock.checklistTemplate.findUnique.mockResolvedValue(
+        makeTemplate({ versions: [] }),
+      );
+      prismaMock.checklistTemplateVersion.create.mockResolvedValue(
+        makeVersion({ versionNumber: 1, sections: [] }),
+      );
       const service = buildService(prismaMock);
 
       const result = await service.createDraftVersion("NMS/PPU/CL/24");
 
       expect(result.sections).toHaveLength(0);
       expect(prismaMock.checklistTemplateVersion.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ versionNumber: 1, sections: undefined }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ versionNumber: 1, sections: undefined }),
+        }),
       );
     });
 
@@ -287,7 +333,11 @@ describe("ChecklistTemplatesService", () => {
         }),
       );
       prismaMock.checklistTemplateVersion.create.mockResolvedValue(
-        makeVersion({ id: "v2", versionNumber: 2, sections: [makeSection({ items: [makeItem({ label: "Floor" })] })] }),
+        makeVersion({
+          id: "v2",
+          versionNumber: 2,
+          sections: [makeSection({ items: [makeItem({ label: "Floor" })] })],
+        }),
       );
       const service = buildService(prismaMock);
 
@@ -317,13 +367,23 @@ describe("ChecklistTemplatesService", () => {
     it("clones a specific version's content into a new draft regardless of publish status", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique
-        .mockResolvedValueOnce(makeTemplate({ versions: [{ id: "v1", versionNumber: 1, status: "DRAFT" }] }))
+        .mockResolvedValueOnce(
+          makeTemplate({ versions: [{ id: "v1", versionNumber: 1, status: "DRAFT" }] }),
+        )
         .mockResolvedValueOnce(makeTemplate());
       prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
-        makeVersion({ id: "v1", versionNumber: 1, sections: [makeSection({ items: [makeItem()] })] }),
+        makeVersion({
+          id: "v1",
+          versionNumber: 1,
+          sections: [makeSection({ items: [makeItem()] })],
+        }),
       );
       prismaMock.checklistTemplateVersion.create.mockResolvedValue(
-        makeVersion({ id: "v2", versionNumber: 2, sections: [makeSection({ items: [makeItem()] })] }),
+        makeVersion({
+          id: "v2",
+          versionNumber: 2,
+          sections: [makeSection({ items: [makeItem()] })],
+        }),
       );
       const service = buildService(prismaMock);
 
@@ -335,13 +395,15 @@ describe("ChecklistTemplatesService", () => {
 
     it("propagates TemplateVersionNotFoundException for an unknown source version", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate({ versions: [] }));
+      prismaMock.checklistTemplate.findUnique.mockResolvedValue(
+        makeTemplate({ versions: [] }),
+      );
       prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(null);
       const service = buildService(prismaMock);
 
-      await expect(service.cloneDraftFromVersion("NMS/PPU/CL/24", 99)).rejects.toBeInstanceOf(
-        TemplateVersionNotFoundException,
-      );
+      await expect(
+        service.cloneDraftFromVersion("NMS/PPU/CL/24", 99),
+      ).rejects.toBeInstanceOf(TemplateVersionNotFoundException);
       expect(prismaMock.checklistTemplateVersion.create).not.toHaveBeenCalled();
     });
   });
@@ -350,7 +412,9 @@ describe("ChecklistTemplatesService", () => {
     it("rejects adding a section to a PUBLISHED version with 409", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(makeVersion({ status: "PUBLISHED" }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ status: "PUBLISHED" }),
+      );
       const service = buildService(prismaMock);
 
       await expect(
@@ -377,7 +441,10 @@ describe("ChecklistTemplatesService", () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
       prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
-        makeVersion({ status: "PUBLISHED", sections: [makeSection({ items: [makeItem()] })] }),
+        makeVersion({
+          status: "PUBLISHED",
+          sections: [makeSection({ items: [makeItem()] })],
+        }),
       );
       const service = buildService(prismaMock);
 
@@ -408,7 +475,9 @@ describe("ChecklistTemplatesService", () => {
     it("rejects minValue greater than maxValue with 400", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(draftVersionWithSection());
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        draftVersionWithSection(),
+      );
       const service = buildService(prismaMock);
 
       await expect(
@@ -424,18 +493,25 @@ describe("ChecklistTemplatesService", () => {
     it("rejects a SINGLE_SELECT item with no options with 400", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(draftVersionWithSection());
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        draftVersionWithSection(),
+      );
       const service = buildService(prismaMock);
 
       await expect(
-        service.addItem("NMS/PPU/CL/24", 1, "section-1", { label: "Pick one", itemType: "SINGLE_SELECT" }),
+        service.addItem("NMS/PPU/CL/24", 1, "section-1", {
+          label: "Pick one",
+          itemType: "SINGLE_SELECT",
+        }),
       ).rejects.toBeInstanceOf(InvalidItemRulesException);
     });
 
     it("accepts a valid item and persists the configured rules", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(draftVersionWithSection());
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        draftVersionWithSection(),
+      );
       const service = buildService(prismaMock);
 
       await service.addItem("NMS/PPU/CL/24", 1, "section-1", {
@@ -462,7 +538,10 @@ describe("ChecklistTemplatesService", () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
       prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
-        makeVersion({ status: "PUBLISHED", sections: [makeSection({ items: [makeItem()] })] }),
+        makeVersion({
+          status: "PUBLISHED",
+          sections: [makeSection({ items: [makeItem()] })],
+        }),
       );
       const service = buildService(prismaMock);
 
@@ -474,7 +553,9 @@ describe("ChecklistTemplatesService", () => {
     it("rejects publishing an empty draft (no sections/items) with 400", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(makeVersion({ status: "DRAFT", sections: [] }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ status: "DRAFT", sections: [] }),
+      );
       const service = buildService(prismaMock);
 
       await expect(
@@ -499,11 +580,26 @@ describe("ChecklistTemplatesService", () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
       prismaMock.checklistTemplateVersion.findUnique
-        .mockResolvedValueOnce(makeVersion({ status: "DRAFT", sections: [makeSection({ items: [makeItem()] })] }))
-        .mockResolvedValueOnce(makeVersion({ status: "PUBLISHED", sections: [makeSection({ items: [makeItem()] })] }));
+        .mockResolvedValueOnce(
+          makeVersion({
+            status: "DRAFT",
+            sections: [makeSection({ items: [makeItem()] })],
+          }),
+        )
+        .mockResolvedValueOnce(
+          makeVersion({
+            status: "PUBLISHED",
+            sections: [makeSection({ items: [makeItem()] })],
+          }),
+        );
       const service = buildService(prismaMock);
 
-      const result = await service.publishVersion("NMS/PPU/CL/24", 1, "user-1", "Initial publish");
+      const result = await service.publishVersion(
+        "NMS/PPU/CL/24",
+        1,
+        "user-1",
+        "Initial publish",
+      );
 
       expect(prismaMock.$transaction).toHaveBeenCalled();
       expect(result.status).toBe("PUBLISHED");
@@ -514,7 +610,9 @@ describe("ChecklistTemplatesService", () => {
     it("rejects archiving an already-archived version with 409", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate());
-      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(makeVersion({ status: "ARCHIVED" }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ status: "ARCHIVED" }),
+      );
       const service = buildService(prismaMock);
 
       await expect(service.archiveVersion("NMS/PPU/CL/24", 1)).rejects.toBeInstanceOf(

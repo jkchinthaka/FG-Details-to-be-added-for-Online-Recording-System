@@ -1,4 +1,7 @@
-import type { ChecklistTemplateSummary, ChecklistTemplateVersionDefinition } from "@nelna/shared";
+import type {
+  ChecklistTemplateSummary,
+  ChecklistTemplateVersionDefinition,
+} from "@nelna/shared";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -17,7 +20,10 @@ async function apiFetch<T>(path: string): Promise<T> {
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { credentials: "include" });
   } catch {
-    throw new ChecklistTemplateApiError(0, "Could not reach the server. Check your connection and try again.");
+    throw new ChecklistTemplateApiError(
+      0,
+      "Could not reach the server. Check your connection and try again.",
+    );
   }
 
   if (!response.ok) {
@@ -40,7 +46,9 @@ export function fetchPublishedTemplates(): Promise<ChecklistTemplateSummary[]> {
 }
 
 /** A template's current published version, with full section/item content. */
-export function fetchPublishedVersion(code: string): Promise<ChecklistTemplateVersionDefinition> {
+export function fetchPublishedVersion(
+  code: string,
+): Promise<ChecklistTemplateVersionDefinition> {
   return apiFetch<ChecklistTemplateVersionDefinition>(
     `/checklist-templates/${encodeURIComponent(code)}/published`,
   );
@@ -53,7 +61,9 @@ export function fetchAllTemplates(): Promise<ChecklistTemplateSummary[]> {
 
 /** A template's metadata and version history — requires templates:manage or templates:publish (admin). */
 export function fetchTemplateSummary(code: string): Promise<ChecklistTemplateSummary> {
-  return apiFetch<ChecklistTemplateSummary>(`/checklist-templates/${encodeURIComponent(code)}`);
+  return apiFetch<ChecklistTemplateSummary>(
+    `/checklist-templates/${encodeURIComponent(code)}`,
+  );
 }
 
 /** A specific version by number — drafts require templates:manage or templates:publish. */

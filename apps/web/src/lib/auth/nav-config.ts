@@ -36,8 +36,18 @@ export const NAV_ROLE_MAP: Record<string, UserRole[] | undefined> = {
     "FOOD_SAFETY_TEAM_LEADER",
     "SYSTEM_ADMINISTRATOR",
   ],
-  "/corrective-actions": ["FG_SUPERVISOR", "QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "AUDITOR"],
-  "/reports": ["QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "AUDITOR", "SYSTEM_ADMINISTRATOR"],
+  "/corrective-actions": [
+    "FG_SUPERVISOR",
+    "QA_EXECUTIVE",
+    "FOOD_SAFETY_TEAM_LEADER",
+    "AUDITOR",
+  ],
+  "/reports": [
+    "QA_EXECUTIVE",
+    "FOOD_SAFETY_TEAM_LEADER",
+    "AUDITOR",
+    "SYSTEM_ADMINISTRATOR",
+  ],
   "/admin": ["SYSTEM_ADMINISTRATOR"],
   "/profile": undefined,
 };

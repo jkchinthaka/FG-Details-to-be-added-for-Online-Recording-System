@@ -1,4 +1,9 @@
-import type { ChecklistItemType as SharedChecklistItemType, ChecklistItemDefinition, ChecklistSectionDefinition, ChecklistTemplateVersionDefinition } from "@nelna/shared";
+import type {
+  ChecklistItemType as SharedChecklistItemType,
+  ChecklistItemDefinition,
+  ChecklistSectionDefinition,
+  ChecklistTemplateVersionDefinition,
+} from "@nelna/shared";
 import type { Prisma } from "../../generated/prisma-client";
 
 const versionWithContentInclude = {
@@ -20,7 +25,9 @@ export type VersionWithContent = Prisma.ChecklistTemplateVersionGetPayload<{
 
 export const VERSION_WITH_CONTENT_INCLUDE = versionWithContentInclude;
 
-export function mapVersionToDefinition(version: VersionWithContent): ChecklistTemplateVersionDefinition {
+export function mapVersionToDefinition(
+  version: VersionWithContent,
+): ChecklistTemplateVersionDefinition {
   return {
     id: version.id,
     templateId: version.templateId,

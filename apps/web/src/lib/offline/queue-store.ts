@@ -52,7 +52,8 @@ function openDb(): Promise<IDBDatabase> {
 function idbReq<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
+    request.onerror = () =>
+      reject(request.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -61,7 +62,9 @@ export async function listOfflineQueue(): Promise<OfflineQueueItem[]> {
   const db = await openDb();
   const tx = db.transaction(STORE, "readonly");
   const all = await idbReq(tx.objectStore(STORE).getAll());
-  return (all as OfflineQueueItem[]).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return (all as OfflineQueueItem[]).sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
 }
 
 export async function getOfflineQueueItem(id: string): Promise<OfflineQueueItem | null> {
@@ -106,9 +109,14 @@ export async function enqueueOfflineSubmission(input: {
   const store = tx.objectStore(STORE);
   const existing = (await idbReq(store.getAll())) as OfflineQueueItem[];
   if (existing.length >= OFFLINE_QUEUE_MAX_ENTRIES) {
-    const synced = existing.filter((e) => e.state === "SYNCED").sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+    const synced = existing
+      .filter((e) => e.state === "SYNCED")
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
     if (synced[0]) store.delete(synced[0].id);
-    else throw new Error("Offline queue is full. Resolve or delete failed drafts before adding more.");
+    else
+      throw new Error(
+        "Offline queue is full. Resolve or delete failed drafts before adding more.",
+      );
   }
   store.put(item);
   await new Promise<void>((resolve, reject) => {
@@ -189,6 +197,7 @@ export async function getLastSyncAt(): Promise<string | null> {
   if (typeof indexedDB === "undefined") return null;
   const db = await openDb();
   const tx = db.transaction(META_STORE, "readonly");
-  const row = (await idbReq(tx.objectStore(META_STORE).get("lastSyncAt"))) as { value?: string } | undefined;
+  const row = (await idbReq(tx.objectStore(META_STORE).get("lastSyncAt"))) as
+    { value?: string } | undefined;
   return row?.value ?? null;
 }

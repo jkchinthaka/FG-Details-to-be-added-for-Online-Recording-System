@@ -7,7 +7,12 @@ import { VehiclesController } from "./vehicles.controller";
 import { VehiclesService } from "./vehicles.service";
 
 @Module({
-  controllers: [VehiclesController, AdminVehiclesController, AdminDriversController, AdminTransportersController],
+  controllers: [
+    VehiclesController,
+    AdminVehiclesController,
+    AdminDriversController,
+    AdminTransportersController,
+  ],
   providers: [VehiclesService, AdminFleetService],
   exports: [VehiclesService, AdminFleetService],
 })

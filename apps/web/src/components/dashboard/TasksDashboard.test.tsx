@@ -30,7 +30,9 @@ function mockUser(overrides: Partial<CurrentUser>) {
   });
 }
 
-function mockTasksResource(overrides: Partial<ReturnType<typeof useTodaysTasksModule.useTodaysTasks>>) {
+function mockTasksResource(
+  overrides: Partial<ReturnType<typeof useTodaysTasksModule.useTodaysTasks>>,
+) {
   vi.spyOn(useTodaysTasksModule, "useTodaysTasks").mockReturnValue({
     status: "loading",
     data: null,
@@ -40,11 +42,19 @@ function mockTasksResource(overrides: Partial<ReturnType<typeof useTodaysTasksMo
   } as ReturnType<typeof useTodaysTasksModule.useTodaysTasks>);
 }
 
-function emptyTodaysTasks(overrides: Partial<TodaysTasksResponse> = {}): TodaysTasksResponse {
+function emptyTodaysTasks(
+  overrides: Partial<TodaysTasksResponse> = {},
+): TodaysTasksResponse {
   return {
     generatedAt: "2026-07-14T00:00:00.000Z",
     roles: ["FG_OPERATOR"],
-    summary: { completed: 0, pending: 0, attentionRequired: 0, totalCount: 0, completionPercent: 0 },
+    summary: {
+      completed: 0,
+      pending: 0,
+      attentionRequired: 0,
+      totalCount: 0,
+      completionPercent: 0,
+    },
     tasks: [],
     complianceIndicators: [],
     adminShortcuts: [],
@@ -112,7 +122,14 @@ describe("TasksDashboard", () => {
       status: "success",
       data: emptyTodaysTasks({
         roles: ["FOOD_SAFETY_TEAM_LEADER"],
-        complianceIndicators: [{ id: "verified-today", label: "Verified today", value: "3/5", tone: "information" }],
+        complianceIndicators: [
+          {
+            id: "verified-today",
+            label: "Verified today",
+            value: "3/5",
+            tone: "information",
+          },
+        ],
       }),
     });
 
@@ -130,7 +147,12 @@ describe("TasksDashboard", () => {
       data: emptyTodaysTasks({
         roles: ["SYSTEM_ADMINISTRATOR"],
         adminShortcuts: [
-          { id: "system-status", label: "System status", description: "API and database health", href: "/system-status" },
+          {
+            id: "system-status",
+            label: "System status",
+            description: "API and database health",
+            href: "/system-status",
+          },
         ],
       }),
     });
@@ -146,7 +168,13 @@ describe("TasksDashboard", () => {
     mockTasksResource({
       status: "success",
       data: emptyTodaysTasks({
-        summary: { completed: 0, pending: 1, attentionRequired: 0, totalCount: 1, completionPercent: 0 },
+        summary: {
+          completed: 0,
+          pending: 1,
+          attentionRequired: 0,
+          totalCount: 1,
+          completionPercent: 0,
+        },
         tasks: [
           {
             id: "assignment-1",

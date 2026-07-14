@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ITEM_RULES, type ChecklistItemDefinition, type ChecklistResponseMap } from "./checklist-engine";
+import {
+  DEFAULT_ITEM_RULES,
+  type ChecklistItemDefinition,
+  type ChecklistResponseMap,
+} from "./checklist-engine";
 import {
   computeRecordCounts,
   createCleaningDraftSchema,
@@ -11,7 +15,9 @@ import {
   saveDraftResponsesSchema,
 } from "./inspection-records";
 
-function makeItem(overrides: Partial<ChecklistItemDefinition> = {}): ChecklistItemDefinition {
+function makeItem(
+  overrides: Partial<ChecklistItemDefinition> = {},
+): ChecklistItemDefinition {
   return {
     ...DEFAULT_ITEM_RULES,
     id: overrides.id ?? "item-1",
@@ -32,7 +38,9 @@ describe("formatRecordNumber", () => {
   });
 
   it("uppercases the id suffix", () => {
-    expect(formatRecordNumber("NMS/PPU/CL/24", "2026-07-14", "abc123def")).toBe("NMS/PPU/CL/24/20260714/123DEF");
+    expect(formatRecordNumber("NMS/PPU/CL/24", "2026-07-14", "abc123def")).toBe(
+      "NMS/PPU/CL/24/20260714/123DEF",
+    );
   });
 });
 
@@ -82,32 +90,53 @@ describe("resolveDraftDuplicate", () => {
   });
 
   it("treats an archived existing record as no obstacle to creating a new one", () => {
-    expect(resolveDraftDuplicate({ id: "rec-1", status: "ARCHIVED", createdById: "user-1" }, "user-1")).toEqual({
+    expect(
+      resolveDraftDuplicate(
+        { id: "rec-1", status: "ARCHIVED", createdById: "user-1" },
+        "user-1",
+      ),
+    ).toEqual({
       outcome: "create",
     });
   });
 
   it("resumes the requester's own draft instead of duplicating it", () => {
-    expect(resolveDraftDuplicate({ id: "rec-1", status: "DRAFT", createdById: "user-1" }, "user-1")).toEqual({
+    expect(
+      resolveDraftDuplicate(
+        { id: "rec-1", status: "DRAFT", createdById: "user-1" },
+        "user-1",
+      ),
+    ).toEqual({
       outcome: "resume",
       recordId: "rec-1",
     });
   });
 
   it("resumes the requester's own rejected record (returned-correction workflow)", () => {
-    expect(resolveDraftDuplicate({ id: "rec-1", status: "REJECTED", createdById: "user-1" }, "user-1")).toEqual({
+    expect(
+      resolveDraftDuplicate(
+        { id: "rec-1", status: "REJECTED", createdById: "user-1" },
+        "user-1",
+      ),
+    ).toEqual({
       outcome: "resume",
       recordId: "rec-1",
     });
   });
 
   it("conflicts when another operator owns the active draft", () => {
-    const result = resolveDraftDuplicate({ id: "rec-1", status: "DRAFT", createdById: "someone-else" }, "user-1");
+    const result = resolveDraftDuplicate(
+      { id: "rec-1", status: "DRAFT", createdById: "someone-else" },
+      "user-1",
+    );
     expect(result.outcome).toBe("conflict");
   });
 
   it("conflicts once the record has already been submitted, regardless of owner", () => {
-    const result = resolveDraftDuplicate({ id: "rec-1", status: "SUBMITTED", createdById: "user-1" }, "user-1");
+    const result = resolveDraftDuplicate(
+      { id: "rec-1", status: "SUBMITTED", createdById: "user-1" },
+      "user-1",
+    );
     expect(result.outcome).toBe("conflict");
   });
 });
@@ -138,7 +167,9 @@ describe("computeRecordCounts", () => {
 
 describe("createCleaningDraftSchema", () => {
   it("accepts a bare recordDate", () => {
-    expect(createCleaningDraftSchema.safeParse({ recordDate: "2026-07-14" }).success).toBe(true);
+    expect(
+      createCleaningDraftSchema.safeParse({ recordDate: "2026-07-14" }).success,
+    ).toBe(true);
   });
 
   it("accepts an empty payload — recordDate/shift default server-side to today's date/shift", () => {
@@ -146,7 +177,9 @@ describe("createCleaningDraftSchema", () => {
   });
 
   it("rejects a malformed recordDate", () => {
-    expect(createCleaningDraftSchema.safeParse({ recordDate: "14-07-2026" }).success).toBe(false);
+    expect(
+      createCleaningDraftSchema.safeParse({ recordDate: "14-07-2026" }).success,
+    ).toBe(false);
   });
 });
 
@@ -154,7 +187,11 @@ describe("saveDraftResponsesSchema", () => {
   it("accepts a response map keyed by item id", () => {
     const result = saveDraftResponsesSchema.safeParse({
       responses: {
-        "item-1": { itemId: "item-1", value: { kind: "status", value: "FAIL" }, remark: "Dirty" },
+        "item-1": {
+          itemId: "item-1",
+          value: { kind: "status", value: "FAIL" },
+          remark: "Dirty",
+        },
       },
     });
     expect(result.success).toBe(true);

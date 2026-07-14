@@ -1,5 +1,8 @@
 import { MasterDataService } from "./master-data.service";
-import { MasterDataCodeConflictException, MasterDataNotFoundException } from "./master-data.errors";
+import {
+  MasterDataCodeConflictException,
+  MasterDataNotFoundException,
+} from "./master-data.errors";
 import { Prisma } from "../../generated/prisma-client";
 import type { PrismaService } from "../prisma/prisma.service";
 
@@ -60,10 +63,17 @@ describe("MasterDataService", () => {
 
     it("creates a failure reason when the code is unique", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.failureReason.create.mockResolvedValue({ id: "fr-1", code: "TEMP", label: "Temperature" });
+      prismaMock.failureReason.create.mockResolvedValue({
+        id: "fr-1",
+        code: "TEMP",
+        label: "Temperature",
+      });
       const service = buildService(prismaMock);
 
-      const result = await service.createFailureReason({ code: "TEMP", label: "Temperature" });
+      const result = await service.createFailureReason({
+        code: "TEMP",
+        label: "Temperature",
+      });
       expect(result).toMatchObject({ code: "TEMP" });
     });
   });
@@ -82,8 +92,16 @@ describe("MasterDataService", () => {
 
     it("flips isActive to false instead of deleting the row", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.failureReason.findUnique.mockResolvedValue({ id: "fr-1", code: "TEMP", isActive: true });
-      prismaMock.failureReason.update.mockResolvedValue({ id: "fr-1", code: "TEMP", isActive: false });
+      prismaMock.failureReason.findUnique.mockResolvedValue({
+        id: "fr-1",
+        code: "TEMP",
+        isActive: true,
+      });
+      prismaMock.failureReason.update.mockResolvedValue({
+        id: "fr-1",
+        code: "TEMP",
+        isActive: false,
+      });
       const service = buildService(prismaMock);
 
       const result = await service.setFailureReasonActive("fr-1", false);
@@ -97,8 +115,16 @@ describe("MasterDataService", () => {
 
     it("reactivates an archived row via activate", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.failureReason.findUnique.mockResolvedValue({ id: "fr-1", code: "TEMP", isActive: false });
-      prismaMock.failureReason.update.mockResolvedValue({ id: "fr-1", code: "TEMP", isActive: true });
+      prismaMock.failureReason.findUnique.mockResolvedValue({
+        id: "fr-1",
+        code: "TEMP",
+        isActive: false,
+      });
+      prismaMock.failureReason.update.mockResolvedValue({
+        id: "fr-1",
+        code: "TEMP",
+        isActive: true,
+      });
       const service = buildService(prismaMock);
 
       const result = await service.setFailureReasonActive("fr-1", true);
@@ -118,7 +144,12 @@ describe("MasterDataService", () => {
       const service = buildService(prismaMock);
 
       await expect(
-        service.createTemperatureProfile({ code: "COLD-01", name: "Cold room", minCelsius: -2, maxCelsius: 4 }),
+        service.createTemperatureProfile({
+          code: "COLD-01",
+          name: "Cold room",
+          minCelsius: -2,
+          maxCelsius: 4,
+        }),
       ).rejects.toBeInstanceOf(MasterDataCodeConflictException);
     });
   });
@@ -126,8 +157,15 @@ describe("MasterDataService", () => {
   describe("loading decision policies", () => {
     it("stores whatever config an admin posts, unmodified", async () => {
       const prismaMock = buildPrismaMock();
-      const config = { blockOnCriticalFailure: true, escalateToRole: "FOOD_SAFETY_TEAM_LEADER" };
-      prismaMock.loadingDecisionPolicy.upsert.mockResolvedValue({ key: "default", config, isActive: true });
+      const config = {
+        blockOnCriticalFailure: true,
+        escalateToRole: "FOOD_SAFETY_TEAM_LEADER",
+      };
+      prismaMock.loadingDecisionPolicy.upsert.mockResolvedValue({
+        key: "default",
+        config,
+        isActive: true,
+      });
       const service = buildService(prismaMock);
 
       const result = await service.upsertLoadingDecisionPolicy("default", { config });

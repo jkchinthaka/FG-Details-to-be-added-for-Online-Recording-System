@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 import { WORK_SHIFTS, type WorkShift } from "@nelna/shared";
 
 export class CreateTruckDraftDto {
@@ -12,7 +19,10 @@ export class CreateTruckDraftDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "recordDate must be in YYYY-MM-DD format" })
   recordDate?: string;
 
-  @ApiPropertyOptional({ enum: WORK_SHIFTS, description: "Defaults to the current shift based on server time" })
+  @ApiPropertyOptional({
+    enum: WORK_SHIFTS,
+    description: "Defaults to the current shift based on server time",
+  })
   @IsOptional()
   @IsIn(WORK_SHIFTS)
   shiftCode?: WorkShift;
@@ -24,18 +34,24 @@ export class CreateTruckDraftDto {
   @MaxLength(200)
   areaLabel?: string;
 
-  @ApiPropertyOptional({ description: "Selected vehicle id from the searchable vehicle picker" })
+  @ApiPropertyOptional({
+    description: "Selected vehicle id from the searchable vehicle picker",
+  })
   @IsOptional()
   @IsString()
   vehicleId?: string;
 
-  @ApiPropertyOptional({ description: "Manual fallback — requires the vehicles:manual_entry permission" })
+  @ApiPropertyOptional({
+    description: "Manual fallback — requires the vehicles:manual_entry permission",
+  })
   @IsOptional()
   @IsString()
   @MaxLength(50)
   freezerTruckNumber?: string;
 
-  @ApiPropertyOptional({ description: "Manual fallback — requires the vehicles:manual_entry permission" })
+  @ApiPropertyOptional({
+    description: "Manual fallback — requires the vehicles:manual_entry permission",
+  })
   @IsOptional()
   @IsString()
   @MaxLength(50)
@@ -63,12 +79,16 @@ export class CreateTruckDraftDto {
   @MaxLength(100)
   productCategory?: string;
 
-  @ApiPropertyOptional({ description: "Links the record back to the originating Today's Tasks assignment" })
+  @ApiPropertyOptional({
+    description: "Links the record back to the originating Today's Tasks assignment",
+  })
   @IsOptional()
   @IsString()
   taskAssignmentId?: string;
 
-  @ApiPropertyOptional({ description: "Prior blocked/rejected inspection of the same truck being re-inspected" })
+  @ApiPropertyOptional({
+    description: "Prior blocked/rejected inspection of the same truck being re-inspected",
+  })
   @IsOptional()
   @IsString()
   reinspectionOfRecordId?: string;

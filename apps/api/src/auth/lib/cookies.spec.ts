@@ -20,13 +20,26 @@ describe("setAuthCookies", () => {
     const cookie = jest.fn();
     const response = { cookie } as unknown as Response;
 
-    setAuthCookies(response, config, { accessToken: "access-token", refreshToken: "refresh-token" });
+    setAuthCookies(response, config, {
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+    });
 
     expect(cookie).toHaveBeenCalledTimes(2);
     const accessOptions = cookie.mock.calls[0]?.[2] as CookieOptions;
     const refreshOptions = cookie.mock.calls[1]?.[2] as CookieOptions;
-    expect(accessOptions).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax", path: "/" });
-    expect(refreshOptions).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax", path: "/" });
+    expect(accessOptions).toMatchObject({
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
+    expect(refreshOptions).toMatchObject({
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
     expect(accessOptions.maxAge).toBe(config.accessTokenTtlMs);
     expect(refreshOptions.maxAge).toBe(config.refreshTokenTtlMs);
   });

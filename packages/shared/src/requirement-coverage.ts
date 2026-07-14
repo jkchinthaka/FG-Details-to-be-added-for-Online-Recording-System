@@ -21,33 +21,40 @@ export type RequirementFieldCoverage = {
   notes: string;
 };
 
-const CLEANING_ITEM_FIELDS: RequirementFieldCoverage[] = ALL_CLEANING_ITEMS.map((item) => ({
-  documentCode: "NMS/PPU/CL/24",
-  sourceField: `${item.area === "FINISHED_GOODS" ? "Finished Goods" : "Changing Room"} / ${item.label}`,
-  status: "implemented",
-  systemScreen: "/records/cleaning",
-  uiComponent: "ChecklistRenderer / ChecklistItemCard",
-  apiEndpoint: "POST|PATCH|GET /inspection-records/*",
-  dbModel: "ChecklistItem + InspectionResult",
-  dbField: "item code via seed; InspectionResult.status",
-  validationRule: "Required Acceptable/Unacceptable; fail needs remark/evidence per item rules",
-  testReference: "packages/shared/src/requirement-coverage.test.ts; checklist-engine.test.ts",
-  notes: "Rendered dynamically from published template version NMS/PPU/CL/24.",
-}));
+const CLEANING_ITEM_FIELDS: RequirementFieldCoverage[] = ALL_CLEANING_ITEMS.map(
+  (item) => ({
+    documentCode: "NMS/PPU/CL/24",
+    sourceField: `${item.area === "FINISHED_GOODS" ? "Finished Goods" : "Changing Room"} / ${item.label}`,
+    status: "implemented",
+    systemScreen: "/records/cleaning",
+    uiComponent: "ChecklistRenderer / ChecklistItemCard",
+    apiEndpoint: "POST|PATCH|GET /inspection-records/*",
+    dbModel: "ChecklistItem + InspectionResult",
+    dbField: "item code via seed; InspectionResult.status",
+    validationRule:
+      "Required Acceptable/Unacceptable; fail needs remark/evidence per item rules",
+    testReference:
+      "packages/shared/src/requirement-coverage.test.ts; checklist-engine.test.ts",
+    notes: "Rendered dynamically from published template version NMS/PPU/CL/24.",
+  }),
+);
 
-const TRUCK_ITEM_FIELDS: RequirementFieldCoverage[] = FREEZER_TRUCK_CHECK_ITEMS.map((item) => ({
-  documentCode: "NMS/PPU/CL/30",
-  sourceField: item.label,
-  status: "implemented",
-  systemScreen: "/records/freezer-truck",
-  uiComponent: "FreezerTruckForm / ChecklistRenderer",
-  apiEndpoint: "POST|PATCH|GET /inspection-records/* ; POST .../loading-decision",
-  dbModel: "ChecklistItem + InspectionResult",
-  dbField: "InspectionResult.status",
-  validationRule: "Required Pass/Fail/N/A; critical fail blocks loading",
-  testReference: "truck-inspection.test.ts; FreezerTruckForm.test.tsx",
-  notes: "Door, sealing, freezer unit, smell and contamination exist as seeded operational extras beyond the paper headline list — see OPEN_BUSINESS_DECISIONS.",
-}));
+const TRUCK_ITEM_FIELDS: RequirementFieldCoverage[] = FREEZER_TRUCK_CHECK_ITEMS.map(
+  (item) => ({
+    documentCode: "NMS/PPU/CL/30",
+    sourceField: item.label,
+    status: "implemented",
+    systemScreen: "/records/freezer-truck",
+    uiComponent: "FreezerTruckForm / ChecklistRenderer",
+    apiEndpoint: "POST|PATCH|GET /inspection-records/* ; POST .../loading-decision",
+    dbModel: "ChecklistItem + InspectionResult",
+    dbField: "InspectionResult.status",
+    validationRule: "Required Pass/Fail/N/A; critical fail blocks loading",
+    testReference: "truck-inspection.test.ts; FreezerTruckForm.test.tsx",
+    notes:
+      "Door, sealing, freezer unit, smell and contamination exist as seeded operational extras beyond the paper headline list — see OPEN_BUSINESS_DECISIONS.",
+  }),
+);
 
 export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
   ...CLEANING_ITEM_FIELDS,
@@ -75,7 +82,8 @@ export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
     dbField: "n/a (derived)",
     validationRule: "Derived month label from recordDate",
     testReference: "operational-datetime.test.ts; requirement-coverage.test.ts",
-    notes: "Not a separate DB column — paper “Month” is presentation derived from Date. Confirm with Nelna if a separate auditable month is required.",
+    notes:
+      "Not a separate DB column — paper “Month” is presentation derived from Date. Confirm with Nelna if a separate auditable month is required.",
   },
   {
     documentCode: "NMS/PPU/CL/24",
@@ -101,7 +109,8 @@ export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
     dbField: "checkedById, checkedAt",
     validationRule: "Schema ready; check transition endpoints not implemented",
     testReference: "requirement-coverage.test.ts",
-    notes: "Schema + display hooks exist. Operator-facing Check action awaits Nelna workflow confirmation.",
+    notes:
+      "Schema + display hooks exist. Operator-facing Check action awaits Nelna workflow confirmation.",
   },
   {
     documentCode: "NMS/PPU/CL/24",
@@ -125,7 +134,8 @@ export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
     apiEndpoint: "ChecklistItemResponse.correction",
     dbModel: "InspectionResult",
     dbField: "correction",
-    validationRule: "Optional quick-choice immediate correction; distinct from Corrective Action",
+    validationRule:
+      "Optional quick-choice immediate correction; distinct from Corrective Action",
     testReference: "requirement-coverage.test.ts; FailureDetailPanel",
     notes: "Separate concept from Corrective Action in DB, API and UI labels.",
   },
@@ -140,7 +150,8 @@ export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
     dbField: "correctiveAction / CorrectiveAction.*",
     validationRule: "Required when item.correctiveActionRequiredOnFail",
     testReference: "inspection-records.service.spec.ts",
-    notes: "Currently required for critical cold-room items via seed rules. Whether every failure needs CA is an open Nelna decision.",
+    notes:
+      "Currently required for critical cold-room items via seed rules. Whether every failure needs CA is an open Nelna decision.",
   },
   {
     documentCode: "NMS/PPU/CL/24",
@@ -245,7 +256,8 @@ export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
     dbField: "checkedById",
     validationRule: "Schema ready; Check workflow deferred",
     testReference: "requirement-coverage.test.ts",
-    notes: "Loading decision uses decidedBy separately — not a substitute for Checked By until Nelna confirms.",
+    notes:
+      "Loading decision uses decidedBy separately — not a substitute for Checked By until Nelna confirms.",
   },
   {
     documentCode: "NMS/PPU/CL/30",
@@ -278,7 +290,9 @@ export const REQUIREMENT_FIELD_COVERAGE: RequirementFieldCoverage[] = [
 export function assertAllSourceFieldsCovered(): void {
   const missing = REQUIREMENT_FIELD_COVERAGE.filter((row) => !row.status);
   if (missing.length > 0) {
-    throw new Error(`Unclassified requirement fields: ${missing.map((m) => m.sourceField).join(", ")}`);
+    throw new Error(
+      `Unclassified requirement fields: ${missing.map((m) => m.sourceField).join(", ")}`,
+    );
   }
 }
 
@@ -298,12 +312,13 @@ export function correctionConceptsAreDistinct(): boolean {
     (row) => row.documentCode === "NMS/PPU/CL/24" && row.sourceField === "Correction",
   );
   const corrective = REQUIREMENT_FIELD_COVERAGE.find(
-    (row) => row.documentCode === "NMS/PPU/CL/24" && row.sourceField === "Corrective Action",
+    (row) =>
+      row.documentCode === "NMS/PPU/CL/24" && row.sourceField === "Corrective Action",
   );
   return Boolean(
     correction &&
-      corrective &&
-      correction.dbField !== corrective.dbField &&
-      correction.uiComponent !== corrective.uiComponent,
+    corrective &&
+    correction.dbField !== corrective.dbField &&
+    correction.uiComponent !== corrective.uiComponent,
   );
 }

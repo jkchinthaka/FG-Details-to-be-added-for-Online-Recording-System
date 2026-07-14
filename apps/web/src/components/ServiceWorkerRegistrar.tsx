@@ -37,7 +37,7 @@ export function ServiceWorkerRegistrar() {
   return (
     <div className="fixed inset-x-0 bottom-20 z-[70] flex justify-center px-4 md:bottom-6">
       <div className="flex items-center gap-3 rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-white px-4 py-3 shadow-md">
-        <p className="text-sm text-nelna-primary-dark">A new app version is ready.</p>
+        <p className="text-nelna-primary-dark text-sm">A new app version is ready.</p>
         <Button
           type="button"
           onClick={() => {

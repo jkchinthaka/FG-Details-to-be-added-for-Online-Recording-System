@@ -7,7 +7,14 @@ describe("dashboard api client", () => {
   });
 
   it("fetches and returns the today's-tasks payload on a 200 response", async () => {
-    const payload = { generatedAt: "now", roles: [], summary: {}, tasks: [], complianceIndicators: [], adminShortcuts: [] };
+    const payload = {
+      generatedAt: "now",
+      roles: [],
+      summary: {},
+      tasks: [],
+      complianceIndicators: [],
+      adminShortcuts: [],
+    };
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -27,7 +34,10 @@ describe("dashboard api client", () => {
 
     await fetchRecentRecords(7);
 
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/records/recent?limit=7"), expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/records/recent?limit=7"),
+      expect.anything(),
+    );
   });
 
   it("throws a DashboardApiError with the server's message on a non-OK response", async () => {
@@ -44,10 +54,7 @@ describe("dashboard api client", () => {
   });
 
   it("throws a network-failure DashboardApiError when fetch itself rejects", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
     await expect(fetchTodaysTasks()).rejects.toMatchObject({
       status: 0,

@@ -1,7 +1,11 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ChecklistTemplateVersionDefinition, InspectionRecordDetail, SubmitRecordResult } from "@nelna/shared";
+import type {
+  ChecklistTemplateVersionDefinition,
+  InspectionRecordDetail,
+  SubmitRecordResult,
+} from "@nelna/shared";
 import { DEFAULT_ITEM_RULES } from "@nelna/shared";
 import * as api from "@/lib/inspection-records/api";
 import { InspectionRecordApiError } from "@/lib/inspection-records/api";
@@ -32,8 +36,25 @@ function makeVersion(): ChecklistTemplateVersionDefinition {
         name: "Finished Goods",
         sortOrder: 0,
         items: [
-          { ...DEFAULT_ITEM_RULES, id: "fg_wall", label: "Wall", helpText: null, sortOrder: 0, itemType: "ACCEPTABLE_UNACCEPTABLE_NA", options: [] },
-          { ...DEFAULT_ITEM_RULES, id: "fg_floor", label: "Floor", helpText: null, sortOrder: 1, itemType: "ACCEPTABLE_UNACCEPTABLE_NA", options: [], remarkRequiredOnFail: true },
+          {
+            ...DEFAULT_ITEM_RULES,
+            id: "fg_wall",
+            label: "Wall",
+            helpText: null,
+            sortOrder: 0,
+            itemType: "ACCEPTABLE_UNACCEPTABLE_NA",
+            options: [],
+          },
+          {
+            ...DEFAULT_ITEM_RULES,
+            id: "fg_floor",
+            label: "Floor",
+            helpText: null,
+            sortOrder: 1,
+            itemType: "ACCEPTABLE_UNACCEPTABLE_NA",
+            options: [],
+            remarkRequiredOnFail: true,
+          },
         ],
       },
       {
@@ -41,7 +62,15 @@ function makeVersion(): ChecklistTemplateVersionDefinition {
         name: "Changing Room",
         sortOrder: 1,
         items: [
-          { ...DEFAULT_ITEM_RULES, id: "cr_locker", label: "Locker", helpText: null, sortOrder: 0, itemType: "ACCEPTABLE_UNACCEPTABLE_NA", options: [] },
+          {
+            ...DEFAULT_ITEM_RULES,
+            id: "cr_locker",
+            label: "Locker",
+            helpText: null,
+            sortOrder: 0,
+            itemType: "ACCEPTABLE_UNACCEPTABLE_NA",
+            options: [],
+          },
         ],
       },
     ],
@@ -85,7 +114,9 @@ function makeDetail(overrides: DetailOverrides = {}): InspectionRecordDetail {
   };
 }
 
-function makeSubmitResult(overrides: Partial<SubmitRecordResult> = {}): SubmitRecordResult {
+function makeSubmitResult(
+  overrides: Partial<SubmitRecordResult> = {},
+): SubmitRecordResult {
   return {
     recordId: "record-1",
     documentCode: "NMS/PPU/CL/24",
@@ -110,22 +141,34 @@ describe("InspectionRecordWorkspace — three-click happy path", () => {
 
     render(<InspectionRecordWorkspace assignmentId="assign-1" />);
 
-    await waitFor(() => expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument());
-    expect(api.createCleaningDraft).toHaveBeenCalledWith({ taskAssignmentId: "assign-1" });
-    expect(screen.getByText(/Record #NMS\/PPU\/CL\/24\/20260714\/ABC123/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument(),
+    );
+    expect(api.createCleaningDraft).toHaveBeenCalledWith({
+      taskAssignmentId: "assign-1",
+    });
+    expect(
+      screen.getByText(/Record #NMS\/PPU\/CL\/24\/20260714\/ABC123/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Jane Operator \(EMP-001\)/)).toBeInTheDocument();
 
     // 1st click — Mark All Acceptable.
-    await user.click(screen.getByRole("button", { name: /mark all 3 items acceptable/i }));
+    await user.click(
+      screen.getByRole("button", { name: /mark all 3 items acceptable/i }),
+    );
 
     // 2nd click — Review.
     await user.click(screen.getByRole("button", { name: "Review" }));
     expect(screen.getByText("Review before submitting")).toBeInTheDocument();
 
     // 3rd click — Submit.
-    await user.click(screen.getByRole("button", { name: /submit cleaning verification/i }));
+    await user.click(
+      screen.getByRole("button", { name: /submit cleaning verification/i }),
+    );
 
-    await waitFor(() => expect(screen.getByText("Cleaning verification submitted")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Cleaning verification submitted")).toBeInTheDocument(),
+    );
     expect(api.submitInspectionRecord).toHaveBeenCalledWith(
       "record-1",
       expect.objectContaining({
@@ -135,7 +178,9 @@ describe("InspectionRecordWorkspace — three-click happy path", () => {
       }),
     );
     expect(screen.getByText(/Next up: FG Supervisor review/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /return to today's tasks/i })).toHaveAttribute("href", "/tasks");
+    expect(
+      screen.getByRole("link", { name: /return to today's tasks/i }),
+    ).toHaveAttribute("href", "/tasks");
   });
 });
 
@@ -147,12 +192,16 @@ describe("InspectionRecordWorkspace — required field validation", () => {
 
     render(<InspectionRecordWorkspace />);
 
-    await waitFor(() => expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument(),
+    );
 
     // Skip Mark All Acceptable — go straight to Review with everything unanswered.
     await user.click(screen.getByRole("button", { name: "Review" }));
 
-    const submitButton = screen.getByRole("button", { name: /submit cleaning verification/i });
+    const submitButton = screen.getByRole("button", {
+      name: /submit cleaning verification/i,
+    });
     expect(submitButton).toBeDisabled();
     expect(screen.getByText(/items need attention/i)).toBeInTheDocument();
   });
@@ -163,29 +212,42 @@ describe("InspectionRecordWorkspace — required field validation", () => {
     vi.spyOn(api, "saveInspectionDraft").mockResolvedValue(makeDetail());
 
     render(<InspectionRecordWorkspace />);
-    await waitFor(() => expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument(),
+    );
 
     const floorGroup = screen.getByRole("group", { name: "Floor result" });
     await user.click(within(floorGroup).getByRole("button", { name: "Unacceptable" }));
 
     await user.click(screen.getByRole("button", { name: "Review" }));
 
-    expect(screen.getByRole("button", { name: /describe why "floor" failed/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /submit cleaning verification/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /describe why "floor" failed/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /submit cleaning verification/i }),
+    ).toBeDisabled();
   });
 });
 
 describe("InspectionRecordWorkspace — duplicate prevention", () => {
   it("shows a friendly message and a way back to Today's Tasks on a 409 conflict", async () => {
     vi.spyOn(api, "createCleaningDraft").mockRejectedValue(
-      new InspectionRecordApiError(409, "A record for this date, shift and area is already submitted."),
+      new InspectionRecordApiError(
+        409,
+        "A record for this date, shift and area is already submitted.",
+      ),
     );
 
     render(<InspectionRecordWorkspace />);
 
-    await waitFor(() => expect(screen.getByText("Already in progress")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Already in progress")).toBeInTheDocument(),
+    );
     expect(screen.getByText(/already submitted/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /back to today's tasks/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /back to today's tasks/i }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -200,7 +262,9 @@ describe("InspectionRecordWorkspace — submission locking / read-only detail vi
 
     render(<InspectionRecordWorkspace recordId="record-1" />);
 
-    await waitFor(() => expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument(),
+    );
     expect(api.fetchInspectionRecord).toHaveBeenCalledWith("record-1");
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark all/i })).not.toBeInTheDocument();
@@ -216,15 +280,21 @@ describe("InspectionRecordWorkspace — draft saving", () => {
     const saveSpy = vi.spyOn(api, "saveInspectionDraft").mockResolvedValue(makeDetail());
 
     render(<InspectionRecordWorkspace />);
-    await waitFor(() => expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("Daily Cleaning Verification")).toBeInTheDocument(),
+    );
 
-    await user.click(screen.getByRole("button", { name: /mark all 3 items acceptable/i }));
+    await user.click(
+      screen.getByRole("button", { name: /mark all 3 items acceptable/i }),
+    );
 
     await vi.advanceTimersByTimeAsync(1600);
 
     expect(saveSpy).toHaveBeenCalledWith(
       "record-1",
-      expect.objectContaining({ responses: expect.objectContaining({ fg_wall: expect.anything() }) }),
+      expect.objectContaining({
+        responses: expect.objectContaining({ fg_wall: expect.anything() }),
+      }),
     );
 
     vi.useRealTimers();

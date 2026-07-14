@@ -78,7 +78,10 @@ describe("AuthService", () => {
     process.env = { ...originalEnv };
   });
 
-  const loginDto: LoginDto = { email: "operator@example.local", password: PLAINTEXT_PASSWORD };
+  const loginDto: LoginDto = {
+    email: "operator@example.local",
+    password: PLAINTEXT_PASSWORD,
+  };
 
   describe("login — success", () => {
     it("returns the user profile, roles and permissions and issues tokens on correct credentials", async () => {
@@ -121,9 +124,13 @@ describe("AuthService", () => {
       await service.login(loginDto);
 
       const resetCall = prismaMock.user.update.mock.calls.find(
-        ([args]: [{ data: Record<string, unknown> }]) => "failedLoginAttempts" in args.data,
+        ([args]: [{ data: Record<string, unknown> }]) =>
+          "failedLoginAttempts" in args.data,
       );
-      expect(resetCall?.[0].data).toMatchObject({ failedLoginAttempts: 0, lockedUntil: null });
+      expect(resetCall?.[0].data).toMatchObject({
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      });
 
       const lastLoginCall = prismaMock.user.update.mock.calls.find(
         ([args]: [{ data: Record<string, unknown> }]) => "lastLoginAt" in args.data,
@@ -138,7 +145,9 @@ describe("AuthService", () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       const { service } = buildService(prismaMock);
 
-      await expect(service.login(loginDto)).rejects.toBeInstanceOf(InvalidCredentialsException);
+      await expect(service.login(loginDto)).rejects.toBeInstanceOf(
+        InvalidCredentialsException,
+      );
     });
 
     it("rejects a wrong password with the exact same exception as an unknown email", async () => {
@@ -192,7 +201,9 @@ describe("AuthService", () => {
         service.login({ email: loginDto.email, password: "wrong-password" }),
       ).rejects.toBeInstanceOf(InvalidCredentialsException);
 
-      const call = prismaMock.user.update.mock.calls[0]![0] as { data: { lockedUntil: Date | null } };
+      const call = prismaMock.user.update.mock.calls[0]![0] as {
+        data: { lockedUntil: Date | null };
+      };
       expect(call.data.lockedUntil).toBeInstanceOf(Date);
       expect(call.data.lockedUntil!.getTime()).toBeGreaterThan(Date.now());
     });
@@ -204,17 +215,23 @@ describe("AuthService", () => {
       );
       const { service } = buildService(prismaMock);
 
-      await expect(service.login(loginDto)).rejects.toBeInstanceOf(AccountLockedException);
+      await expect(service.login(loginDto)).rejects.toBeInstanceOf(
+        AccountLockedException,
+      );
     });
   });
 
   describe("login — account status", () => {
     it("rejects an inactive account only after the password has matched, resetting attempt tracking first", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.user.findUnique.mockResolvedValue(buildUser({ status: "INACTIVE", failedLoginAttempts: 2 }));
+      prismaMock.user.findUnique.mockResolvedValue(
+        buildUser({ status: "INACTIVE", failedLoginAttempts: 2 }),
+      );
       const { service } = buildService(prismaMock);
 
-      await expect(service.login(loginDto)).rejects.toBeInstanceOf(AccountInactiveException);
+      await expect(service.login(loginDto)).rejects.toBeInstanceOf(
+        AccountInactiveException,
+      );
       expect(prismaMock.user.update).toHaveBeenCalledWith({
         where: { id: "user-1" },
         data: { failedLoginAttempts: 0, lockedUntil: null },
@@ -227,7 +244,9 @@ describe("AuthService", () => {
       prismaMock.user.findUnique.mockResolvedValue(buildUser({ status: "SUSPENDED" }));
       const { service } = buildService(prismaMock);
 
-      await expect(service.login(loginDto)).rejects.toBeInstanceOf(AccountInactiveException);
+      await expect(service.login(loginDto)).rejects.toBeInstanceOf(
+        AccountInactiveException,
+      );
     });
   });
 
@@ -265,7 +284,9 @@ describe("AuthService", () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       const { service } = buildService(prismaMock);
 
-      await expect(service.getCurrentUser("missing")).rejects.toBeInstanceOf(NotAuthenticatedException);
+      await expect(service.getCurrentUser("missing")).rejects.toBeInstanceOf(
+        NotAuthenticatedException,
+      );
     });
 
     it("throws AccountInactiveException for a deactivated user", async () => {
@@ -273,7 +294,9 @@ describe("AuthService", () => {
       prismaMock.user.findUnique.mockResolvedValue(buildUser({ status: "INACTIVE" }));
       const { service } = buildService(prismaMock);
 
-      await expect(service.getCurrentUser("user-1")).rejects.toBeInstanceOf(AccountInactiveException);
+      await expect(service.getCurrentUser("user-1")).rejects.toBeInstanceOf(
+        AccountInactiveException,
+      );
     });
   });
 
@@ -281,7 +304,9 @@ describe("AuthService", () => {
     it("rejects when no refresh token cookie is present", async () => {
       const prismaMock = buildPrismaMock();
       const { service } = buildService(prismaMock);
-      await expect(service.refresh(undefined)).rejects.toBeInstanceOf(SessionExpiredException);
+      await expect(service.refresh(undefined)).rejects.toBeInstanceOf(
+        SessionExpiredException,
+      );
     });
 
     it("rejects an expired refresh JWT", async () => {
@@ -293,7 +318,9 @@ describe("AuthService", () => {
       );
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      await expect(service.refresh(token)).rejects.toBeInstanceOf(SessionExpiredException);
+      await expect(service.refresh(token)).rejects.toBeInstanceOf(
+        SessionExpiredException,
+      );
     });
 
     it("rejects a refresh token that was already revoked (e.g. reused after logout)", async () => {
@@ -311,7 +338,9 @@ describe("AuthService", () => {
         expiresAt: new Date(Date.now() + 60_000),
       });
 
-      await expect(service.refresh(token)).rejects.toBeInstanceOf(SessionExpiredException);
+      await expect(service.refresh(token)).rejects.toBeInstanceOf(
+        SessionExpiredException,
+      );
     });
 
     it("rejects a refresh token unknown to the database", async () => {
@@ -323,7 +352,9 @@ describe("AuthService", () => {
       );
       prismaMock.refreshToken.findUnique.mockResolvedValue(null);
 
-      await expect(service.refresh(token)).rejects.toBeInstanceOf(SessionExpiredException);
+      await expect(service.refresh(token)).rejects.toBeInstanceOf(
+        SessionExpiredException,
+      );
     });
 
     it("rotates a valid refresh token: revokes the old row and issues a new pair", async () => {
@@ -369,7 +400,9 @@ describe("AuthService", () => {
       });
       prismaMock.user.findUnique.mockResolvedValue(buildUser({ status: "INACTIVE" }));
 
-      await expect(service.refresh(token)).rejects.toBeInstanceOf(AccountInactiveException);
+      await expect(service.refresh(token)).rejects.toBeInstanceOf(
+        AccountInactiveException,
+      );
       expect(prismaMock.refreshToken.update).toHaveBeenCalledWith({
         where: { id: "rt-old" },
         data: { revokedAt: expect.any(Date) },

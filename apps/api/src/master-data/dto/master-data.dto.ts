@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsNumber, IsObject, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import {
+  IsBoolean,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 
 // ---------------------------------------------------------------------------
 // Departments
@@ -12,7 +20,12 @@ export class CreateDepartmentDto {
 }
 
 export class UpdateDepartmentDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) description?: string;
 }
 
@@ -28,7 +41,12 @@ export class CreateSectionDto {
 }
 
 export class UpdateSectionDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() departmentId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) description?: string;
 }
@@ -45,7 +63,12 @@ export class CreateShiftDto {
 }
 
 export class UpdateShiftDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() startTime?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() endTime?: string;
 }
@@ -60,7 +83,12 @@ export class CreateFailureReasonDto {
 }
 
 export class UpdateFailureReasonDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) label?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  label?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +102,12 @@ export class CreateCorrectiveActionCategoryDto {
 }
 
 export class UpdateCorrectiveActionCategoryDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(1000) description?: string;
 }
 
@@ -90,7 +123,12 @@ export class CreateTemperatureProfileDto {
 }
 
 export class UpdateTemperatureProfileDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() minCelsius?: number;
   @ApiPropertyOptional() @IsOptional() @IsNumber() maxCelsius?: number;
 }

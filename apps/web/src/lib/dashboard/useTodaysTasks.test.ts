@@ -9,7 +9,13 @@ describe("useTodaysTasks", () => {
     const payload: TodaysTasksResponse = {
       generatedAt: "2026-07-14T00:00:00.000Z",
       roles: ["FG_OPERATOR"],
-      summary: { completed: 0, pending: 1, attentionRequired: 0, totalCount: 1, completionPercent: 0 },
+      summary: {
+        completed: 0,
+        pending: 1,
+        attentionRequired: 0,
+        totalCount: 1,
+        completionPercent: 0,
+      },
       tasks: [],
       complianceIndicators: [],
       adminShortcuts: [],

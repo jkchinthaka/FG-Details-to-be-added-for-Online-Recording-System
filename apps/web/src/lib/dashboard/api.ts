@@ -15,9 +15,15 @@ export class DashboardApiError extends Error {
 async function apiFetch<T>(path: string): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { credentials: "include", cache: "no-store" });
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
   } catch {
-    throw new DashboardApiError(0, "Could not reach the server. Check your connection and try again.");
+    throw new DashboardApiError(
+      0,
+      "Could not reach the server. Check your connection and try again.",
+    );
   }
 
   if (!response.ok) {
@@ -41,5 +47,7 @@ export function fetchTodaysTasks(): Promise<TodaysTasksResponse> {
 
 /** Compact list of the most recent records visible to the current user. */
 export function fetchRecentRecords(limit = 5): Promise<RecentRecordsResponse> {
-  return apiFetch<RecentRecordsResponse>(`/records/recent?limit=${encodeURIComponent(String(limit))}`);
+  return apiFetch<RecentRecordsResponse>(
+    `/records/recent?limit=${encodeURIComponent(String(limit))}`,
+  );
 }

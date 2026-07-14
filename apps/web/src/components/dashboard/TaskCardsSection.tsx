@@ -29,7 +29,7 @@ export function TaskCardsSection({ tasks }: { tasks: TaskCard[] }) {
         return (
           <div key={bucket}>
             <div className="mb-2 flex items-center gap-2">
-              <h2 className="text-sm font-bold text-nelna-primary-dark">{heading}</h2>
+              <h2 className="text-nelna-primary-dark text-sm font-bold">{heading}</h2>
               <Badge tone={toneForTaskCardBucket(bucket)}>{group.length}</Badge>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

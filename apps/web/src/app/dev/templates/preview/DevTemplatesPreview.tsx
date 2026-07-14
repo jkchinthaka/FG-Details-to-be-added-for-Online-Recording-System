@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ChecklistTemplateSummary, ChecklistTemplateVersionDefinition } from "@nelna/shared";
+import type {
+  ChecklistTemplateSummary,
+  ChecklistTemplateVersionDefinition,
+} from "@nelna/shared";
 import { Alert, Button, EmptyState, LoadingState, PageHeader } from "@nelna/ui";
 import { ChecklistTemplatePreview } from "@/components/ChecklistTemplatePreview";
 import {
@@ -32,7 +35,10 @@ export function DevTemplatesPreview() {
         if (first) setSelectedCode(first.code);
       })
       .catch((error: unknown) => {
-        const message = error instanceof ChecklistTemplateApiError ? error.message : "Failed to load templates.";
+        const message =
+          error instanceof ChecklistTemplateApiError
+            ? error.message
+            : "Failed to load templates.";
         setTemplateState({ status: "error", message });
       });
   }, []);
@@ -45,7 +51,9 @@ export function DevTemplatesPreview() {
       .then(setVersion)
       .catch((error: unknown) => {
         const message =
-          error instanceof ChecklistTemplateApiError ? error.message : "Failed to load this template version.";
+          error instanceof ChecklistTemplateApiError
+            ? error.message
+            : "Failed to load this template version.";
         setVersionError(message);
       });
   }, [selectedCode]);
@@ -58,7 +66,9 @@ export function DevTemplatesPreview() {
         description="Renders a published checklist template version through the shared dynamic checklist engine (packages/ui + packages/shared) — the same components any future form will use."
       />
 
-      {templateState.status === "loading" ? <LoadingState message="Loading published templates…" /> : null}
+      {templateState.status === "loading" ? (
+        <LoadingState message="Loading published templates…" />
+      ) : null}
 
       {templateState.status === "error" ? (
         <Alert tone="danger" title="Could not load templates">
@@ -74,7 +84,11 @@ export function DevTemplatesPreview() {
       ) : null}
 
       {templateState.status === "ready" && templateState.templates.length > 0 ? (
-        <div role="group" aria-label="Select a template" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div
+          role="group"
+          aria-label="Select a template"
+          style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+        >
           {templateState.templates.map((template) => (
             <Button
               key={template.code}
@@ -93,7 +107,9 @@ export function DevTemplatesPreview() {
         </Alert>
       ) : null}
 
-      {!versionError && selectedCode && !version ? <LoadingState message="Loading template…" /> : null}
+      {!versionError && selectedCode && !version ? (
+        <LoadingState message="Loading template…" />
+      ) : null}
 
       {version ? <ChecklistTemplatePreview version={version} /> : null}
     </div>

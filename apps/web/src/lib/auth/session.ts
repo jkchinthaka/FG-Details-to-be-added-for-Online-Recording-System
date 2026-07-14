@@ -15,7 +15,9 @@ export type LoginFormState =
  * login form state that should be rendered. Pure and unit-testable in
  * isolation from any network/React concerns.
  */
-export function loginFormStateForErrorCode(code: AuthErrorCode | "UNKNOWN"): LoginFormState {
+export function loginFormStateForErrorCode(
+  code: AuthErrorCode | "UNKNOWN",
+): LoginFormState {
   switch (code) {
     case "INVALID_CREDENTIALS":
       return "invalid-credentials";
@@ -64,7 +66,8 @@ const DISALLOWED_NEXT_PREFIXES = ["/login", "/unauthorized", "/account-inactive"
 export function resolvePostLoginPath(nextParam: string | null | undefined): string {
   if (!nextParam) return DEFAULT_POST_LOGIN_PATH;
   const trimmed = nextParam.trim();
-  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return DEFAULT_POST_LOGIN_PATH;
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//"))
+    return DEFAULT_POST_LOGIN_PATH;
   if (trimmed.includes("://") || trimmed.includes("\\") || trimmed.includes("@")) {
     return DEFAULT_POST_LOGIN_PATH;
   }
@@ -78,7 +81,9 @@ export function resolvePostLoginPath(nextParam: string | null | undefined): stri
   } catch {
     return DEFAULT_POST_LOGIN_PATH;
   }
-  if (DISALLOWED_NEXT_PREFIXES.some((p) => trimmed === p || trimmed.startsWith(`${p}/`))) {
+  if (
+    DISALLOWED_NEXT_PREFIXES.some((p) => trimmed === p || trimmed.startsWith(`${p}/`))
+  ) {
     return DEFAULT_POST_LOGIN_PATH;
   }
   return trimmed;

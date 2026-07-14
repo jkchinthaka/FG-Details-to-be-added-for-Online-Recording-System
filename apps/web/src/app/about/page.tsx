@@ -9,26 +9,26 @@ export default function AboutPage() {
   return (
     <article className="space-y-4 rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-white/90 p-5">
       <h2
-        className="text-2xl text-nelna-primary-dark"
+        className="text-nelna-primary-dark text-2xl"
         style={{ fontFamily: "var(--nelna-font-display)" }}
       >
         {NELNA_BRAND.productName}
       </h2>
       <p className="leading-relaxed text-[var(--nelna-text-muted)]">
-        Built for Nelna Farm Finished Goods and Quality Assurance teams to
-        replace paper checklists with a low-click, exception-based digital
-        recording workflow on phone and tablet.
+        Built for Nelna Farm Finished Goods and Quality Assurance teams to replace paper
+        checklists with a low-click, exception-based digital recording workflow on phone
+        and tablet.
       </p>
       <dl className="grid gap-3 text-sm">
         <div>
           <dt className="text-[var(--nelna-text-muted)]">Developer</dt>
-          <dd className="font-semibold text-nelna-primary-dark">
+          <dd className="text-nelna-primary-dark font-semibold">
             {NELNA_BRAND.developer}
           </dd>
         </div>
         <div>
           <dt className="text-[var(--nelna-text-muted)]">Reference documents</dt>
-          <dd className="font-semibold text-nelna-primary-dark">
+          <dd className="text-nelna-primary-dark font-semibold">
             NMS/PPU/CL/24 · NMS/PPU/CL/30
           </dd>
         </div>

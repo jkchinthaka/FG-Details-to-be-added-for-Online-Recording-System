@@ -6,7 +6,10 @@ import { RECORD_STATUS_LABELS } from "@nelna/shared";
 import { Alert, Badge, Button, Card, EmptyState, Skeleton } from "@nelna/ui";
 import { useRecentRecords } from "@/lib/dashboard/useRecentRecords";
 
-const STATUS_TONE: Record<RecentRecordSummary["status"], "neutral" | "success" | "warning" | "danger" | "information"> = {
+const STATUS_TONE: Record<
+  RecentRecordSummary["status"],
+  "neutral" | "success" | "warning" | "danger" | "information"
+> = {
   DRAFT: "neutral",
   SUBMITTED: "information",
   PENDING_CHECK: "information",
@@ -29,8 +32,10 @@ export function RecentRecordsSection() {
   return (
     <Card>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-nelna-primary">Recent records</h2>
-        <Link href="/records" className="text-sm font-semibold text-nelna-primary">
+        <h2 className="text-nelna-primary text-sm font-bold uppercase tracking-wide">
+          Recent records
+        </h2>
+        <Link href="/records" className="text-nelna-primary text-sm font-semibold">
           View all
         </Link>
       </div>
@@ -41,14 +46,22 @@ export function RecentRecordsSection() {
         {resource.status === "error" ? (
           <Alert tone="danger" title="Couldn't load recent records">
             <p>{resource.error}</p>
-            <Button variant="secondary" size="md" className="mt-3" onClick={resource.retry}>
+            <Button
+              variant="secondary"
+              size="md"
+              className="mt-3"
+              onClick={resource.retry}
+            >
               Retry
             </Button>
           </Alert>
         ) : null}
 
         {resource.status === "success" && resource.data.records.length === 0 ? (
-          <EmptyState title="No records yet" description="Records you submit or complete will show up here." />
+          <EmptyState
+            title="No records yet"
+            description="Records you submit or complete will show up here."
+          />
         ) : null}
 
         {resource.status === "success" && resource.data.records.length > 0 ? (
@@ -67,12 +80,16 @@ function RecentRecordRow({ record }: { record: RecentRecordSummary }) {
   return (
     <li className="flex items-center justify-between gap-3 rounded-[var(--nelna-radius-sm)] border border-[var(--nelna-border)] px-3 py-2.5">
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-nelna-primary-dark">{record.title}</p>
+        <p className="text-nelna-primary-dark truncate text-sm font-semibold">
+          {record.title}
+        </p>
         <p className="truncate text-xs" style={{ color: "var(--nelna-text-muted)" }}>
           {[record.documentCode, record.areaLabel].filter(Boolean).join(" · ")}
         </p>
       </div>
-      <Badge tone={STATUS_TONE[record.status]}>{RECORD_STATUS_LABELS[record.status]}</Badge>
+      <Badge tone={STATUS_TONE[record.status]}>
+        {RECORD_STATUS_LABELS[record.status]}
+      </Badge>
     </li>
   );
 }

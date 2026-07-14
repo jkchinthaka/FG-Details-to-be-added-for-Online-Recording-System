@@ -22,11 +22,15 @@ export function ProfileView() {
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Your account" title="Profile" description="Your sign-in details, roles and session." />
+      <PageHeader
+        eyebrow="Your account"
+        title="Profile"
+        description="Your sign-in details, roles and session."
+      />
 
       <Card>
         <h2
-          className="text-lg text-nelna-primary-dark"
+          className="text-nelna-primary-dark text-lg"
           style={{ fontFamily: "var(--nelna-font-display)" }}
         >
           {user.fullName}
@@ -36,13 +40,19 @@ export function ProfileView() {
           <ProfileField label="Email" value={user.email ?? "—"} />
           <ProfileField
             label="Last signed in"
-            value={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "This session"}
+            value={
+              user.lastLoginAt
+                ? new Date(user.lastLoginAt).toLocaleString()
+                : "This session"
+            }
           />
           <ProfileField label="Account status" value={user.status} />
         </dl>
 
         <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-nelna-primary">Roles</p>
+          <p className="text-nelna-primary text-xs font-semibold uppercase tracking-wide">
+            Roles
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {user.roles.map((role) => (
               <Badge key={role} tone="primary">
@@ -70,10 +80,13 @@ export function ProfileView() {
 function ProfileField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--nelna-text-muted)" }}>
+      <dt
+        className="text-xs font-semibold uppercase tracking-wide"
+        style={{ color: "var(--nelna-text-muted)" }}
+      >
         {label}
       </dt>
-      <dd className="mt-0.5 text-sm font-semibold text-nelna-primary-dark">{value}</dd>
+      <dd className="text-nelna-primary-dark mt-0.5 text-sm font-semibold">{value}</dd>
     </div>
   );
 }

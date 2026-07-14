@@ -14,7 +14,9 @@ describe("HealthController", () => {
         HealthService,
         {
           provide: PrismaService,
-          useValue: { $queryRaw: jest.fn().mockRejectedValue(new Error("no db in unit test")) },
+          useValue: {
+            $queryRaw: jest.fn().mockRejectedValue(new Error("no db in unit test")),
+          },
         },
       ],
     }).compile();
@@ -62,7 +64,9 @@ describe("HealthController", () => {
     process.env.NODE_ENV = "production";
     process.env.DATABASE_URL = "postgresql://example";
     // Prisma mock rejects → db check "down"
-    await expect(controller.getReady()).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(controller.getReady()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
     process.env.NODE_ENV = previousNode;
     if (previousDb) process.env.DATABASE_URL = previousDb;
     else delete process.env.DATABASE_URL;

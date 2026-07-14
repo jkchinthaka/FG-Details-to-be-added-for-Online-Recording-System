@@ -9,7 +9,10 @@ import { IsObject, IsOptional, IsString, MaxLength, MinLength } from "class-vali
  * shape + service-level business-rule validation.
  */
 export class SaveDraftDto {
-  @ApiProperty({ description: "ChecklistResponseMap — item id -> response", type: Object })
+  @ApiProperty({
+    description: "ChecklistResponseMap — item id -> response",
+    type: Object,
+  })
   @IsObject()
   responses!: Record<string, unknown>;
 

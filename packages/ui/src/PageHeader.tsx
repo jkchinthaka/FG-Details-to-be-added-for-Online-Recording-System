@@ -46,7 +46,9 @@ export function PageHeader({ title, eyebrow, description, actions }: PageHeaderP
           {title}
         </h1>
         {description ? (
-          <p style={{ margin: 0, color: "var(--nelna-text-secondary)", maxWidth: "60ch" }}>
+          <p
+            style={{ margin: 0, color: "var(--nelna-text-secondary)", maxWidth: "60ch" }}
+          >
             {description}
           </p>
         ) : null}

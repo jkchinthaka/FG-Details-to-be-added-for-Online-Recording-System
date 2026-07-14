@@ -1,8 +1,22 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Patch, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Patch,
+  Query,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
 import { AdminFleetService } from "./admin-fleet.service";
-import { CreateVehicleDto, SetVehicleQrDto, UpdateVehicleDto } from "./dto/admin-fleet.dto";
+import {
+  CreateVehicleDto,
+  SetVehicleQrDto,
+  UpdateVehicleDto,
+} from "./dto/admin-fleet.dto";
 
 @ApiTags("admin-vehicles")
 @Controller("admin/vehicles")
@@ -17,13 +31,17 @@ export class AdminVehiclesController {
   }
 
   @Post()
-  @ApiOperation({ summary: "Register a new vehicle (409 on duplicate vehicle/freezer-truck number)" })
+  @ApiOperation({
+    summary: "Register a new vehicle (409 on duplicate vehicle/freezer-truck number)",
+  })
   create(@Body() dto: CreateVehicleDto) {
     return this.fleetService.createVehicle(dto);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update a vehicle's freezer truck number, QR identifier or transporter" })
+  @ApiOperation({
+    summary: "Update a vehicle's freezer truck number, QR identifier or transporter",
+  })
   update(@Param("id") id: string, @Body() dto: UpdateVehicleDto) {
     return this.fleetService.updateVehicle(id, dto);
   }
@@ -49,6 +67,9 @@ export class AdminVehiclesController {
   @Get(":id/inspection-history")
   @ApiOperation({ summary: "Recent freezer-truck inspection history for a vehicle" })
   inspectionHistory(@Param("id") id: string, @Query("limit") limit?: string) {
-    return this.fleetService.vehicleInspectionHistory(id, limit ? Number.parseInt(limit, 10) : undefined);
+    return this.fleetService.vehicleInspectionHistory(
+      id,
+      limit ? Number.parseInt(limit, 10) : undefined,
+    );
   }
 }

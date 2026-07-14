@@ -16,7 +16,9 @@ import {
   type ChecklistSectionDefinition,
 } from "./checklist-engine";
 
-function makeItem(overrides: Partial<ChecklistItemDefinition> = {}): ChecklistItemDefinition {
+function makeItem(
+  overrides: Partial<ChecklistItemDefinition> = {},
+): ChecklistItemDefinition {
   return {
     ...DEFAULT_ITEM_RULES,
     id: overrides.id ?? "item-1",
@@ -29,7 +31,10 @@ function makeItem(overrides: Partial<ChecklistItemDefinition> = {}): ChecklistIt
   };
 }
 
-function makeSection(items: ChecklistItemDefinition[], overrides: Partial<ChecklistSectionDefinition> = {}) {
+function makeSection(
+  items: ChecklistItemDefinition[],
+  overrides: Partial<ChecklistSectionDefinition> = {},
+) {
   return {
     id: overrides.id ?? "section-1",
     name: overrides.name ?? "Section",
@@ -45,57 +50,85 @@ describe("classifyResponseStatus", () => {
   });
 
   it("maps status-type values straight through", () => {
-    expect(classifyResponseStatus("PASS_FAIL_NA", { kind: "status", value: "FAIL" })).toBe("FAIL");
-    expect(classifyResponseStatus("YES_NO_NA", { kind: "status", value: "NOT_APPLICABLE" })).toBe(
-      "NOT_APPLICABLE",
-    );
+    expect(
+      classifyResponseStatus("PASS_FAIL_NA", { kind: "status", value: "FAIL" }),
+    ).toBe("FAIL");
+    expect(
+      classifyResponseStatus("YES_NO_NA", { kind: "status", value: "NOT_APPLICABLE" }),
+    ).toBe("NOT_APPLICABLE");
   });
 
   it("treats blank text as unanswered but non-blank text as answered", () => {
-    expect(classifyResponseStatus("SHORT_TEXT", { kind: "text", value: "   " })).toBe("UNANSWERED");
-    expect(classifyResponseStatus("SHORT_TEXT", { kind: "text", value: "ok" })).toBe("PASS");
+    expect(classifyResponseStatus("SHORT_TEXT", { kind: "text", value: "   " })).toBe(
+      "UNANSWERED",
+    );
+    expect(classifyResponseStatus("SHORT_TEXT", { kind: "text", value: "ok" })).toBe(
+      "PASS",
+    );
   });
 
   it("treats any finite number as answered regardless of range", () => {
-    expect(classifyResponseStatus("TEMPERATURE", { kind: "number", value: -40 })).toBe("PASS");
+    expect(classifyResponseStatus("TEMPERATURE", { kind: "number", value: -40 })).toBe(
+      "PASS",
+    );
   });
 });
 
 describe("isFailureResponse", () => {
   it("flags a FAIL status response as a failure", () => {
     const item = makeItem({ itemType: "PASS_FAIL_NA" });
-    expect(isFailureResponse(item, { itemId: item.id, value: { kind: "status", value: "FAIL" } })).toBe(
-      true,
-    );
+    expect(
+      isFailureResponse(item, {
+        itemId: item.id,
+        value: { kind: "status", value: "FAIL" },
+      }),
+    ).toBe(true);
   });
 
   it("does not flag PASS or N/A status responses as failures", () => {
     const item = makeItem({ itemType: "PASS_FAIL_NA" });
-    expect(isFailureResponse(item, { itemId: item.id, value: { kind: "status", value: "PASS" } })).toBe(
-      false,
-    );
     expect(
-      isFailureResponse(item, { itemId: item.id, value: { kind: "status", value: "NOT_APPLICABLE" } }),
+      isFailureResponse(item, {
+        itemId: item.id,
+        value: { kind: "status", value: "PASS" },
+      }),
+    ).toBe(false);
+    expect(
+      isFailureResponse(item, {
+        itemId: item.id,
+        value: { kind: "status", value: "NOT_APPLICABLE" },
+      }),
     ).toBe(false);
   });
 
   it("flags a numeric reading outside min/max as a failure", () => {
     const item = makeItem({ itemType: "TEMPERATURE", minValue: -25, maxValue: -18 });
-    expect(isFailureResponse(item, { itemId: item.id, value: { kind: "number", value: -10 } })).toBe(true);
-    expect(isFailureResponse(item, { itemId: item.id, value: { kind: "number", value: -20 } })).toBe(false);
+    expect(
+      isFailureResponse(item, { itemId: item.id, value: { kind: "number", value: -10 } }),
+    ).toBe(true);
+    expect(
+      isFailureResponse(item, { itemId: item.id, value: { kind: "number", value: -20 } }),
+    ).toBe(false);
   });
 
   it("never flags free-text/date/select responses as failures", () => {
     const item = makeItem({ itemType: "SHORT_TEXT" });
-    expect(isFailureResponse(item, { itemId: item.id, value: { kind: "text", value: "anything" } })).toBe(
-      false,
-    );
+    expect(
+      isFailureResponse(item, {
+        itemId: item.id,
+        value: { kind: "text", value: "anything" },
+      }),
+    ).toBe(false);
   });
 });
 
 describe("critical failure detection", () => {
   it("surfaces items flagged isCriticalFailure that are currently failing", () => {
-    const criticalItem = makeItem({ id: "critical", itemType: "PASS_FAIL_NA", isCriticalFailure: true });
+    const criticalItem = makeItem({
+      id: "critical",
+      itemType: "PASS_FAIL_NA",
+      isCriticalFailure: true,
+    });
     const normalItem = makeItem({ id: "normal", itemType: "PASS_FAIL_NA" });
     const responses: ChecklistResponseMap = {
       critical: { itemId: "critical", value: { kind: "status", value: "FAIL" } },
@@ -108,7 +141,11 @@ describe("critical failure detection", () => {
   });
 
   it("does not report a critical item as a critical failure while it passes", () => {
-    const criticalItem = makeItem({ id: "critical", itemType: "PASS_FAIL_NA", isCriticalFailure: true });
+    const criticalItem = makeItem({
+      id: "critical",
+      itemType: "PASS_FAIL_NA",
+      isCriticalFailure: true,
+    });
     const responses: ChecklistResponseMap = {
       critical: { itemId: "critical", value: { kind: "status", value: "PASS" } },
     };
@@ -152,7 +189,10 @@ describe("Mark All Acceptable", () => {
       a: { itemId: "a", value: { kind: "status", value: "FAIL" }, remark: "Broken" },
     };
 
-    const { itemIdsToFill, existingFailureItemIds } = previewMarkAllAcceptable(items, responses);
+    const { itemIdsToFill, existingFailureItemIds } = previewMarkAllAcceptable(
+      items,
+      responses,
+    );
     expect(itemIdsToFill).toEqual([]);
     expect(existingFailureItemIds).toEqual(["a"]);
 
@@ -245,14 +285,23 @@ describe("validateChecklistResponses (dynamic validation)", () => {
         value: { kind: "status", value: "FAIL" },
         remark: "Found residue",
         correctiveAction: "Recleaned and reinspected",
-        evidence: [{ id: "e1", url: "data:...", fileName: "photo.jpg", capturedAt: new Date().toISOString() }],
+        evidence: [
+          {
+            id: "e1",
+            url: "data:...",
+            fileName: "photo.jpg",
+            capturedAt: new Date().toISOString(),
+          },
+        ],
       },
     });
     expect(fixed.isValid).toBe(true);
   });
 
   it("flags an out-of-range numeric reading", () => {
-    const items = [makeItem({ id: "temp", itemType: "TEMPERATURE", minValue: -25, maxValue: -18 })];
+    const items = [
+      makeItem({ id: "temp", itemType: "TEMPERATURE", minValue: -25, maxValue: -18 }),
+    ];
     const responses: ChecklistResponseMap = {
       temp: { itemId: "temp", value: { kind: "number", value: 4 } },
     };
@@ -261,7 +310,9 @@ describe("validateChecklistResponses (dynamic validation)", () => {
   });
 
   it("surfaces critical failures alongside ordinary validation errors", () => {
-    const items = [makeItem({ id: "a", itemType: "PASS_FAIL_NA", isCriticalFailure: true })];
+    const items = [
+      makeItem({ id: "a", itemType: "PASS_FAIL_NA", isCriticalFailure: true }),
+    ];
     const responses: ChecklistResponseMap = {
       a: { itemId: "a", value: { kind: "status", value: "FAIL" } },
     };
@@ -283,13 +334,25 @@ describe("progress computation", () => {
       a: { itemId: "a", value: { kind: "status", value: "PASS" } },
     };
 
-    expect(computeSectionProgress(section, responses)).toEqual({ answered: 1, total: 3, percent: 33 });
-    expect(computeOverallProgress([section], responses)).toEqual({ answered: 1, total: 3, percent: 33 });
+    expect(computeSectionProgress(section, responses)).toEqual({
+      answered: 1,
+      total: 3,
+      percent: 33,
+    });
+    expect(computeOverallProgress([section], responses)).toEqual({
+      answered: 1,
+      total: 3,
+      percent: 33,
+    });
   });
 
   it("reports 0% for an empty section without dividing by zero", () => {
     const section = makeSection([]);
-    expect(computeSectionProgress(section, {})).toEqual({ answered: 0, total: 0, percent: 0 });
+    expect(computeSectionProgress(section, {})).toEqual({
+      answered: 0,
+      total: 0,
+      percent: 0,
+    });
   });
 });
 
@@ -314,7 +377,10 @@ describe("addItemSchema", () => {
   });
 
   it("requires at least one option for SINGLE_SELECT items", () => {
-    const parsed = addItemSchema.safeParse({ label: "Pick one", itemType: "SINGLE_SELECT" });
+    const parsed = addItemSchema.safeParse({
+      label: "Pick one",
+      itemType: "SINGLE_SELECT",
+    });
     expect(parsed.success).toBe(false);
   });
 });

@@ -21,7 +21,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { "Content-Type": "application/json", ...init?.headers },
     });
   } catch {
-    throw new AdminApiError(0, "Could not reach the server. Check your connection and try again.");
+    throw new AdminApiError(
+      0,
+      "Could not reach the server. Check your connection and try again.",
+    );
   }
 
   if (!response.ok) {
@@ -41,7 +44,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 function post<T>(path: string, body?: unknown): Promise<T> {
-  return apiFetch<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
+  return apiFetch<T>(path, {
+    method: "POST",
+    body: body ? JSON.stringify(body) : undefined,
+  });
 }
 
 function patch<T>(path: string, body: unknown): Promise<T> {
@@ -87,7 +93,9 @@ export type AdminUserAccessHistoryResponse = {
   }>;
 };
 
-export function fetchUsers(params: { search?: string; status?: string } = {}): Promise<AdminUserListResponse> {
+export function fetchUsers(
+  params: { search?: string; status?: string } = {},
+): Promise<AdminUserListResponse> {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.status) qs.set("status", params.status);
@@ -113,7 +121,10 @@ export function deactivateUser(id: string): Promise<AdminUserSummary> {
   return post(`/admin/users/${id}/deactivate`);
 }
 
-export function assignUserRoles(id: string, roleNames: UserRole[]): Promise<AdminUserSummary> {
+export function assignUserRoles(
+  id: string,
+  roleNames: UserRole[],
+): Promise<AdminUserSummary> {
   return patch(`/admin/users/${id}/roles`, { roleNames });
 }
 
@@ -121,7 +132,9 @@ export function resetUserPassword(id: string): Promise<{ temporaryPassword: stri
   return post(`/admin/users/${id}/reset-password`);
 }
 
-export function fetchUserAccessHistory(id: string): Promise<AdminUserAccessHistoryResponse> {
+export function fetchUserAccessHistory(
+  id: string,
+): Promise<AdminUserAccessHistoryResponse> {
   return apiFetch(`/admin/users/${id}/access-history`);
 }
 
@@ -129,7 +142,13 @@ export function fetchUserAccessHistory(id: string): Promise<AdminUserAccessHisto
 // Vehicles / drivers / transporters
 // ---------------------------------------------------------------------------
 
-export type AdminTransporter = { id: string; name: string; contactPhone: string | null; contactEmail: string | null; isActive: boolean };
+export type AdminTransporter = {
+  id: string;
+  name: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  isActive: boolean;
+};
 
 export type AdminVehicle = {
   id: string;
@@ -167,7 +186,10 @@ export function setVehicleActive(id: string, isActive: boolean): Promise<AdminVe
   return post(`/admin/vehicles/${id}/${isActive ? "activate" : "deactivate"}`);
 }
 
-export function setVehicleQrIdentifier(id: string, qrIdentifier: string): Promise<AdminVehicle> {
+export function setVehicleQrIdentifier(
+  id: string,
+  qrIdentifier: string,
+): Promise<AdminVehicle> {
   return patch(`/admin/vehicles/${id}/qr-identifier`, { qrIdentifier });
 }
 
@@ -213,7 +235,10 @@ export function createAdminTransporter(body: {
   return post("/admin/transporters", body);
 }
 
-export function setTransporterActive(id: string, isActive: boolean): Promise<AdminTransporter> {
+export function setTransporterActive(
+  id: string,
+  isActive: boolean,
+): Promise<AdminTransporter> {
   return post(`/admin/transporters/${id}/${isActive ? "activate" : "deactivate"}`);
 }
 
@@ -255,7 +280,10 @@ export function fetchMasterData(resource: MasterDataResource): Promise<MasterDat
   return apiFetch(`/admin/master-data/${resource}`);
 }
 
-export function createMasterData(resource: MasterDataResource, body: Record<string, unknown>): Promise<MasterDataRow> {
+export function createMasterData(
+  resource: MasterDataResource,
+  body: Record<string, unknown>,
+): Promise<MasterDataRow> {
   return post(`/admin/master-data/${resource}`, body);
 }
 
@@ -264,7 +292,9 @@ export function setMasterDataActive(
   id: string,
   isActive: boolean,
 ): Promise<MasterDataRow> {
-  return post(`/admin/master-data/${resource}/${id}/${isActive ? "activate" : "deactivate"}`);
+  return post(
+    `/admin/master-data/${resource}/${id}/${isActive ? "activate" : "deactivate"}`,
+  );
 }
 
 export function fetchPriorities(): Promise<Array<{ value: string; label: string }>> {
@@ -279,5 +309,8 @@ export function upsertLoadingDecisionPolicy(
   key: string,
   body: { description?: string; config: Record<string, unknown>; isActive?: boolean },
 ): Promise<LoadingDecisionPolicyRow> {
-  return post(`/admin/master-data/loading-decision-policies/${encodeURIComponent(key)}`, body);
+  return post(
+    `/admin/master-data/loading-decision-policies/${encodeURIComponent(key)}`,
+    body,
+  );
 }

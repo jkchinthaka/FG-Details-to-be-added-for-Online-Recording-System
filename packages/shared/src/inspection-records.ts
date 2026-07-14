@@ -14,7 +14,13 @@ import {
   type ChecklistResponseMap,
   type ChecklistTemplateVersionDefinition,
 } from "./checklist-engine";
-import { RECORD_STATUSES, WORK_SHIFTS, type LoadingDecision, type RecordStatus, type WorkShift } from "./records";
+import {
+  RECORD_STATUSES,
+  WORK_SHIFTS,
+  type LoadingDecision,
+  type RecordStatus,
+  type WorkShift,
+} from "./records";
 import type { UserRole } from "./roles";
 import type { TruckInspectionDetailPayload } from "./truck-inspection";
 
@@ -24,7 +30,8 @@ import type { TruckInspectionDetailPayload } from "./truck-inspection";
 
 const YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_EVIDENCE_BYTES = 5 * 1024 * 1024;
-const DATA_URL_IMAGE_PATTERN = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+const DATA_URL_IMAGE_PATTERN =
+  /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 
 /**
  * Evidence is currently persisted as a data URL rather than an object-storage
@@ -36,7 +43,10 @@ const evidenceAttachmentSchema = z.object({
   url: z
     .string()
     .max(Math.ceil((MAX_EVIDENCE_BYTES * 4) / 3) + 128)
-    .regex(DATA_URL_IMAGE_PATTERN, "Evidence must be a base64 JPEG, PNG, or WebP data URL.")
+    .regex(
+      DATA_URL_IMAGE_PATTERN,
+      "Evidence must be a base64 JPEG, PNG, or WebP data URL.",
+    )
     .refine(
       (url) => {
         const base64 = url.slice(url.indexOf(",") + 1);
@@ -51,7 +61,10 @@ const evidenceAttachmentSchema = z.object({
 
 export const createCleaningDraftSchema = z.object({
   /** Calendar date the cleaning verification covers, `YYYY-MM-DD`. Defaults to today. */
-  recordDate: z.string().regex(YYYY_MM_DD, "recordDate must be in YYYY-MM-DD format").optional(),
+  recordDate: z
+    .string()
+    .regex(YYYY_MM_DD, "recordDate must be in YYYY-MM-DD format")
+    .optional(),
   shiftCode: z.enum(WORK_SHIFTS).optional(),
   areaLabel: z.string().trim().min(1).max(200).optional(),
   /** When starting from a "Today's Tasks" card, links the created/resumed
@@ -61,7 +74,10 @@ export const createCleaningDraftSchema = z.object({
 export type CreateCleaningDraftInput = z.infer<typeof createCleaningDraftSchema>;
 
 const checklistItemValueSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("status"), value: z.enum(["PASS", "FAIL", "NOT_APPLICABLE"]) }),
+  z.object({
+    kind: z.literal("status"),
+    value: z.enum(["PASS", "FAIL", "NOT_APPLICABLE"]),
+  }),
   z.object({ kind: z.literal("text"), value: z.string().max(2000) }),
   z.object({ kind: z.literal("number"), value: z.number() }),
   z.object({ kind: z.literal("date"), value: z.string() }),
@@ -84,10 +100,7 @@ export const checklistItemResponseSchema = z.object({
   issueReason: z.string().max(200).optional(),
   correction: z.string().max(200).optional(),
   correctiveAction: z.string().max(2000).optional(),
-  evidence: z
-    .array(evidenceAttachmentSchema)
-    .max(4)
-    .optional(),
+  evidence: z.array(evidenceAttachmentSchema).max(4).optional(),
 });
 
 export const saveDraftResponsesSchema = z.object({
@@ -180,7 +193,11 @@ export type SubmitRecordResult = {
 /** Deterministic, human-readable identifier for a record. Not stored as its
  *  own column — always derivable from `documentCode` + `recordDate` + `id`,
  *  so it can never drift out of sync with the underlying record. */
-export function formatRecordNumber(documentCode: string, recordDate: string, id: string): string {
+export function formatRecordNumber(
+  documentCode: string,
+  recordDate: string,
+  id: string,
+): string {
   const compactDate = recordDate.replace(/-/g, "");
   return `${documentCode}/${compactDate}/${id.slice(-6).toUpperCase()}`;
 }
@@ -188,7 +205,11 @@ export function formatRecordNumber(documentCode: string, recordDate: string, id:
 /** Statuses in which the operator who created the record may still change
  *  responses — see the "submission locks operator editing except the
  *  returned-correction workflow" business rule. */
-const EDITABLE_STATUSES: readonly RecordStatus[] = ["DRAFT", "REJECTED", "RETURNED_FOR_CORRECTION"];
+const EDITABLE_STATUSES: readonly RecordStatus[] = [
+  "DRAFT",
+  "REJECTED",
+  "RETURNED_FOR_CORRECTION",
+];
 export function isRecordEditable(status: RecordStatus): boolean {
   return EDITABLE_STATUSES.includes(status);
 }
@@ -267,7 +288,8 @@ export function resolveDraftDuplicate(
   if (existing.createdById !== requesterId) {
     return {
       outcome: "conflict",
-      reason: "Another operator already has an active record for this date, shift and area.",
+      reason:
+        "Another operator already has an active record for this date, shift and area.",
     };
   }
 

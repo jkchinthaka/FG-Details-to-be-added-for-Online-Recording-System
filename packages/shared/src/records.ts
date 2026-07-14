@@ -142,8 +142,7 @@ export const FREEZER_TRUCK_CHECK_ITEMS = [
   { id: "contamination_evidence", label: "Evidence of contamination" },
 ] as const;
 
-export type FreezerTruckCheckId =
-  (typeof FREEZER_TRUCK_CHECK_ITEMS)[number]["id"];
+export type FreezerTruckCheckId = (typeof FREEZER_TRUCK_CHECK_ITEMS)[number]["id"];
 
 /**
  * Final freezer-truck-before-loading decision vocabulary (mirrors the
@@ -181,7 +180,10 @@ export const LOADING_DECISION_LABELS: Record<LoadingDecision, string> = {
 
 /** Compact tone for badges/status chips, mirroring `RECORD_STATUS_LABELS`'s
  *  sibling usage across the dashboard/detail views. */
-export const LOADING_DECISION_TONES: Record<LoadingDecision, "neutral" | "success" | "warning" | "danger"> = {
+export const LOADING_DECISION_TONES: Record<
+  LoadingDecision,
+  "neutral" | "success" | "warning" | "danger"
+> = {
   PENDING: "neutral",
   APPROVED_FOR_LOADING: "success",
   CONDITIONALLY_APPROVED: "warning",

@@ -60,7 +60,10 @@ export function decideVerifiedMiddlewareAction(
   }
 
   if (!canAccessRoute(pathname, session.user.roles, session.user.permissions)) {
-    return { action: "redirect", url: `/unauthorized?from=${encodeURIComponent(pathname)}` };
+    return {
+      action: "redirect",
+      url: `/unauthorized?from=${encodeURIComponent(pathname)}`,
+    };
   }
 
   return { action: "allow" };

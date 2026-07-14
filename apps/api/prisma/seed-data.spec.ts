@@ -36,8 +36,12 @@ describe("seed-data", () => {
 
     it("returns null when email or password env vars are missing", () => {
       expect(resolveSeedUser(definition, {})).toBeNull();
-      expect(resolveSeedUser(definition, { [definition.emailEnv]: "a@b.com" })).toBeNull();
-      expect(resolveSeedUser(definition, { [definition.passwordEnv]: "password123" })).toBeNull();
+      expect(
+        resolveSeedUser(definition, { [definition.emailEnv]: "a@b.com" }),
+      ).toBeNull();
+      expect(
+        resolveSeedUser(definition, { [definition.passwordEnv]: "password123" }),
+      ).toBeNull();
     });
 
     it("throws when a password is present but too short", () => {
@@ -158,11 +162,15 @@ describe("seed-data", () => {
 
     it("is deterministic for the same instant", () => {
       const now = new Date("2026-07-14T09:00:00.000Z");
-      expect(buildTodaysTaskAssignmentSeeds(now)).toEqual(buildTodaysTaskAssignmentSeeds(now));
+      expect(buildTodaysTaskAssignmentSeeds(now)).toEqual(
+        buildTodaysTaskAssignmentSeeds(now),
+      );
     });
 
     it("assigns every seed the same detected shift", () => {
-      const morning = buildTodaysTaskAssignmentSeeds(new Date("2026-07-14T08:00:00.000Z"));
+      const morning = buildTodaysTaskAssignmentSeeds(
+        new Date("2026-07-14T08:00:00.000Z"),
+      );
       expect(morning.every((seed) => seed.shiftCode === "MORNING")).toBe(true);
     });
   });

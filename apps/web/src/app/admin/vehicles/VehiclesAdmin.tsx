@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, EmptyState, Input, LoadingState, PageHeader } from "@nelna/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  LoadingState,
+  PageHeader,
+} from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   AdminApiError,
@@ -32,14 +41,17 @@ export function VehiclesAdmin() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [qrEdits, setQrEdits] = useState<Record<string, string>>({});
   const [historyFor, setHistoryFor] = useState<string | null>(null);
-  const [history, setHistory] = useState<Awaited<ReturnType<typeof fetchVehicleInspectionHistory>> | null>(null);
+  const [history, setHistory] = useState<Awaited<
+    ReturnType<typeof fetchVehicleInspectionHistory>
+  > | null>(null);
 
   const reload = useCallback(() => {
     setListState({ status: "loading" });
     fetchAdminVehicles()
       .then((vehicles) => setListState({ status: "ready", vehicles }))
       .catch((error: unknown) => {
-        const messageText = error instanceof AdminApiError ? error.message : "Failed to load vehicles.";
+        const messageText =
+          error instanceof AdminApiError ? error.message : "Failed to load vehicles.";
         setListState({ status: "error", message: messageText });
       });
   }, []);
@@ -62,7 +74,9 @@ export function VehiclesAdmin() {
       setForm(EMPTY_FORM);
       reload();
     } catch (error) {
-      setCreateError(error instanceof AdminApiError ? error.message : "Failed to register vehicle.");
+      setCreateError(
+        error instanceof AdminApiError ? error.message : "Failed to register vehicle.",
+      );
     } finally {
       setCreating(false);
     }
@@ -73,7 +87,9 @@ export function VehiclesAdmin() {
     setMessage(null);
     try {
       await setVehicleActive(vehicle.id, vehicle.status !== "ACTIVE");
-      setMessage(`${vehicle.vehicleNumber} ${vehicle.status === "ACTIVE" ? "deactivated" : "activated"}.`);
+      setMessage(
+        `${vehicle.vehicleNumber} ${vehicle.status === "ACTIVE" ? "deactivated" : "activated"}.`,
+      );
       reload();
     } catch (error) {
       setActionError(error instanceof AdminApiError ? error.message : "Action failed.");
@@ -90,7 +106,9 @@ export function VehiclesAdmin() {
       setMessage(`QR identifier updated for ${vehicle.vehicleNumber}.`);
       reload();
     } catch (error) {
-      setActionError(error instanceof AdminApiError ? error.message : "Failed to set QR identifier.");
+      setActionError(
+        error instanceof AdminApiError ? error.message : "Failed to set QR identifier.",
+      );
     }
   }
 
@@ -101,7 +119,11 @@ export function VehiclesAdmin() {
       const rows = await fetchVehicleInspectionHistory(vehicle.id);
       setHistory(rows);
     } catch (error) {
-      setActionError(error instanceof AdminApiError ? error.message : "Failed to load inspection history.");
+      setActionError(
+        error instanceof AdminApiError
+          ? error.message
+          : "Failed to load inspection history.",
+      );
     }
   }
 
@@ -114,7 +136,8 @@ export function VehiclesAdmin() {
       <div style={{ display: "grid", gap: "1.25rem" }}>
         <PageHeader eyebrow="Administration" title="Vehicles" />
         <Alert tone="danger" title="Not authorized">
-          Managing fleet master data requires the &quot;master_data:manage&quot; permission.
+          Managing fleet master data requires the &quot;master_data:manage&quot;
+          permission.
         </Alert>
       </div>
     );
@@ -140,11 +163,23 @@ export function VehiclesAdmin() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+        <h2
+          className="text-nelna-primary-dark text-lg"
+          style={{ fontFamily: "var(--nelna-font-display)" }}
+        >
           Register vehicle
         </h2>
-        <form onSubmit={handleCreate} style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <form
+          onSubmit={handleCreate}
+          style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "0.75rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
             <Input
               label="Vehicle number"
               required
@@ -154,7 +189,9 @@ export function VehiclesAdmin() {
             <Input
               label="Freezer truck number"
               value={form.freezerTruckNumber}
-              onChange={(e) => setForm((f) => ({ ...f, freezerTruckNumber: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, freezerTruckNumber: e.target.value }))
+              }
             />
             <Input
               label="QR identifier"
@@ -175,14 +212,19 @@ export function VehiclesAdmin() {
         </form>
       </Card>
 
-      {listState.status === "loading" ? <LoadingState message="Loading vehicles…" /> : null}
+      {listState.status === "loading" ? (
+        <LoadingState message="Loading vehicles…" />
+      ) : null}
       {listState.status === "error" ? (
         <Alert tone="danger" title="Could not load vehicles">
           {listState.message}
         </Alert>
       ) : null}
       {listState.status === "ready" && listState.vehicles.length === 0 ? (
-        <EmptyState title="No vehicles yet" description="Register the first freezer truck above." />
+        <EmptyState
+          title="No vehicles yet"
+          description="Register the first freezer truck above."
+        />
       ) : null}
 
       {listState.status === "ready" && listState.vehicles.length > 0 ? (
@@ -192,7 +234,9 @@ export function VehiclesAdmin() {
               <thead>
                 <tr>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Vehicle #</th>
-                  <th style={{ textAlign: "left", padding: "0.5rem" }}>Freezer truck #</th>
+                  <th style={{ textAlign: "left", padding: "0.5rem" }}>
+                    Freezer truck #
+                  </th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Transporter</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Status</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>QR identifier</th>
@@ -206,7 +250,9 @@ export function VehiclesAdmin() {
                     <td style={{ padding: "0.5rem" }}>{v.freezerTruckNumber ?? "—"}</td>
                     <td style={{ padding: "0.5rem" }}>{v.transporter?.name ?? "—"}</td>
                     <td style={{ padding: "0.5rem" }}>
-                      <Badge tone={v.status === "ACTIVE" ? "success" : "neutral"}>{v.status}</Badge>
+                      <Badge tone={v.status === "ACTIVE" ? "success" : "neutral"}>
+                        {v.status}
+                      </Badge>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
                       <div style={{ display: "flex", gap: "0.4rem" }}>
@@ -215,7 +261,9 @@ export function VehiclesAdmin() {
                           hideLabel
                           placeholder={v.qrIdentifier ?? "Not set"}
                           value={qrEdits[v.id] ?? ""}
-                          onChange={(e) => setQrEdits((prev) => ({ ...prev, [v.id]: e.target.value }))}
+                          onChange={(e) =>
+                            setQrEdits((prev) => ({ ...prev, [v.id]: e.target.value }))
+                          }
                           style={{ minWidth: "140px" }}
                         />
                         <Button variant="secondary" onClick={() => handleSaveQr(v)}>
@@ -223,7 +271,14 @@ export function VehiclesAdmin() {
                         </Button>
                       </div>
                     </td>
-                    <td style={{ padding: "0.5rem", display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                    <td
+                      style={{
+                        padding: "0.5rem",
+                        display: "flex",
+                        gap: "0.4rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <Button
                         variant={v.status === "ACTIVE" ? "danger" : "secondary"}
                         onClick={() => handleToggleActive(v)}
@@ -244,20 +299,34 @@ export function VehiclesAdmin() {
 
       {historyFor ? (
         <Card>
-          <h2 className="text-lg text-nelna-primary-dark" style={{ fontFamily: "var(--nelna-font-display)" }}>
+          <h2
+            className="text-nelna-primary-dark text-lg"
+            style={{ fontFamily: "var(--nelna-font-display)" }}
+          >
             Inspection history
           </h2>
           {history === null ? <LoadingState message="Loading history…" /> : null}
           {history !== null && history.length === 0 ? (
-            <EmptyState title="No inspections yet" description="This vehicle has no recorded inspections." />
+            <EmptyState
+              title="No inspections yet"
+              description="This vehicle has no recorded inspections."
+            />
           ) : null}
           {history !== null && history.length > 0 ? (
             <ul style={{ marginTop: "0.75rem", display: "grid", gap: "0.5rem" }}>
               {history.map((entry) => (
-                <li key={entry.id} style={{ borderBottom: "1px solid var(--nelna-border)", paddingBottom: "0.5rem" }}>
+                <li
+                  key={entry.id}
+                  style={{
+                    borderBottom: "1px solid var(--nelna-border)",
+                    paddingBottom: "0.5rem",
+                  }}
+                >
                   Record {entry.recordId} — decision: {entry.loadingDecision}
-                  {entry.recommendedDecision ? ` (recommended: ${entry.recommendedDecision})` : ""} —{" "}
-                  {new Date(entry.createdAt).toLocaleString()}
+                  {entry.recommendedDecision
+                    ? ` (recommended: ${entry.recommendedDecision})`
+                    : ""}{" "}
+                  — {new Date(entry.createdAt).toLocaleString()}
                 </li>
               ))}
             </ul>

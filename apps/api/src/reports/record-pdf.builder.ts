@@ -84,8 +84,10 @@ export function buildOfficialRecordPdf(input: OfficialRecordPdfInput): Promise<B
       doc.text(`• ${result.label}: ${result.status}`);
       if (result.issueReason) doc.text(`   Issue: ${result.issueReason}`);
       if (result.correction) doc.text(`   Correction: ${result.correction}`);
-      if (result.correctiveAction) doc.text(`   Corrective Action: ${result.correctiveAction}`);
-      if (result.evidenceCount > 0) doc.text(`   Evidence attachments: ${result.evidenceCount}`);
+      if (result.correctiveAction)
+        doc.text(`   Corrective Action: ${result.correctiveAction}`);
+      if (result.evidenceCount > 0)
+        doc.text(`   Evidence attachments: ${result.evidenceCount}`);
       if (result.caCount > 0) doc.text(`   Linked CA count: ${result.caCount}`);
     }
 
@@ -102,17 +104,23 @@ export function buildOfficialRecordPdf(input: OfficialRecordPdfInput): Promise<B
     }
 
     doc.moveDown(1);
-    doc.fontSize(8).fillColor("#444444").text(input.disclaimer || OFFICIAL_RECORD_APPROVAL_DISCLAIMER);
+    doc
+      .fontSize(8)
+      .fillColor("#444444")
+      .text(input.disclaimer || OFFICIAL_RECORD_APPROVAL_DISCLAIMER);
     doc.text(`Audit-safe record reference: ${input.auditReference}`);
     doc.text(`Generated: ${input.generatedAt}`);
 
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i += 1) {
       doc.switchToPage(i);
-      doc.fontSize(8).fillColor("#666666").text(`Page ${i - range.start + 1} of ${range.count}`, 48, doc.page.height - 36, {
-        align: "center",
-        width: doc.page.width - 96,
-      });
+      doc
+        .fontSize(8)
+        .fillColor("#666666")
+        .text(`Page ${i - range.start + 1} of ${range.count}`, 48, doc.page.height - 36, {
+          align: "center",
+          width: doc.page.width - 96,
+        });
     }
 
     doc.end();

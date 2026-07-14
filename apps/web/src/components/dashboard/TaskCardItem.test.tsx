@@ -37,18 +37,28 @@ describe("TaskCardItem", () => {
 
   it("shows Continue for an in-progress task and Review for a submitted one", () => {
     const { rerender } = render(
-      <TaskCardItem task={makeTask({ status: "IN_PROGRESS", action: "CONTINUE", bucket: "pending" })} />,
+      <TaskCardItem
+        task={makeTask({ status: "IN_PROGRESS", action: "CONTINUE", bucket: "pending" })}
+      />,
     );
     expect(screen.getByText("Continue →")).toBeInTheDocument();
 
-    rerender(<TaskCardItem task={makeTask({ status: "SUBMITTED", action: "REVIEW", bucket: "completed" })} />);
+    rerender(
+      <TaskCardItem
+        task={makeTask({ status: "SUBMITTED", action: "REVIEW", bucket: "completed" })}
+      />,
+    );
     expect(screen.getByText("Review →")).toBeInTheDocument();
   });
 
   it("falls back to the raw template code as a title when the record type is unknown", () => {
     render(
       <TaskCardItem
-        task={makeTask({ title: "NMS/PPU/CL/99", recordType: null, documentCode: "NMS/PPU/CL/99" })}
+        task={makeTask({
+          title: "NMS/PPU/CL/99",
+          recordType: null,
+          documentCode: "NMS/PPU/CL/99",
+        })}
       />,
     );
     expect(screen.getByRole("heading", { name: "NMS/PPU/CL/99" })).toBeInTheDocument();

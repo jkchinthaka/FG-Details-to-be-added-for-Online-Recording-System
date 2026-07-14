@@ -141,9 +141,21 @@ export type VehicleSeed = {
 /** Sample freezer trucks that make the vehicle search/selector usable out
  *  of the box in a fresh dev environment. */
 export const VEHICLE_SEEDS: VehicleSeed[] = [
-  { vehicleNumber: "WP CAB-1234", freezerTruckNumber: "FT-01", transporterName: "Lanka Cold Logistics" },
-  { vehicleNumber: "WP CAC-5678", freezerTruckNumber: "FT-02", transporterName: "Lanka Cold Logistics" },
-  { vehicleNumber: "WP KL-9012", freezerTruckNumber: "FT-03", transporterName: "Nelna Fleet Services" },
+  {
+    vehicleNumber: "WP CAB-1234",
+    freezerTruckNumber: "FT-01",
+    transporterName: "Lanka Cold Logistics",
+  },
+  {
+    vehicleNumber: "WP CAC-5678",
+    freezerTruckNumber: "FT-02",
+    transporterName: "Lanka Cold Logistics",
+  },
+  {
+    vehicleNumber: "WP KL-9012",
+    freezerTruckNumber: "FT-03",
+    transporterName: "Nelna Fleet Services",
+  },
 ];
 
 export type DriverSeed = {
@@ -153,8 +165,16 @@ export type DriverSeed = {
 };
 
 export const DRIVER_SEEDS: DriverSeed[] = [
-  { fullName: "Sunil Perera", licenseNumber: "B1234567", transporterName: "Lanka Cold Logistics" },
-  { fullName: "Kamal Silva", licenseNumber: "B7654321", transporterName: "Nelna Fleet Services" },
+  {
+    fullName: "Sunil Perera",
+    licenseNumber: "B1234567",
+    transporterName: "Lanka Cold Logistics",
+  },
+  {
+    fullName: "Kamal Silva",
+    licenseNumber: "B7654321",
+    transporterName: "Nelna Fleet Services",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -202,7 +222,8 @@ export const DAILY_CLEANING_TEMPLATE_SEED: ChecklistTemplateSeed = {
         remarkRequiredOnFail: true,
         // Cold storage failures directly risk product safety — always critical.
         isCriticalFailure: item.id === "fg_cold_room_1" || item.id === "fg_cold_room_2",
-        correctiveActionRequiredOnFail: item.id === "fg_cold_room_1" || item.id === "fg_cold_room_2",
+        correctiveActionRequiredOnFail:
+          item.id === "fg_cold_room_1" || item.id === "fg_cold_room_2",
       })),
     },
     {
@@ -233,7 +254,8 @@ const FREEZER_TRUCK_CRITICAL_ITEM_IDS: readonly string[] = [
 export const FREEZER_TRUCK_TEMPLATE_SEED: ChecklistTemplateSeed = {
   code: DOCUMENT_CODES.FREEZER_TRUCK,
   title: "Inspection of Freezer Truck Before Loading",
-  description: "Pre-loading inspection checklist for freezer trucks before Finished Goods loading.",
+  description:
+    "Pre-loading inspection checklist for freezer trucks before Finished Goods loading.",
   sections: [
     {
       name: "Truck Check",
@@ -264,7 +286,9 @@ export function totalSeedItemCount(template: ChecklistTemplateSeed): number {
 }
 
 if (totalSeedItemCount(DAILY_CLEANING_TEMPLATE_SEED) !== ALL_CLEANING_ITEMS.length) {
-  throw new Error("Daily cleaning template seed is out of sync with @nelna/shared cleaning items");
+  throw new Error(
+    "Daily cleaning template seed is out of sync with @nelna/shared cleaning items",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -345,7 +369,8 @@ export function resolveSeedUser(
     );
   }
 
-  const employeeCode = env[definition.employeeCodeEnv] ?? defaultEmployeeCode(definition.role);
+  const employeeCode =
+    env[definition.employeeCodeEnv] ?? defaultEmployeeCode(definition.role);
 
   return {
     employeeCode,
@@ -363,9 +388,9 @@ function defaultEmployeeCode(role: UserRole): string {
 export function resolveAllSeedUsers(
   env: Record<string, string | undefined>,
 ): ResolvedSeedUser[] {
-  return SEED_USER_DEFINITIONS.map((definition) => resolveSeedUser(definition, env)).filter(
-    (user): user is ResolvedSeedUser => user !== null,
-  );
+  return SEED_USER_DEFINITIONS.map((definition) =>
+    resolveSeedUser(definition, env),
+  ).filter((user): user is ResolvedSeedUser => user !== null);
 }
 
 // ---------------------------------------------------------------------------

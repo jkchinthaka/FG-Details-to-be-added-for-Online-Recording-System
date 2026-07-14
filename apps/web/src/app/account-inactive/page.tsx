@@ -16,10 +16,13 @@ export default function AccountInactivePage() {
       />
       <Card>
         <p className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
-          Contact your supervisor or System Administrator to restore access. Any drafts saved on this device were
-          not marked as submitted.
+          Contact your supervisor or System Administrator to restore access. Any drafts
+          saved on this device were not marked as submitted.
         </p>
-        <Link href="/login" className="mt-4 inline-block font-semibold text-nelna-primary">
+        <Link
+          href="/login"
+          className="text-nelna-primary mt-4 inline-block font-semibold"
+        >
           Back to sign in →
         </Link>
       </Card>

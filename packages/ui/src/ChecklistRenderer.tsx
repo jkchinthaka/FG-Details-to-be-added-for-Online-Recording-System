@@ -49,15 +49,18 @@ export function ChecklistRenderer({
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const items = useMemo(() => flattenItems(version.sections), [version.sections]);
-  const overallProgress = useMemo(() => computeOverallProgress(version.sections, responses), [
-    version.sections,
-    responses,
-  ]);
-  const markAllPreview = useMemo(() => previewMarkAllAcceptable(items, responses), [items, responses]);
-  const validation = useMemo(() => validateChecklistResponses(version.sections, responses), [
-    version.sections,
-    responses,
-  ]);
+  const overallProgress = useMemo(
+    () => computeOverallProgress(version.sections, responses),
+    [version.sections, responses],
+  );
+  const markAllPreview = useMemo(
+    () => previewMarkAllAcceptable(items, responses),
+    [items, responses],
+  );
+  const validation = useMemo(
+    () => validateChecklistResponses(version.sections, responses),
+    [version.sections, responses],
+  );
   // Inline per-item error hints only appear once the caller opts into showing
   // validation state (e.g. after a submit attempt) — never nag before that.
   const displayedErrors = showValidationSummary ? validation.errors : [];
@@ -93,8 +96,9 @@ export function ChecklistRenderer({
 
       {validation.hasCriticalFailure ? (
         <Alert tone="danger" title="Critical failure detected">
-          {validation.criticalFailureItemIds.length} item{validation.criticalFailureItemIds.length === 1 ? "" : "s"}{" "}
-          flagged as a critical failure. This will require escalation before the record can be closed.
+          {validation.criticalFailureItemIds.length} item
+          {validation.criticalFailureItemIds.length === 1 ? "" : "s"} flagged as a
+          critical failure. This will require escalation before the record can be closed.
         </Alert>
       ) : null}
 
@@ -129,7 +133,11 @@ export function ChecklistRenderer({
 
       {showClearAll ? (
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <ClearAllBar onClearAll={handleClearAll} disabled={disabled} answeredCount={answeredCount} />
+          <ClearAllBar
+            onClearAll={handleClearAll}
+            disabled={disabled}
+            answeredCount={answeredCount}
+          />
         </div>
       ) : null}
     </div>
