@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import type { NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module";
 import { assertProductionEnv } from "./config/validate-production-env";
+import { buildCorsOptions } from "./config/cors-origin";
 
 async function bootstrap() {
   // Fail closed in production before the HTTP listener binds.
@@ -12,8 +13,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
-  const corsOrigin = process.env.API_CORS_ORIGIN ?? "http://localhost:3000";
-  app.enableCors({ origin: corsOrigin, credentials: true });
+  app.enableCors(buildCorsOptions());
 
   app.use((_req: Request, res: Response, next: NextFunction) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -48,8 +48,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/docs", app, document);
 
-  const port = Number(process.env.API_PORT ?? 3001);
-  await app.listen(port);
+  // Render injects PORT; keep API_PORT for local Compose/dev.
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
+  await app.listen(port, "0.0.0.0");
 }
 
 void bootstrap();
