@@ -102,12 +102,14 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 - Do not force-push  
 - Verify lint, typecheck, tests and build before every commit  
 - Push with `git push origin develop`  
-- Promote to `main` only after an evidence-based Go-Live Decision  
+- **Queue rules:** [`docs/QUEUE_CONTROLLER.md`](docs/QUEUE_CONTROLLER.md) — one phase at a time; Prompt 16 = RC on `develop` only; **only Prompt 25** may merge to `main` and tag `v1.0.0`  
+- Promote to `main` only after an evidence-based Go-Live Decision (Prompt 25)  
 
 ## Documentation index
 
 ### Product & domain
 
+- [Master queue controller](docs/QUEUE_CONTROLLER.md)  
 - [Project brief](docs/PROJECT_BRIEF.md)  
 - [Architecture](docs/ARCHITECTURE.md)  
 - [Database design](docs/DATABASE_DESIGN.md)  

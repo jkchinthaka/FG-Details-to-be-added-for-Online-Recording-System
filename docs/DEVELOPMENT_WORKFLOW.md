@@ -1,10 +1,16 @@
 # Development workflow
 
+**Binding queue and release rules:** see [`QUEUE_CONTROLLER.md`](./QUEUE_CONTROLLER.md).
+
 ## Branching
 
 - Active development branch: `develop`
+- Stay on `develop` for all queued phases until Prompt 25 authorizes promotion
+- Prompt 16 prepares a **release candidate** on `develop` only — it must **not** merge to `main` or create/push `v1.0.0`
+- **Only Prompt 25** may merge `develop` → `main`, push `main`, and create/push annotated `v1.0.0` (no duplicate tags)
 - Never force-push to `develop` or `main`
 - Do not use `git reset --hard` unless the project owner explicitly requests it
+- Development phases push only: `git push origin develop`
 
 ## Author configuration (repository-local)
 
