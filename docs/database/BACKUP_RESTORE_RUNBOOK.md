@@ -2,7 +2,8 @@
 
 **Audience:** IT Manager, DBAs, on-call engineers  
 **Database:** PostgreSQL via Prisma (`DATABASE_URL`)  
-**Last reviewed:** 2026-07-14 (Prompt 21)
+**Last reviewed:** 2026-07-14 (Prompt 39)  
+**Latest dynamic restore evidence:** **NOT EXECUTED** — see `RESTORE_TEST_EVIDENCE.md`
 
 ---
 

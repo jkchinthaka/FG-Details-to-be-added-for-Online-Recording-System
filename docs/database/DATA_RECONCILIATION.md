@@ -1,6 +1,10 @@
 # Data Reconciliation — Nelna FG Digital Recording System
 
-**Purpose:** Compare database state before backup and after restore (or between two environments) without relying on anecdote.
+## Prompt 39 status
+
+**RECONCILIATION NOT EXECUTED** — no before/after dumps or empty restore target were available in this session. The procedure below remains the operational checklist.
+
+---
 
 ---
 
