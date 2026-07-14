@@ -194,10 +194,12 @@ async function seedFleet() {
       create: {
         vehicleNumber: vehicle.vehicleNumber,
         freezerTruckNumber: vehicle.freezerTruckNumber,
+        qrIdentifier: `QR-${vehicle.vehicleNumber}`,
         transporterId: transporter?.id,
       },
       update: {
         freezerTruckNumber: vehicle.freezerTruckNumber,
+        qrIdentifier: `QR-${vehicle.vehicleNumber}`,
         transporterId: transporter?.id,
       },
     });

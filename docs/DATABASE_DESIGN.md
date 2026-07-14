@@ -1,8 +1,11 @@
 # Database design
 
-This document describes the Postgres domain model behind the Nelna FG Digital
-Recording System API (`apps/api`), managed with Prisma. It supersedes the
-Phase 1 placeholder schema.
+> **Production provider:** MongoDB Atlas database `fg_online` (Prisma `provider = "mongodb"`).
+> PostgreSQL is **historical only** — see `docs/database/postgresql-migration-archive/` and
+> `docs/database/MONGODB_ATLAS_COMPLETE_MIGRATION.md`.
+
+This document describes the domain model behind the Nelna FG Digital
+Recording System API (`apps/api`), managed with Prisma.
 
 ## Node 24 + Prisma Client loading fix
 
@@ -55,8 +58,8 @@ dependencies (the root `build` script already does this before `nest build`).
 
 Verified: `pnpm --filter @nelna/api build && pnpm --filter @nelna/api start`
 boots Nest with `PrismaModule` imported, and `GET /health` responds
-successfully (reporting `checks.db` as `"down"` when no Postgres is
-reachable, rather than crashing the process).
+successfully (reporting `checks.db` as `"down"` when MongoDB is
+unreachable, rather than crashing the process).
 
 > **Note for Windows/OneDrive-synced checkouts:** if `prisma generate` fails
 > with `EPERM: operation not permitted, rename ... query_engine-windows.dll.node`,
@@ -217,42 +220,31 @@ No foreign key in this schema cascades across more than one aggregate
 boundary, so deleting any single row can never silently wipe out unrelated
 operational history.
 
-## Migration
+## Schema sync (MongoDB)
 
-- `apps/api/prisma/migrations/20260714010000_init_domain_model/migration.sql`
-  is the fresh initial migration for this schema (the old
-  `20260713120000_init` Phase 1 migration was removed — there is no
-  production database yet, so history was reset rather than layering a
-  diff on top of the placeholder schema).
-- Generated with `prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script`,
-  which does **not** require a live database connection — used here because
-  Docker/Postgres was not available in the environment this change was
-  authored in (see "Docker workflow" below). The output was validated against
-  `prisma validate` / `prisma generate` and matches the schema exactly.
-
-## Docker workflow
+Prisma Migrate is **not** used for MongoDB. Historical PostgreSQL SQL migrations
+live under `docs/database/postgresql-migration-archive/` for reference only.
 
 ```bash
-docker compose up -d
-cp apps/api/.env.example apps/api/.env   # if apps/api/.env doesn't exist yet
-pnpm --filter @nelna/api exec prisma migrate deploy
-pnpm --filter @nelna/api exec prisma db seed
+pnpm --filter @nelna/api prisma:generate
+pnpm --filter @nelna/api prisma:validate
+pnpm --filter @nelna/api prisma:push
+pnpm --filter @nelna/api prisma:seed
 ```
 
-`docker-compose.yml` only runs Postgres 16 (`nelna-fg-postgres`, port 5432,
-user/password/db all `nelna`/`nelna`/`nelna_fg`) — the API and web apps run
-directly on the host during local development.
+Production target database name: **`fg_online`**. Automated tests use **`fg_online_test`** only.
 
-> In the environment this change was authored in, the Docker Desktop backend
-> (`dockerd`) was not running (`docker compose up -d` failed with
-> `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`),
-> so the migration/seed commands above could not be executed end-to-end
-> against a live database. The migration SQL was instead generated and
-> validated schema-only (see above), and `prisma validate` / `prisma generate` /
-> a full API boot were verified without Postgres running (`/health` correctly
-> reports `checks.db: "down"` in that case instead of failing). Once Docker
-> is available, run the three commands above to get a fully seeded local
-> database.
+## Local / CI test MongoDB
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+# DATABASE_URL → mongodb://127.0.0.1:27017/fg_online_test?...
+pnpm --filter @nelna/api prisma:push
+pnpm --filter @nelna/api prisma:seed
+```
+
+For Atlas development, copy `apps/api/.env.example` → `apps/api/.env` and set a
+real `DATABASE_URL` targeting `fg_online` (never commit `.env`).
 
 ## Seed data
 

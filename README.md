@@ -30,9 +30,9 @@ Daily cleaning verification and freezer truck inspections are still captured on 
 
 | Layer | Stack |
 | --- | --- |
-| Frontend | Next.js, TypeScript, Tailwind CSS, React Hook Form, Zod |
-| Backend | NestJS, TypeScript, REST, OpenAPI/Swagger |
-| Database | PostgreSQL, Prisma ORM |
+| Frontend | Next.js on Cloudflare Workers (`@opennextjs/cloudflare`), TypeScript, Tailwind CSS |
+| Backend | NestJS on Render, TypeScript, REST, OpenAPI/Swagger |
+| Database | MongoDB Atlas (`fg_online`), Prisma ORM, GridFS bucket `fgEvidence` |
 | Packages | Shared domain types, UI design system, shared config |
 | Tooling | pnpm workspaces, ESLint, Vitest/Jest |
 

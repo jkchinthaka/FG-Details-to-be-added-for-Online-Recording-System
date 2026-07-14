@@ -15,7 +15,7 @@ describe("HealthController", () => {
         {
           provide: PrismaService,
           useValue: {
-            $queryRaw: jest.fn().mockRejectedValue(new Error("no db in unit test")),
+            $runCommandRaw: jest.fn().mockRejectedValue(new Error("no db in unit test")),
           },
         },
       ],

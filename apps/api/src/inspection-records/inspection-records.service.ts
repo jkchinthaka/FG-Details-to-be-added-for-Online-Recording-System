@@ -52,6 +52,7 @@ import {
   type VersionWithContent,
 } from "../checklist-templates/checklist-templates.mappers";
 import { VEHICLE_WITH_TRANSPORTER_INCLUDE } from "../vehicles/vehicles.mappers";
+import { GridFsEvidenceService } from "../evidence/gridfs-evidence.service";
 import type { CreateCleaningDraftDto } from "./dto/create-cleaning-draft.dto";
 import type { CreateTruckDraftDto } from "./dto/create-truck-draft.dto";
 import type { LoadingDecisionDto } from "./dto/loading-decision.dto";
@@ -79,7 +80,9 @@ import type { WorkflowCommentDto } from "./dto/workflow-comment.dto";
 import {
   RECORD_HEADER_INCLUDE,
   RESULT_WITH_ATTACHMENTS_INCLUDE,
+  decodeDataUrlToBuffer,
   estimateDataUrlSizeBytes,
+  isDataUrl,
   parseDataUrlMimeType,
   resultStatusFromNormalized,
   toHeader,
@@ -119,7 +122,10 @@ function hasPermission(user: RequestUser, permission: PermissionKey): boolean {
 export class InspectionRecordsService {
   private readonly logger = new Logger(InspectionRecordsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gridFsEvidence: GridFsEvidenceService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Create / resume draft
@@ -1212,19 +1218,53 @@ export class InspectionRecordsService {
       await this.prisma.inspectionAttachment.deleteMany({
         where: { resultId: result.id },
       });
-      if (response.evidence.length > 0) {
-        await this.prisma.inspectionAttachment.createMany({
-          data: response.evidence.map((photo) => ({
+      for (const photo of response.evidence) {
+        if (isDataUrl(photo.url)) {
+          const buffer = decodeDataUrlToBuffer(photo.url);
+          const uploaded = await this.gridFsEvidence.upload({
+            buffer,
+            originalFileName: photo.fileName,
+            mimeType: parseDataUrlMimeType(photo.url),
+            uploadedById: userId,
             recordId,
             resultId: result.id,
-            kind: "EVIDENCE",
-            fileUrl: photo.url,
-            fileName: photo.fileName,
-            mimeType: parseDataUrlMimeType(photo.url),
-            sizeBytes: estimateDataUrlSizeBytes(photo.url),
-            uploadedById: userId,
-          })),
-        });
+            evidenceType: "EVIDENCE",
+          });
+          const attachment = await this.prisma.inspectionAttachment.create({
+            data: {
+              recordId,
+              resultId: result.id,
+              kind: "EVIDENCE",
+              fileUrl: `gridfs://${uploaded.gridFsFileId}`,
+              fileName: photo.fileName,
+              storedFileName: uploaded.storedFileName,
+              mimeType: uploaded.mimeType,
+              sizeBytes: uploaded.sizeBytes,
+              contentSha256: uploaded.contentSha256,
+              gridFsFileId: uploaded.gridFsFileId,
+              gridFsBucket: uploaded.bucketName,
+              uploadCorrelationId: uploaded.correlationId,
+              uploadedById: userId,
+            },
+          });
+          await this.prisma.inspectionAttachment.update({
+            where: { id: attachment.id },
+            data: { fileUrl: `/evidence/${attachment.id}/download` },
+          });
+        } else {
+          await this.prisma.inspectionAttachment.create({
+            data: {
+              recordId,
+              resultId: result.id,
+              kind: "EVIDENCE",
+              fileUrl: photo.url,
+              fileName: photo.fileName,
+              mimeType: parseDataUrlMimeType(photo.url),
+              sizeBytes: estimateDataUrlSizeBytes(photo.url),
+              uploadedById: userId,
+            },
+          });
+        }
       }
     }
   }

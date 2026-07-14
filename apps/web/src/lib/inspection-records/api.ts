@@ -9,7 +9,7 @@ import type {
   SubmitRecordResult,
 } from "@nelna/shared";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 const API_TIMEOUT_MS = 15_000;
 
 export class InspectionRecordApiError extends Error {

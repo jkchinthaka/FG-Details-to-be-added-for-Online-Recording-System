@@ -32,6 +32,7 @@ npm-debug.log*
 pnpm-debug.log*
 tmp/
 temp/
+.tmp-migration/
 .turbo/
 
 # Prisma

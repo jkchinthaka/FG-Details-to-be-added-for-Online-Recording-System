@@ -92,21 +92,31 @@ export class HealthService {
       return "not_configured";
     }
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
+      // MongoDB-compatible ping (replaces PostgreSQL `SELECT 1`).
+      await this.prisma.$runCommandRaw({ ping: 1 });
       return "up";
     } catch {
       return "down";
     }
   }
 
-  /** Optional local/object mount check — never returns bucket credentials. */
+  /** GridFS/evidence readiness when FILE_STORAGE_PATH is unset — GridFS is the primary store. */
   private async checkStorage(): Promise<StorageCheckStatus> {
     const root = process.env.FILE_STORAGE_PATH?.trim();
-    if (!root) {
+    if (root) {
+      try {
+        await access(root, fsConstants.R_OK | fsConstants.W_OK);
+        return "up";
+      } catch {
+        return "down";
+      }
+    }
+    // GridFS lives in MongoDB — treat DB ping as storage when no file path configured.
+    if (!process.env.DATABASE_URL) {
       return "not_configured";
     }
     try {
-      await access(root, fsConstants.R_OK | fsConstants.W_OK);
+      await this.prisma.$runCommandRaw({ ping: 1 });
       return "up";
     } catch {
       return "down";

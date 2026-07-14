@@ -213,6 +213,13 @@ function buildPrismaMock() {
     inspectionAttachment: {
       deleteMany: jest.fn().mockResolvedValue(undefined),
       createMany: jest.fn().mockResolvedValue(undefined),
+      create: jest
+        .fn()
+        .mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+          id: "att-1",
+          ...data,
+        })),
+      update: jest.fn().mockResolvedValue(undefined),
     },
     correctiveAction: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -244,7 +251,16 @@ function buildPrismaMock() {
 }
 
 function buildService(prismaMock: ReturnType<typeof buildPrismaMock>) {
-  return new InspectionRecordsService(prismaMock as unknown as PrismaService);
+  const gridFsMock = {
+    upload: jest.fn(),
+    ping: jest.fn(),
+    openDownloadStream: jest.fn(),
+    findFileMetadata: jest.fn(),
+  };
+  return new InspectionRecordsService(
+    prismaMock as unknown as PrismaService,
+    gridFsMock as never,
+  );
 }
 
 describe("InspectionRecordsService", () => {

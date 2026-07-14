@@ -11,7 +11,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -179,7 +179,7 @@ enum TaskAssignmentStatus {
 // ---------------------------------------------------------------------------
 
 model User {
-  id           String     @id @default(cuid())
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
   employeeCode String     @unique
   fullName     String
   email        String?    @unique
@@ -195,12 +195,12 @@ model User {
   lockedUntil         DateTime?
   lastLoginAt         DateTime?
 
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  sectionId    String?
-  section      Section?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  departmentId String?    @db.ObjectId
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sectionId    String?    @db.ObjectId
+  section      Section?   @relation(fields: [sectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   userRoles                  UserRole[]
   refreshTokens              RefreshToken[]
@@ -221,10 +221,11 @@ model User {
   taskAssignments            TaskAssignment[]
 
   @@index([status])
+  @@map("users")
 }
 
 model Role {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String   @unique
   description String?
   isSystem    Boolean  @default(false)
@@ -233,56 +234,65 @@ model Role {
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
+
+  @@map("roles")
 }
 
 model Permission {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   key         String   @unique
   description String?
   createdAt   DateTime @default(now())
 
   rolePermissions RolePermission[]
+
+  @@map("permissions")
 }
 
 model UserRole {
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roleId     String
-  role       Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roleId     String   @db.ObjectId
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   assignedAt DateTime @default(now())
 
-  @@id([userId, roleId])
+  @@unique([userId, roleId])
   @@index([roleId])
+  @@map("user_roles")
 }
 
 model RolePermission {
-  roleId       String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permissionId String
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  roleId       String     @db.ObjectId
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  permissionId String     @db.ObjectId
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt    DateTime   @default(now())
 
-  @@id([roleId, permissionId])
+  @@unique([roleId, permissionId])
   @@index([permissionId])
+  @@map("role_permissions")
 }
 
 /**
  * Refresh-token backed sessions (JWT access token + rotating refresh token).
  */
 model RefreshToken {
-  id                String    @id @default(cuid())
-  userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String    @db.ObjectId
+  user              User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   tokenHash         String    @unique
   issuedAt          DateTime  @default(now())
   expiresAt         DateTime
   revokedAt         DateTime?
-  replacedByTokenId String?
+  replacedByTokenId String?   @db.ObjectId
   userAgent         String?
   ipAddress         String?
 
   @@index([userId])
   @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +300,7 @@ model RefreshToken {
 // ---------------------------------------------------------------------------
 
 model Department {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String   @unique
   code        String   @unique
   description String?
@@ -300,12 +310,14 @@ model Department {
 
   sections Section[]
   users    User[]
+
+  @@map("departments")
 }
 
 model Section {
-  id           String     @id @default(cuid())
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  departmentId String     @db.ObjectId
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   name         String
   code         String     @unique
   description  String?
@@ -317,10 +329,11 @@ model Section {
   records InspectionRecord[]
 
   @@unique([departmentId, name])
+  @@map("sections")
 }
 
 model Shift {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique
   code      String   @unique
   startTime String
@@ -331,6 +344,8 @@ model Shift {
 
   records         InspectionRecord[]
   taskAssignments TaskAssignment[]
+
+  @@map("shifts")
 }
 
 // ---------------------------------------------------------------------------
@@ -343,19 +358,21 @@ model Shift {
  * which version is currently published.
  */
 model ChecklistTemplate {
-  id               String                    @id @default(cuid())
+  id               String                    @id @default(auto()) @map("_id") @db.ObjectId
   code             String                    @unique
   title            String
   description      String?
   isActive         Boolean                   @default(true)
-  currentVersionId String?                   @unique
-  currentVersion   ChecklistTemplateVersion? @relation("TemplateCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
-  createdById      String?
-  createdBy        User?                     @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  currentVersionId String?                   @unique @db.ObjectId
+  currentVersion   ChecklistTemplateVersion? @relation("TemplateCurrentVersion", fields: [currentVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdById      String?                   @db.ObjectId
+  createdBy        User?                     @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
 
   versions ChecklistTemplateVersion[] @relation("TemplateVersions")
+
+  @@map("checklist_templates")
 }
 
 /**
@@ -364,14 +381,14 @@ model ChecklistTemplate {
  * the template evolves.
  */
 model ChecklistTemplateVersion {
-  id            String            @id @default(cuid())
-  templateId    String
-  template      ChecklistTemplate @relation("TemplateVersions", fields: [templateId], references: [id], onDelete: Restrict)
+  id            String            @id @default(auto()) @map("_id") @db.ObjectId
+  templateId    String            @db.ObjectId
+  template      ChecklistTemplate @relation("TemplateVersions", fields: [templateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   versionNumber Int
   status        TemplateStatus    @default(DRAFT)
   notes         String?
-  publishedById String?
-  publishedBy   User?             @relation("TemplateVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedById String?           @db.ObjectId
+  publishedBy   User?             @relation("TemplateVersionPublishedBy", fields: [publishedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   publishedAt   DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -382,12 +399,13 @@ model ChecklistTemplateVersion {
 
   @@unique([templateId, versionNumber])
   @@index([templateId, status])
+  @@map("checklist_template_versions")
 }
 
 model ChecklistSection {
-  id                String                   @id @default(cuid())
-  templateVersionId String
-  templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Cascade)
+  id                String                   @id @default(auto()) @map("_id") @db.ObjectId
+  templateVersionId String                   @db.ObjectId
+  templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   name              String
   sortOrder         Int
   createdAt         DateTime                 @default(now())
@@ -396,12 +414,13 @@ model ChecklistSection {
   items ChecklistItem[]
 
   @@unique([templateVersionId, sortOrder])
+  @@map("checklist_sections")
 }
 
 model ChecklistItem {
-  id         String            @id @default(cuid())
-  sectionId  String
-  section    ChecklistSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  id         String            @id @default(auto()) @map("_id") @db.ObjectId
+  sectionId  String            @db.ObjectId
+  section    ChecklistSection  @relation(fields: [sectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   label      String
   helpText   String?
   sortOrder  Int
@@ -437,6 +456,7 @@ model ChecklistItem {
   inspectionResults InspectionResult[]
 
   @@unique([sectionId, sortOrder])
+  @@map("checklist_items")
 }
 
 /**
@@ -445,14 +465,15 @@ model ChecklistItem {
  * Acceptable/Unacceptable/N/A flow.
  */
 model ChecklistItemOption {
-  id        String        @id @default(cuid())
-  itemId    String
-  item      ChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  itemId    String        @db.ObjectId
+  item      ChecklistItem @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   value     String
   label     String
   sortOrder Int           @default(0)
 
   @@unique([itemId, value])
+  @@map("checklist_item_options")
 }
 
 // ---------------------------------------------------------------------------
@@ -465,24 +486,24 @@ model ChecklistItemOption {
  * physically deleted; use `status = ARCHIVED` and `archivedAt`.
  */
 model InspectionRecord {
-  id                String                   @id @default(cuid())
-  templateVersionId String
-  templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  id                String                   @id @default(auto()) @map("_id") @db.ObjectId
+  templateVersionId String                   @db.ObjectId
+  templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documentCode      String
   status            RecordStatus             @default(DRAFT)
-  recordDate        DateTime                 @db.Date
-  shiftId           String?
-  shift             Shift?                   @relation(fields: [shiftId], references: [id], onDelete: SetNull)
-  sectionId         String?
-  section           Section?                 @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  recordDate        DateTime
+  shiftId           String?                  @db.ObjectId
+  shift             Shift?                   @relation(fields: [shiftId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sectionId         String?                  @db.ObjectId
+  section           Section?                 @relation(fields: [sectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   areaLabel         String?
 
-  createdById  String
-  createdBy    User    @relation("RecordCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  checkedById  String?
-  checkedBy    User?   @relation("RecordCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
-  verifiedById String?
-  verifiedBy   User?   @relation("RecordVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  createdById  String  @db.ObjectId
+  createdBy    User    @relation("RecordCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  checkedById  String? @db.ObjectId
+  checkedBy    User?   @relation("RecordCheckedBy", fields: [checkedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedById String? @db.ObjectId
+  verifiedBy   User?   @relation("RecordVerifiedBy", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   /**
    * When this record is a re-inspection (e.g. after a freezer truck was
@@ -490,8 +511,8 @@ model InspectionRecord {
    * points back at the original record so the two stay traceably linked —
    * see the "re-inspection creates traceable history" business rule.
    */
-  reinspectionOfId String?
-  reinspectionOf   InspectionRecord?  @relation("RecordReinspection", fields: [reinspectionOfId], references: [id], onDelete: SetNull)
+  reinspectionOfId String?            @db.ObjectId
+  reinspectionOf   InspectionRecord?  @relation("RecordReinspection", fields: [reinspectionOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reinspections    InspectionRecord[] @relation("RecordReinspection")
 
   submittedAt DateTime?
@@ -507,12 +528,13 @@ model InspectionRecord {
   approvals         ApprovalRecord[]
   correctiveActions CorrectiveAction[]
   truckDetail       TruckInspectionDetail?
-  taskAssignment    TaskAssignment?
+  taskAssignments   TaskAssignment[]
 
   @@index([documentCode, recordDate])
   @@index([status])
   @@index([templateVersionId])
   @@index([reinspectionOfId])
+  @@map("inspection_records")
 }
 
 /**
@@ -529,32 +551,35 @@ model InspectionRecord {
  * flow this links up to in a later phase.
  */
 model TaskAssignment {
-  id           String               @id @default(cuid())
-  assignedToId String
-  assignedTo   User                 @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  id           String               @id @default(auto()) @map("_id") @db.ObjectId
+  assignedToId String               @db.ObjectId
+  assignedTo   User                 @relation(fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   templateCode String
   areaLabel    String
-  shiftId      String?
-  shift        Shift?               @relation(fields: [shiftId], references: [id], onDelete: SetNull)
-  dueDate      DateTime             @db.Date
+  shiftId      String?              @db.ObjectId
+  shift        Shift?               @relation(fields: [shiftId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dueDate      DateTime
   status       TaskAssignmentStatus @default(ASSIGNED)
-  recordId     String?              @unique
-  record       InspectionRecord?    @relation(fields: [recordId], references: [id], onDelete: SetNull)
+  recordId     String?              @db.ObjectId
+  record       InspectionRecord?    @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Idempotent-seeding key: at most one assignment per user/template/day.
+  // recordId uniqueness when linked is enforced in application code (Mongo null unique limitation).
   @@unique([assignedToId, templateCode, dueDate])
   @@index([assignedToId, dueDate])
+  @@index([recordId])
+  @@map("task_assignments")
 }
 
 model InspectionResult {
-  id       String           @id @default(cuid())
-  recordId String
-  record   InspectionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  itemId   String
-  item     ChecklistItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  id       String           @id @default(auto()) @map("_id") @db.ObjectId
+  recordId String           @db.ObjectId
+  record   InspectionRecord @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  itemId   String           @db.ObjectId
+  item     ChecklistItem    @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   status   ResultStatus
 
   /**
@@ -574,25 +599,35 @@ model InspectionResult {
 
   @@unique([recordId, itemId])
   @@index([itemId, status])
+  @@map("inspection_results")
 }
 
 model InspectionAttachment {
-  id           String            @id @default(cuid())
-  recordId     String
-  record       InspectionRecord  @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  resultId     String?
-  result       InspectionResult? @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  kind         AttachmentKind    @default(EVIDENCE)
-  fileUrl      String
-  fileName     String
-  mimeType     String
-  sizeBytes    Int
-  uploadedById String
-  uploadedBy   User              @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
-  uploadedAt   DateTime          @default(now())
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  recordId           String            @db.ObjectId
+  record             InspectionRecord  @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  resultId           String?           @db.ObjectId
+  result             InspectionResult? @relation(fields: [resultId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  kind               AttachmentKind    @default(EVIDENCE)
+  /// Legacy / derived download path — binary lives in GridFS when gridFsFileId is set
+  fileUrl            String
+  fileName           String
+  storedFileName     String?
+  mimeType           String
+  sizeBytes          Int
+  contentSha256      String?
+  gridFsFileId       String?
+  gridFsBucket       String?           @default("fgEvidence")
+  retentionStatus    String            @default("ACTIVE")
+  uploadCorrelationId String?
+  uploadedById       String            @db.ObjectId
+  uploadedBy         User              @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uploadedAt         DateTime          @default(now())
 
   @@index([recordId])
   @@index([resultId])
+  @@index([gridFsFileId])
+  @@map("inspection_attachments")
 }
 
 // ---------------------------------------------------------------------------
@@ -600,7 +635,7 @@ model InspectionAttachment {
 // ---------------------------------------------------------------------------
 
 model Transporter {
-  id           String   @id @default(cuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String   @unique
   contactPhone String?
   contactEmail String?
@@ -608,39 +643,45 @@ model Transporter {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  vehicles          Vehicle[]
-  drivers           Driver[]
-  truckInspections  TruckInspectionDetail[]
+  vehicles         Vehicle[]
+  drivers          Driver[]
+  truckInspections TruckInspectionDetail[]
+
+  @@map("transporters")
 }
 
 model Vehicle {
-  id                 String        @id @default(cuid())
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
   vehicleNumber      String        @unique
   freezerTruckNumber String?       @unique
   /** Optional QR code identifier printed/affixed to the vehicle for
    *  quick lookup at the loading bay — admin-assigned, not auto-generated. */
   qrIdentifier       String?       @unique
   status             VehicleStatus @default(ACTIVE)
-  transporterId      String?
-  transporter        Transporter?  @relation(fields: [transporterId], references: [id], onDelete: SetNull)
+  transporterId      String?       @db.ObjectId
+  transporter        Transporter?  @relation(fields: [transporterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   inspections TruckInspectionDetail[]
+
+  @@map("vehicles")
 }
 
 model Driver {
-  id            String       @id @default(cuid())
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
   fullName      String
   licenseNumber String       @unique
   phone         String?
   isActive      Boolean      @default(true)
-  transporterId String?
-  transporter   Transporter? @relation(fields: [transporterId], references: [id], onDelete: SetNull)
+  transporterId String?      @db.ObjectId
+  transporter   Transporter? @relation(fields: [transporterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
   inspections TruckInspectionDetail[]
+
+  @@map("drivers")
 }
 
 /**
@@ -649,15 +690,15 @@ model Driver {
  * final loading decision.
  */
 model TruckInspectionDetail {
-  id                 String           @id @default(cuid())
-  recordId           String           @unique
-  record             InspectionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  vehicleId          String?
-  vehicle            Vehicle?         @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  driverId           String?
-  driver             Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
-  transporterId      String?
-  transporter        Transporter?     @relation(fields: [transporterId], references: [id], onDelete: SetNull)
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  recordId           String           @unique @db.ObjectId
+  record             InspectionRecord @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicleId          String?          @db.ObjectId
+  vehicle            Vehicle?         @relation(fields: [vehicleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  driverId           String?          @db.ObjectId
+  driver             Driver?          @relation(fields: [driverId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transporterId      String?          @db.ObjectId
+  transporter        Transporter?     @relation(fields: [transporterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   freezerTruckNumber String
   vehicleNumber      String
   /** Paper form “Time” for NMS/PPU/CL/30 — HH:mm in Asia/Colombo, set at
@@ -687,13 +728,15 @@ model TruckInspectionDetail {
    *  a critical-failure recommendation (`LOADING_BLOCKED`) can never be
    *  overridden to an "approved" outcome. */
   loadingDecision LoadingDecisionStatus @default(PENDING)
-  decidedById     String?
-  decidedBy       User?                 @relation("TruckLoadingDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedById     String?               @db.ObjectId
+  decidedBy       User?                 @relation("TruckLoadingDecidedBy", fields: [decidedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   decidedAt       DateTime?
   remarks         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("truck_inspection_details")
 }
 
 // ---------------------------------------------------------------------------
@@ -701,37 +744,38 @@ model TruckInspectionDetail {
 // ---------------------------------------------------------------------------
 
 model ApprovalRecord {
-  id           String           @id @default(cuid())
-  recordId     String
-  record       InspectionRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  recordId     String           @db.ObjectId
+  record       InspectionRecord @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   approvalType ApprovalType
   decision     ApprovalDecision @default(PENDING)
-  decidedById  String?
-  decidedBy    User?            @relation("ApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedById  String?          @db.ObjectId
+  decidedBy    User?            @relation("ApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   decidedAt    DateTime?
   comments     String?
   createdAt    DateTime         @default(now())
 
   @@index([recordId, approvalType])
+  @@map("approval_records")
 }
 
 model CorrectiveAction {
-  id          String                 @id @default(cuid())
-  recordId    String?
-  record      InspectionRecord?      @relation(fields: [recordId], references: [id], onDelete: SetNull)
-  resultId    String?
-  result      InspectionResult?      @relation(fields: [resultId], references: [id], onDelete: SetNull)
+  id          String                 @id @default(auto()) @map("_id") @db.ObjectId
+  recordId    String?                @db.ObjectId
+  record      InspectionRecord?      @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  resultId    String?                @db.ObjectId
+  result      InspectionResult?      @relation(fields: [resultId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   title       String
   description String
   status      CorrectiveActionStatus @default(OPEN)
   priority    Priority               @default(MEDIUM)
 
-  createdById  String
-  createdBy    User    @relation("CorrectiveActionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  assignedToId String?
-  assignedTo   User?   @relation("CorrectiveActionAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  verifiedById String?
-  verifiedBy   User?   @relation("CorrectiveActionVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  createdById  String  @db.ObjectId
+  createdBy    User    @relation("CorrectiveActionCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedToId String? @db.ObjectId
+  assignedTo   User?   @relation("CorrectiveActionAssignee", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedById String? @db.ObjectId
+  verifiedBy   User?   @relation("CorrectiveActionVerifiedBy", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   dueDate     DateTime?
   completedAt DateTime?
@@ -742,27 +786,35 @@ model CorrectiveAction {
 
   evidence CorrectiveActionEvidence[]
 
-  // A result may require at most one automatically-created corrective action.
-  // This also protects the invariant if a submission is retried at the DB layer.
-  @@unique([resultId])
+  // At-most-one CA per result is enforced in application code (Mongo null unique limitation).
+  @@index([resultId])
   @@index([status, priority])
   @@index([assignedToId, status])
+  @@map("corrective_actions")
 }
 
 model CorrectiveActionEvidence {
-  id                 String           @id @default(cuid())
-  correctiveActionId String
-  correctiveAction   CorrectiveAction @relation(fields: [correctiveActionId], references: [id], onDelete: Cascade)
-  fileUrl            String
-  fileName           String
-  mimeType           String
-  sizeBytes          Int
-  notes              String?
-  uploadedById       String
-  uploadedBy         User             @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
-  uploadedAt         DateTime         @default(now())
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  correctiveActionId  String           @db.ObjectId
+  correctiveAction    CorrectiveAction @relation(fields: [correctiveActionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  fileUrl             String
+  fileName            String
+  storedFileName      String?
+  mimeType            String
+  sizeBytes           Int
+  contentSha256       String?
+  gridFsFileId        String?
+  gridFsBucket        String?          @default("fgEvidence")
+  retentionStatus     String           @default("ACTIVE")
+  uploadCorrelationId String?
+  notes               String?
+  uploadedById        String           @db.ObjectId
+  uploadedBy          User             @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uploadedAt          DateTime         @default(now())
 
   @@index([correctiveActionId])
+  @@index([gridFsFileId])
+  @@map("corrective_action_evidence")
 }
 
 // ---------------------------------------------------------------------------
@@ -774,26 +826,30 @@ model CorrectiveActionEvidence {
 // ---------------------------------------------------------------------------
 
 model FailureReason {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   code      String   @unique
   label     String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("failure_reasons")
 }
 
 model CorrectiveActionCategory {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   code        String   @unique
   name        String
   description String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("corrective_action_categories")
 }
 
 model TemperatureProfile {
-  id         String   @id @default(cuid())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   code       String   @unique
   name       String
   minCelsius Float
@@ -801,6 +857,8 @@ model TemperatureProfile {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@map("temperature_profiles")
 }
 
 /**
@@ -811,13 +869,15 @@ model TemperatureProfile {
  * docs/requirements/OPEN_BUSINESS_DECISIONS.md).
  */
 model LoadingDecisionPolicy {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   key         String   @unique
   description String?
   config      Json
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("loading_decision_policies")
 }
 
 // ---------------------------------------------------------------------------
@@ -825,9 +885,9 @@ model LoadingDecisionPolicy {
 // ---------------------------------------------------------------------------
 
 model Notification {
-  id                String           @id @default(cuid())
-  userId            String
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String           @db.ObjectId
+  user              User             @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   type              NotificationType
   title             String
   body              String
@@ -839,12 +899,13 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([createdAt])
+  @@map("notifications")
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  actorId    String?  @db.ObjectId
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   action     String
   entityType String
   entityId   String?
@@ -853,4 +914,5 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@map("audit_logs")
 }

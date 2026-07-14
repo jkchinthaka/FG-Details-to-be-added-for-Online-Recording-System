@@ -1,8 +1,7 @@
 /**
  * Live-database constraint tests. Skipped automatically when DATABASE_URL
- * isn't set or Postgres isn't reachable (e.g. this sandbox has no running
- * Docker daemon) — run these against `docker compose up -d` locally/CI to
- * exercise them for real.
+ * isn't set or MongoDB isn't reachable — run against fg_online_test (never
+ * fg_online) locally/CI to exercise them for real.
  */
 import { PrismaClient } from "../generated/prisma-client";
 
@@ -43,7 +42,7 @@ describeIfDb("checklist template version constraints (requires DATABASE_URL)", (
 
   it("rejects a duplicate version number for the same template", async () => {
     if (!dbReachable) {
-      console.warn("Skipping: Postgres not reachable at DATABASE_URL");
+      console.warn("Skipping: MongoDB not reachable at DATABASE_URL");
       return;
     }
 
@@ -60,7 +59,7 @@ describeIfDb("checklist template version constraints (requires DATABASE_URL)", (
 
   it("allows sequential version numbers for the same template", async () => {
     if (!dbReachable) {
-      console.warn("Skipping: Postgres not reachable at DATABASE_URL");
+      console.warn("Skipping: MongoDB not reachable at DATABASE_URL");
       return;
     }
 

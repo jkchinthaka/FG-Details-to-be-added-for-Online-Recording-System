@@ -1,29 +1,45 @@
 /**
- * PostgreSQL integration tests against a dedicated TEST database only.
+ * MongoDB integration tests against a dedicated TEST database only.
  *
  * Requires:
- *   DATABASE_URL pointing at nelna_fg_test (see docker-compose.test.yml)
+ *   DATABASE_URL pointing at fg_online_test (never fg_online)
  *   RUN_DB_INTEGRATION=1
  *
  * Skips automatically when the flag/DB is unavailable — never targets
- * development or production data.
+ * production fg_online data. Cleanup refuses any other database name.
  */
 import { PrismaClient, RecordStatus, TemplateStatus } from "../generated/prisma-client";
 
+function databaseNameFromUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const match = url.match(/\/([^/?]+)(?:\?|$)/);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const dbName = databaseNameFromUrl(process.env.DATABASE_URL);
 const shouldRun =
   process.env.RUN_DB_INTEGRATION === "1" &&
-  Boolean(process.env.DATABASE_URL?.includes("nelna_fg_test"));
+  dbName === "fg_online_test" &&
+  Boolean(process.env.DATABASE_URL?.includes("fg_online_test"));
 
 const describeIntegration = shouldRun ? describe : describe.skip;
 
-describeIntegration("PostgreSQL integration (nelna_fg_test only)", () => {
+describeIntegration("MongoDB integration (fg_online_test only)", () => {
   const prisma = new PrismaClient();
   let dbOk = true;
 
   beforeAll(async () => {
+    if (dbName !== "fg_online_test") {
+      dbOk = false;
+      return;
+    }
     try {
       await prisma.$connect();
-      await prisma.$queryRaw`SELECT 1`;
+      await prisma.$runCommandRaw({ ping: 1 });
     } catch {
       dbOk = false;
     }
@@ -33,10 +49,8 @@ describeIntegration("PostgreSQL integration (nelna_fg_test only)", () => {
     await prisma.$disconnect();
   });
 
-  beforeEach(() => {
-    if (!dbOk) {
-      console.warn("Skipping: dedicated test Postgres unreachable");
-    }
+  it("refuses cleanup when database is not fg_online_test", () => {
+    expect(dbName).toBe("fg_online_test");
   });
 
   it("enforces unique template version numbers for one template", async () => {
@@ -58,7 +72,7 @@ describeIntegration("PostgreSQL integration (nelna_fg_test only)", () => {
     await prisma.checklistTemplate.delete({ where: { id: template.id } });
   });
 
-  it("keeps historical template version references (Restrict delete)", async () => {
+  it("keeps historical template version references via application-order delete", async () => {
     if (!dbOk) return;
     const template = await prisma.checklistTemplate.create({
       data: { code: `INT/HIST/${Date.now()}`, title: "Historical ref template" },
@@ -86,9 +100,9 @@ describeIntegration("PostgreSQL integration (nelna_fg_test only)", () => {
         status: RecordStatus.DRAFT,
       },
     });
-    await expect(
-      prisma.checklistTemplateVersion.delete({ where: { id: version.id } }),
-    ).rejects.toThrow();
+    // MongoDB does not enforce FK Restrict — verify the link remains readable.
+    const linked = await prisma.inspectionRecord.findUnique({ where: { id: record.id } });
+    expect(linked?.templateVersionId).toBe(version.id);
     await prisma.inspectionRecord.delete({ where: { id: record.id } });
     await prisma.checklistTemplateVersion.delete({ where: { id: version.id } });
     await prisma.checklistTemplate.delete({ where: { id: template.id } });

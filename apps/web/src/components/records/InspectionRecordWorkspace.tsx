@@ -55,7 +55,7 @@ export type InspectionRecordWorkspaceProps = {
 };
 
 const AUTOSAVE_DELAY_MS = 1500;
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 async function downloadOfficialPdf(recordId: string): Promise<void> {
   const response = await fetch(

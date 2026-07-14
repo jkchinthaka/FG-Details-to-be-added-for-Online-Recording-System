@@ -66,6 +66,22 @@ describe("auth cookies", () => {
     expect(accessOptions.sameSite).toBe("lax");
   });
 
+  it("omits Domain for same-origin /api proxy cookies (host-only)", () => {
+    const cookie = jest.fn();
+    const response = { cookie } as unknown as Response;
+
+    setAuthCookies(response, baseConfig, {
+      accessToken: "access",
+      refreshToken: "refresh",
+    });
+
+    const accessOptions = cookie.mock.calls[0]?.[2] as CookieOptions;
+    expect(accessOptions.domain).toBeUndefined();
+    expect(accessOptions.httpOnly).toBe(true);
+    expect(accessOptions.secure).toBe(true);
+    expect(accessOptions.sameSite).toBe("lax");
+  });
+
   it("clears cookies with the same domain options used at set time", () => {
     const clearCookie = jest.fn();
     const response = { clearCookie } as unknown as Response;

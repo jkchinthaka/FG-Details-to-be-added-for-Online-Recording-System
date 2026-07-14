@@ -2,6 +2,10 @@
  * Cloudflare Workers configuration for the Nelna FG web app (OpenNext).
  * Worker name is used for UAT/production variants via Wrangler --env.
  * Do not put secrets here — use Cloudflare dashboard / .dev.vars (gitignored).
+ *
+ * Browser clients call relative `/api` (same-origin proxy). Set Worker secrets:
+ *   - API_INTERNAL_URL = https://<render-api-host>  (never commit the real value)
+ * Do NOT set NEXT_PUBLIC_API_URL to the Render public URL for browser traffic.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -23,7 +27,8 @@
     "enabled": true,
   },
   "vars": {
-    "NEXT_PUBLIC_API_URL": "https://fg-api.nelna.lk",
+    // Same-origin App Router proxy at /api/[...path] → API_INTERNAL_URL
+    "NEXT_PUBLIC_API_URL": "/api",
   },
   "routes": [
     {
@@ -35,7 +40,7 @@
     "uat": {
       "name": "nelna-fg-web-uat",
       "vars": {
-        "NEXT_PUBLIC_API_URL": "https://fg-api-uat.nelna.lk",
+        "NEXT_PUBLIC_API_URL": "/api",
       },
       "services": [
         {

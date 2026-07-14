@@ -3,6 +3,7 @@ import {
   collectProductionEnvIssues,
   extractMongoDatabaseName,
   isMongoConnectionUrl,
+  isSameOriginCookieMode,
   type ProductionEnvIssue,
 } from "./validate-production-env";
 import {
@@ -22,10 +23,17 @@ describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
     API_CORS_ORIGIN: "https://fg.nelna.lk",
     COOKIE_SECURE: "true",
     COOKIE_DOMAIN: ".nelna.lk",
+    NELNA_COOKIE_MODE: "cross_subdomain",
     ACCESS_TOKEN_TTL: "15m",
     REFRESH_TOKEN_TTL: "7d",
     APP_VERSION: "1.0.0",
     APP_BUILD_ID: "abc1234",
+  } satisfies NodeJS.ProcessEnv;
+
+  const sameOriginProduction = {
+    ...completeProduction,
+    NELNA_COOKIE_MODE: "same_origin",
+    COOKIE_DOMAIN: "",
   } satisfies NodeJS.ProcessEnv;
 
   it("allows incomplete env outside production", () => {
@@ -42,17 +50,29 @@ describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
         "JWT_REFRESH_SECRET",
         "API_CORS_ORIGIN",
         "COOKIE_SECURE",
-        "COOKIE_DOMAIN",
         "ACCESS_TOKEN_TTL",
         "REFRESH_TOKEN_TTL",
         "APP_VERSION",
         "APP_BUILD_ID",
       ]),
     );
+    // Same-origin proxy is the default when COOKIE_DOMAIN is unset — not an error.
+    expect(vars).not.toContain("COOKIE_DOMAIN");
   });
 
-  it("passes a complete production env for fg.nelna.lk", () => {
+  it("passes a complete production env for fg.nelna.lk (cross-subdomain)", () => {
     expect(collectProductionEnvIssues(completeProduction)).toEqual([]);
+  });
+
+  it("passes same-origin proxy production with empty COOKIE_DOMAIN", () => {
+    expect(collectProductionEnvIssues(sameOriginProduction)).toEqual([]);
+    expect(
+      collectProductionEnvIssues({
+        ...completeProduction,
+        COOKIE_DOMAIN: undefined,
+        NELNA_COOKIE_MODE: undefined,
+      }),
+    ).toEqual([]);
   });
 
   it("requires API_CORS_ORIGIN to be https://fg.nelna.lk in production tier", () => {
@@ -63,10 +83,28 @@ describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
     expect(issues.some((i) => i.variable === "API_CORS_ORIGIN")).toBe(true);
   });
 
-  it("requires COOKIE_DOMAIN=.nelna.lk in production", () => {
+  it("allows FRONTEND_PUBLIC_URL to define the expected CORS origin", () => {
+    expect(
+      collectProductionEnvIssues({
+        ...completeProduction,
+        FRONTEND_PUBLIC_URL: "https://fg.custom.example",
+        API_CORS_ORIGIN: "https://fg.custom.example",
+      }),
+    ).toEqual([]);
+  });
+
+  it("requires COOKIE_DOMAIN=.nelna.lk in cross-subdomain mode", () => {
     const issues = collectProductionEnvIssues({
       ...completeProduction,
       COOKIE_DOMAIN: "fg-api.nelna.lk",
+    });
+    expect(issues.some((i) => i.variable === "COOKIE_DOMAIN")).toBe(true);
+  });
+
+  it("rejects COOKIE_DOMAIN when NELNA_COOKIE_MODE=same_origin", () => {
+    const issues = collectProductionEnvIssues({
+      ...sameOriginProduction,
+      COOKIE_DOMAIN: ".nelna.lk",
     });
     expect(issues.some((i) => i.variable === "COOKIE_DOMAIN")).toBe(true);
   });
@@ -123,6 +161,23 @@ describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
     const blob = JSON.stringify(issues);
     expect(blob).not.toMatch(/FakePasswordForRedactionTest99/);
     expect(blob).not.toMatch(/testuser:Fake/);
+  });
+});
+
+describe("same-origin cookie mode helper", () => {
+  it("defaults to same-origin when COOKIE_DOMAIN is empty", () => {
+    expect(isSameOriginCookieMode({})).toBe(true);
+    expect(isSameOriginCookieMode({ COOKIE_DOMAIN: "" })).toBe(true);
+  });
+
+  it("honours explicit NELNA_COOKIE_MODE", () => {
+    expect(isSameOriginCookieMode({ NELNA_COOKIE_MODE: "same_origin" })).toBe(true);
+    expect(
+      isSameOriginCookieMode({
+        NELNA_COOKIE_MODE: "cross_subdomain",
+        COOKIE_DOMAIN: ".nelna.lk",
+      }),
+    ).toBe(false);
   });
 });
 

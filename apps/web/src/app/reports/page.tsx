@@ -5,7 +5,7 @@ import { REPORT_KIND_LABELS, type ReportKind, type ReportResult } from "@nelna/s
 import { Button, Card, EmptyState, Input, LoadingState, Select } from "@nelna/ui";
 import { AppShell } from "@/components/AppShell";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 type KindOption = { kind: ReportKind; title: string };
 

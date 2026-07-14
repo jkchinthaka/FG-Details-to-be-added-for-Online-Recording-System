@@ -1,6 +1,6 @@
 import type { AuthErrorCode, CurrentUser, LoginInput } from "@nelna/shared";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 function isSessionExpiredAuthCode(code: AuthErrorCode | "UNKNOWN"): boolean {
   return code === "SESSION_EXPIRED" || code === "NOT_AUTHENTICATED";

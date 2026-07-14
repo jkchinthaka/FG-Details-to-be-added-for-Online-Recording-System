@@ -3,6 +3,7 @@
  * Dev/test remain permissive so local work does not require a full secret set.
  *
  * Production deploy target: Render API + Cloudflare Worker frontend + MongoDB Atlas.
+ * Prefer same-origin browser traffic via `/api` proxy (COOKIE_DOMAIN optional).
  * Never log or return the raw DATABASE_URL (credentials).
  */
 export type ProductionEnvIssue = { variable: string; message: string };
@@ -41,6 +42,21 @@ function deployTier(env: NodeJS.ProcessEnv): "production" | "uat" {
   return raw === "uat" ? "uat" : "production";
 }
 
+/** Same-origin /api proxy: host-only cookies (no Domain). Cross-subdomain needs COOKIE_DOMAIN. */
+export function isSameOriginCookieMode(env: NodeJS.ProcessEnv = process.env): boolean {
+  const mode = (env.NELNA_COOKIE_MODE ?? "").trim().toLowerCase();
+  if (mode === "same_origin") return true;
+  if (mode === "cross_subdomain") return false;
+  // Default when COOKIE_DOMAIN is unset: same-origin proxy (fg.nelna.lk → /api).
+  return !(env.COOKIE_DOMAIN ?? "").trim();
+}
+
+function expectedFrontendOrigin(env: NodeJS.ProcessEnv): string {
+  const fromPublic = (env.FRONTEND_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
+  if (fromPublic) return fromPublic;
+  return PRODUCTION_FRONTEND_ORIGIN;
+}
+
 export function collectProductionEnvIssues(
   env: NodeJS.ProcessEnv = process.env,
 ): ProductionEnvIssue[] {
@@ -50,6 +66,7 @@ export function collectProductionEnvIssues(
 
   const issues: ProductionEnvIssue[] = [];
   const tier = deployTier(env);
+  const sameOriginCookies = isSameOriginCookieMode(env);
 
   const requireNonEmpty = (variable: string, hint: string) => {
     const value = env[variable];
@@ -61,8 +78,10 @@ export function collectProductionEnvIssues(
   requireNonEmpty("DATABASE_URL", "MongoDB Atlas connection string is required");
   requireNonEmpty("JWT_ACCESS_SECRET", "Access-token signing secret is required");
   requireNonEmpty("JWT_REFRESH_SECRET", "Refresh-token signing secret is required");
-  requireNonEmpty("API_CORS_ORIGIN", "Explicit CORS origin is required in production");
-  requireNonEmpty("COOKIE_DOMAIN", "Cookie parent domain is required for subdomain auth");
+  requireNonEmpty(
+    "API_CORS_ORIGIN",
+    "Explicit CORS origin is required (safety if the browser ever calls the API host directly)",
+  );
   requireNonEmpty("ACCESS_TOKEN_TTL", "Access token TTL is required");
   requireNonEmpty("REFRESH_TOKEN_TTL", "Refresh token TTL is required");
   requireNonEmpty("APP_VERSION", "Release version label is required");
@@ -76,19 +95,34 @@ export function collectProductionEnvIssues(
   }
 
   const cookieDomain = (env.COOKIE_DOMAIN ?? "").trim();
-  if (cookieDomain && cookieDomain !== PRODUCTION_COOKIE_DOMAIN) {
+  if (sameOriginCookies) {
+    // Host-only cookies for fg.nelna.lk + /api proxy — COOKIE_DOMAIN may be empty.
+    if (cookieDomain) {
+      issues.push({
+        variable: "COOKIE_DOMAIN",
+        message:
+          'Leave empty for same-origin proxy mode, or set NELNA_COOKIE_MODE=cross_subdomain with COOKIE_DOMAIN=".nelna.lk"',
+      });
+    }
+  } else if (!cookieDomain) {
+    issues.push({
+      variable: "COOKIE_DOMAIN",
+      message: `Required for cross-subdomain auth (expected "${PRODUCTION_COOKIE_DOMAIN}")`,
+    });
+  } else if (cookieDomain !== PRODUCTION_COOKIE_DOMAIN) {
     issues.push({
       variable: "COOKIE_DOMAIN",
       message: `Must be "${PRODUCTION_COOKIE_DOMAIN}" for fg.nelna.lk / fg-api.nelna.lk`,
     });
   }
 
-  const corsOrigin = (env.API_CORS_ORIGIN ?? "").trim();
+  const corsOrigin = (env.API_CORS_ORIGIN ?? "").trim().replace(/\/$/, "");
+  const expectedCors = expectedFrontendOrigin(env);
   if (tier === "production") {
-    if (corsOrigin && corsOrigin !== PRODUCTION_FRONTEND_ORIGIN) {
+    if (corsOrigin && corsOrigin !== expectedCors) {
       issues.push({
         variable: "API_CORS_ORIGIN",
-        message: `Must be "${PRODUCTION_FRONTEND_ORIGIN}" for production tier`,
+        message: `Must be "${expectedCors}" for production tier (or set FRONTEND_PUBLIC_URL to match)`,
       });
     }
   } else if (corsOrigin === PRODUCTION_FRONTEND_ORIGIN) {

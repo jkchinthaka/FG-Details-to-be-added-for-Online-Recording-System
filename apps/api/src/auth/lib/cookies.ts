@@ -3,13 +3,17 @@ import { AUTH_COOKIE_NAMES } from "@nelna/shared";
 import type { AuthConfig } from "../auth.config";
 
 function baseCookieOptions(config: AuthConfig): CookieOptions {
-  return {
+  const options: CookieOptions = {
     httpOnly: true,
     secure: config.cookieSecure,
     sameSite: "lax",
     path: "/",
-    domain: config.cookieDomain,
   };
+  // Omit Domain for same-origin /api proxy (host-only cookies).
+  if (config.cookieDomain) {
+    options.domain = config.cookieDomain;
+  }
+  return options;
 }
 
 /** Sets the httpOnly access + refresh token cookies on a login/refresh response. */

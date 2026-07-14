@@ -208,10 +208,8 @@ export function toTruckDetail(
   };
 }
 
-/** Photo evidence is currently stored as opaque data URLs (mirrors
- *  `EvidenceUploader`'s "UI ready for a real upload API" client behaviour) —
- *  these two helpers derive the attachment metadata Prisma requires without
- *  a real object storage integration. */
+/** Photo evidence may arrive as data URLs from the client before GridFS upload.
+ *  These helpers derive MIME/size and decode the binary payload. */
 export function parseDataUrlMimeType(url: string): string {
   const match = /^data:([^;]+);base64,/.exec(url);
   return match?.[1] ?? "application/octet-stream";
@@ -220,4 +218,16 @@ export function parseDataUrlMimeType(url: string): string {
 export function estimateDataUrlSizeBytes(url: string): number {
   const base64 = url.split(",")[1] ?? "";
   return Math.max(0, Math.floor((base64.length * 3) / 4));
+}
+
+export function decodeDataUrlToBuffer(url: string): Buffer {
+  const match = /^data:([^;]+);base64,(.+)$/s.exec(url);
+  if (!match?.[2]) {
+    throw new Error("Invalid evidence data URL");
+  }
+  return Buffer.from(match[2], "base64");
+}
+
+export function isDataUrl(url: string): boolean {
+  return /^data:[^;]+;base64,/i.test(url);
 }

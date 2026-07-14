@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "./auth/auth.module";
 import { ChecklistTemplatesModule } from "./checklist-templates/checklist-templates.module";
+import { EvidenceModule } from "./evidence/evidence.module";
 import { HealthModule } from "./health/health.module";
 import { InspectionRecordsModule } from "./inspection-records/inspection-records.module";
 import { MasterDataModule } from "./master-data/master-data.module";
@@ -24,6 +25,7 @@ import { ReportsModule } from "./reports/reports.module";
     ReportsModule,
     UsersModule,
     MasterDataModule,
+    EvidenceModule,
   ],
 })
 export class AppModule {}
