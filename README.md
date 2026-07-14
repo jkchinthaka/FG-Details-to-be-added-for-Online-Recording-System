@@ -110,6 +110,7 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 ### Product & domain
 
 - [Master queue controller](docs/QUEUE_CONTROLLER.md)  
+- [Current MVP baseline](docs/current-state/CURRENT_MVP_BASELINE.md)  
 - [Project brief](docs/PROJECT_BRIEF.md)  
 - [Architecture](docs/ARCHITECTURE.md)  
 - [Database design](docs/DATABASE_DESIGN.md)  
