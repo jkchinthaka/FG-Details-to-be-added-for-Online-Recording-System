@@ -4,8 +4,12 @@ import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import type { NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module";
+import { assertProductionEnv } from "./config/validate-production-env";
 
 async function bootstrap() {
+  // Fail closed in production before the HTTP listener binds.
+  assertProductionEnv();
+
   const app = await NestFactory.create(AppModule);
 
   const corsOrigin = process.env.API_CORS_ORIGIN ?? "http://localhost:3000";

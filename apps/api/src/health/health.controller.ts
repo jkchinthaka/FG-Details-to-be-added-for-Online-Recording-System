@@ -10,9 +10,25 @@ export class HealthController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: "API health check for Nelna FG Digital Recording System" })
-  @ApiOkResponse({ description: "Service is healthy" })
+  @ApiOperation({
+    summary: "Aggregated health (liveness + dependency status). Omits secrets and host infrastructure detail.",
+  })
+  @ApiOkResponse({ description: "healthy or degraded with check details" })
   getHealth(): Promise<HealthResponse> {
     return this.healthService.getHealth();
+  }
+
+  @Public()
+  @Get("live")
+  @ApiOperation({ summary: "Liveness probe — process is running" })
+  getLive() {
+    return this.healthService.getLiveness();
+  }
+
+  @Public()
+  @Get("ready")
+  @ApiOperation({ summary: "Readiness probe — safe to receive traffic" })
+  getReady() {
+    return this.healthService.getReadiness();
   }
 }
