@@ -1,16 +1,24 @@
-# ADR-006: Offline Draft Strategy
+# ADR-006: Offline Draft Strategy and Sync Queue
 
-- **Status:** Deferred
+- **Status:** Accepted (implemented — Prompt 34)
 - **Date:** 2026-07-14
+- **Supersedes:** Deferred draft-only stance
 
 ## Context
 
-Field users may expect draft resilience, but durable offline operation requires synchronization, conflict resolution, attachment queuing, authentication refresh handling, and a user-visible recovery model.
+Shop-floor connectivity is unreliable. Operators need transparent offline capture without falsely claiming server submission success.
 
 ## Decision
 
-Do not claim or implement full offline synchronization at this stage. Browser-local draft behaviour may improve usability, but the API remains authoritative and online submission is required.
+1. Keep online API as source of truth.
+2. Use IndexedDB submission queue with explicit states: `SAVED_ON_DEVICE`, `WAITING_TO_SYNC`, `SYNCING`, `SYNCED`, `SYNC_FAILED`, `CONFLICT_REQUIRES_REVIEW`.
+3. Generate an idempotency key per queued submission; never show success until `SYNCED`.
+4. Do not overwrite newer verified server records with older device drafts.
+5. Service worker caches app shell + offline fallback; never caches authentication secrets.
+6. Clear offline queue on logout (operational drafts only).
 
 ## Consequences
 
-No service worker, queue, or conflict protocol is introduced by this decision. A future implementation requires a separate ADR covering storage limits, encryption/privacy, conflict policy, attachment upload ordering, retry semantics, and end-to-end tests.
+- Evidence-heavy CA sync remains limited until CA submit APIs land (CA drafts `SAVED_ON_DEVICE`).
+- Middleware marks `/offline` public for the cached fallback page.
+- Plant UAT still required for shop-floor network conditions.

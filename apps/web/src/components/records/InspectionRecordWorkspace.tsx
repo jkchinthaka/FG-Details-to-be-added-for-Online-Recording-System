@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  DOCUMENT_CODES,
   RECORD_STATUS_LABELS,
   USER_ROLE_LABELS,
   computeRecordCounts,
@@ -22,6 +23,8 @@ import {
 } from "@/lib/inspection-records/api";
 import { clearDraft, formatDraftSavedAt, loadRecoverableDraft, saveDraft } from "@/lib/draft-storage";
 import { RecordHeaderField } from "@/components/records/RecordHeaderField";
+import { enqueueOfflineSubmission } from "@/lib/offline/queue-store";
+import { processOfflineQueue } from "@/lib/offline/sync-engine";
 
 type WorkflowPhase = "editing" | "review";
 
@@ -187,20 +190,59 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
   }
 
   async function handleSubmit() {
-    if (!activeRecordId || submitInFlight.current) return;
+    if (!activeRecordId || submitInFlight.current || !detail) return;
     submitInFlight.current = true;
     setSubmitting(true);
     setSubmitError(null);
     try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await enqueueOfflineSubmission({
+          recordType:
+            detail.header.documentCode === DOCUMENT_CODES.FREEZER_TRUCK ? "FREEZER_TRUCK" : "DAILY_CLEANING",
+          recordId: activeRecordId,
+          payload: { responses },
+          templateVersionNumber: detail.header.templateVersionNumber,
+          serverUpdatedAt: detail.header.updatedAt,
+          state: "WAITING_TO_SYNC",
+        });
+        saveDraft(`inspection-record:${activeRecordId}`, {
+          responses,
+          savedAt: new Date().toISOString(),
+        } satisfies { responses: ChecklistResponseMap; savedAt: string });
+        setSubmitError(
+          "You are offline. The record was saved on this device and is waiting to sync — it is not submitted on the server yet.",
+        );
+        return;
+      }
       const result = await submitInspectionRecord(activeRecordId, { responses });
       clearDraft(`inspection-record:${activeRecordId}`);
       setDraftRecovered(false);
       setDirty(false);
+      void processOfflineQueue();
       setState((current) => {
         if (current.status !== "ready") return current;
         return { status: "success", detail: { ...current.detail, editable: false }, result };
       });
     } catch (error) {
+      if (error instanceof InspectionRecordApiError && error.status === 0) {
+        try {
+          await enqueueOfflineSubmission({
+            recordType:
+              detail.header.documentCode === DOCUMENT_CODES.FREEZER_TRUCK ? "FREEZER_TRUCK" : "DAILY_CLEANING",
+            recordId: activeRecordId,
+            payload: { responses },
+            templateVersionNumber: detail.header.templateVersionNumber,
+            serverUpdatedAt: detail.header.updatedAt,
+            state: "WAITING_TO_SYNC",
+          });
+          setSubmitError(
+            "Could not reach the server. The record was queued on this device and is not marked submitted until sync succeeds.",
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
       if (error instanceof InspectionRecordApiError) {
         setSubmitError(error.message);
         if (error.validationErrors && error.validationErrors.length > 0) {

@@ -102,7 +102,7 @@ Timestamp: same CI-equivalent run as Prompt 21 verification (re-run before Promp
 | PWA-01 | **Partial** | `manifest.webmanifest` present | Device install Not Executed |
 | PWA-02 | **Partial** | localStorage draft tests | |
 | PWA-03 | **Not Executed** | — | Needs device |
-| PWA-04–PWA-06 | **Deferred** | No service worker sync | DEF-009 / TD-12 |
+| PWA-04–PWA-06 | **Implemented (code)** | See `UAT_OFFLINE_PWA.md`; plant run unsigned | DEF-009 closed (product) |
 
 ### Accessibility & responsive
 

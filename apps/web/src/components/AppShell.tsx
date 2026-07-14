@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import { filterNavItemsByRole } from "@/lib/auth/nav-config";
 import { buildLoginRedirectUrl } from "@/lib/auth/session";
 import { SessionExpiredDialog } from "@/components/SessionExpiredDialog";
+import { OfflineStatusBar } from "@/components/OfflineStatusBar";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 
 type NavItem = {
   href: string;
@@ -34,13 +36,14 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 const LOGIN_PATH = "/login";
-const CHROMELESS_PATHS = new Set(["/login", "/unauthorized", "/account-inactive"]);
+const CHROMELESS_PATHS = new Set(["/login", "/unauthorized", "/account-inactive", "/offline"]);
 
 /** Responsive application shell: bottom nav on mobile, sidebar from tablet up. */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <ToastProvider>
+        <ServiceWorkerRegistrar />
         <ShellLayout>{children}</ShellLayout>
       </ToastProvider>
     </AuthProvider>
@@ -110,7 +113,10 @@ function AuthenticatedShell({
       <div className="flex flex-1">
         <Sidebar pathname={pathname} items={visibleNavItems} />
         <main className="min-w-0 flex-1 px-4 pb-28 pt-5 sm:px-6 md:pb-10 lg:px-8">
-          <div className="mx-auto w-full max-w-5xl">{children}</div>
+          <div className="mx-auto w-full max-w-5xl">
+            <OfflineStatusBar />
+            {children}
+          </div>
         </main>
       </div>
       <BottomNav

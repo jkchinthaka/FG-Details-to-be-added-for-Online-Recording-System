@@ -22,7 +22,7 @@ export const ROUTE_ACCESS_RULES: RouteAccessRule[] = [
   { prefix: "/records", roles: ["FG_OPERATOR", "FG_SUPERVISOR", "QA_EXECUTIVE", "FOOD_SAFETY_TEAM_LEADER", "AUDITOR", "SYSTEM_ADMINISTRATOR"], permissions: ["records:read"] },
 ];
 
-const PUBLIC_PATH_PREFIXES = ["/login", "/unauthorized", "/account-inactive"];
+const PUBLIC_PATH_PREFIXES = ["/login", "/unauthorized", "/account-inactive", "/offline"];
 
 export function isPublicAppPath(pathname: string): boolean {
   return PUBLIC_PATH_PREFIXES.some((path) => pathname === path || pathname.startsWith(`${path}/`));

@@ -15,7 +15,7 @@
 | TD-09 | Medium | Query indexes have not been justified with production plans. | Dashboard and records lists may degrade as data grows. | Capture `EXPLAIN ANALYZE` for status/date/order paths before adding indexes. | Query plan, cardinality, and safe migration reviewed. |
 | TD-10 | Low | AppShell account menu needs explicit keyboard escape/focus management verification. | Possible keyboard navigation gap. | Add keyboard-focused interaction tests and manual assistive-technology check. | Test and accessibility review sign-off. |
 | TD-11 | Low | PDF shipped as audit pack (ADR-009 Accepted). Paper facsimile still open under BD-25. | Auditors may expect exact paper layout. | Confirm BD-25; iterate template if APPROVED exact match. | BD-25 decision |
-| TD-12 | Low | Offline support is limited to client draft behaviour; no sync protocol exists. | “Offline” expectations could exceed delivered guarantees. | Decide whether offline operation is required, then design conflict and attachment handling. | Approved ADR and end-to-end sync tests, if adopted. |
+| TD-12 | Low | Offline queue shipped (ADR-006 Accepted). CA online submit and at-rest encryption still limited. | Shop-floor CA drafts may remain device-local. | Finish CA submit API; consider WebCrypto for sensitive fields if required. | CA + security follow-up |
 
 ## Not debt
 

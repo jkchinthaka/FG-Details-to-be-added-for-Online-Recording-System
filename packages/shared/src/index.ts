@@ -13,3 +13,4 @@ export * from "./requirement-coverage";
 export * from "./record-workflow";
 export * from "./csv-escape";
 export * from "./reports";
+export * from "./offline-queue";

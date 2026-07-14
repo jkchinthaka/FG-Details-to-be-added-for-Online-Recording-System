@@ -101,13 +101,14 @@
 
 | Field | Value |
 |-------|-------|
-| Test case | PWA-04–PWA-06 |
+| Test case | PWA-04–PWA-06 / `UAT_OFFLINE_PWA.md` |
 | Severity | **Medium** |
 | Priority | P2 |
 | Steps | Install PWA → go offline → edit → reconnect → sync |
 | Expected | Queued sync with status and duplicate prevention |
-| Actual | Manifest + localStorage drafts; no SW sync (ADR-006 / TD-12) |
-| Closure | **Open** |
+| Actual (Prompt 34) | IndexedDB queue + SW + conflict review + logout cleanup |
+| Residual | CA draft online submit limited; IndexedDB not encrypted at rest |
+| Closure | **Closed (product)** — plant network UAT unsigned |
 
 ### DEF-010 — Web middleware lacks JWT/role enforcement
 

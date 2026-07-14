@@ -6,7 +6,7 @@
 4. **Truck re-inspection picker / full chain UI** — Incomplete (DEF-002)  
 5. **Reports / PDF / CSV** — Delivered (Prompt 31). Limitations: in-memory page slice for some aggregations (5k row take / 50 CSV pages); PDF layout is audit pack not paper facsimile (BD-25 PENDING).  
 6. **Admin user & vehicle CRUD** — Delivered (Prompt 32): `/admin/users`, `/admin/master-data/*`, `/admin/vehicles`, `/admin/drivers`, `/admin/transporters` APIs + minimal web admin pages. Limitations: users list returns only the first page unless the UI is extended with paging controls; no bulk import; loading-decision-policy content is admin-supplied only (no built-in Nelna policy); master-data rows are soft-deactivated, never hard-deleted (DEF-008 closed as product-delivered, see `DEFECT_REGISTER.md`).  
-7. **Offline sync (service worker)** — Deferred (DEF-009)  
+7. **Offline sync (service worker)** — Delivered (Prompt 34). Residual: CA queue sync limited; IndexedDB not encrypted; plant UAT unsigned.  
 8. **Web route guards** — Verified session via `/auth/me` (Prompt 33). Residual: short-lived access token after logout until TTL; middleware requires API availability.  
 9. **Void / amendment UX polish** — Void API present; amendment workflow thin (DEF-005 partial)  
 10. **Database restore** — Not proven (DEF-011)  

@@ -24,7 +24,7 @@ Daily cleaning verification and freezer truck inspections are still captured on 
 - Operational reports (16 kinds) + formula-safe CSV + official record PDF  
 - Admin/master-data management: users, roles & departments, fleet (vehicles/drivers/transporters), and checklist master data (departments, sections, shifts, failure reasons, corrective-action categories, temperature profiles, loading-decision policies)  
 - Audit logging for key decisions  
-- PWA manifest + local draft backup (full offline sync still roadmap)  
+- PWA manifest + IndexedDB offline submission queue + service worker shell cache  
 
 ## Technology stack
 
@@ -165,6 +165,9 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 - [UAT test cases](docs/uat/UAT_TEST_CASES.md)  
 - [UAT reports / PDF / CSV cases](docs/uat/UAT_REPORTS_EXPORT.md)  
 - [UAT admin / master-data cases](docs/uat/UAT_ADMIN_MASTER_DATA.md)  
+- [UAT verified route auth](docs/uat/UAT_VERIFIED_ROUTE_AUTH.md)  
+- [UAT offline / PWA](docs/uat/UAT_OFFLINE_PWA.md)  
+- [PWA offline sync](docs/pwa/PWA_OFFLINE_SYNC.md)  
 - [UAT execution results](docs/uat/UAT_EXECUTION_RESULTS.md)  
 - [Defect register](docs/uat/DEFECT_REGISTER.md)  
 - [UAT sign-off template](docs/uat/UAT_SIGNOFF_TEMPLATE.md)  

@@ -31,6 +31,8 @@ export type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+import { clearOfflineQueueOnLogout } from "@/lib/offline/queue-store";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -100,6 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiLogout();
     } finally {
+      try {
+        await clearOfflineQueueOnLogout();
+      } catch {
+        // Ignore storage cleanup failures on logout.
+      }
       setUser(null);
       setStatus("unauthenticated");
       setSessionExpiredNotice(false);

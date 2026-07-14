@@ -115,10 +115,12 @@ export function saveInspectionDraft(id: string, input: SaveDraftResponsesInput):
 export function submitInspectionRecord(
   id: string,
   input: SubmitInspectionRecordInput,
+  idempotencyKey?: string,
 ): Promise<SubmitRecordResult> {
   return apiFetch<SubmitRecordResult>(`/inspection-records/${encodeURIComponent(id)}/submit`, {
     method: "POST",
     body: JSON.stringify(input),
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
   });
 }
 
