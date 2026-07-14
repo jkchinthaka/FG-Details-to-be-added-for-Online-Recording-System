@@ -187,3 +187,13 @@ _None closed in Prompt 22._ Automated suite found **no new failing regressions**
 | Retest result | |
 | Closure status | Open / Fixed / Won't fix / Deferred |
 ```
+
+## Prompt 38 — Formal multi-role UAT
+
+| Item | Status |
+| --- | --- |
+| Formal multi-role UAT | **FORMAL UAT NOT EXECUTED** |
+| Defect closures from plant UAT | None — no plant defects filed this window |
+| Sign-off | Not signed — see `UAT_SIGNOFF.md` |
+
+Open High residuals and unsigned formal UAT remain release blockers under Prompt 41 rules.

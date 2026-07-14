@@ -1,9 +1,18 @@
 # UAT Execution Results — Nelna FG Digital Recording System
 
-**Execution window:** 2026-07-14 (Prompt 22 documentation gate)  
-**Executor:** Development gate (Chinthaka Jayaweera) + automated suite  
-**Environment:** Local Windows workspace; PostgreSQL live UI UAT **not available** (DB auth failure / Docker down)  
+## Banner (Prompt 38)
 
+### FORMAL UAT NOT EXECUTED
+
+No business-user pass/fail results are claimed for plant roles. Automated suite evidence below remains supporting-only and does **not** replace Food Safety / QA sign-off.
+
+**Execution window (latest):** 2026-07-14 (Prompt 38 honesty gate)  
+**Executor:** Development documentation only (Chinthaka Jayaweera)  
+**Environment:** No authorized multi-role UAT event occurred.
+
+---
+
+**Prior documentation window:** 2026-07-14 (Prompt 22)  
 **Honesty rule:** Pass only with evidence. Automated test IDs are evidence for mapped behaviours only — they do **not** replace plant role UAT for Food Safety sign-off.
 
 ---
