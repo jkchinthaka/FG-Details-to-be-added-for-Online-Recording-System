@@ -6,6 +6,14 @@
 
 ---
 
+## Release control (queue correction)
+
+Per [`docs/QUEUE_CONTROLLER.md`](../QUEUE_CONTROLLER.md):
+
+- Prompt 16 = release-candidate preparation on `develop` only (no `main` merge, no `v1.0.0` tag).
+- **Only Prompt 25** may approve go-live, merge to `main`, and create/push annotated `v1.0.0`.
+- This decision document is the Prompt 25 go-live record. Tag `v1.0.0` was created once at commit `d863abe` — do not recreate duplicate tags.
+
 ## Decision
 
 # CONDITIONAL GO
