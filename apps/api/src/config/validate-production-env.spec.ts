@@ -118,11 +118,11 @@ describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
     const issues = collectProductionEnvIssues({
       ...completeProduction,
       DATABASE_URL:
-        "mongodb+srv://chinthaka:SuperSecretPassword99@cluster0.example.mongodb.net/bad",
+        "mongodb+srv://testuser:FakePasswordForRedactionTest99@cluster0.example.mongodb.net/bad",
     });
     const blob = JSON.stringify(issues);
-    expect(blob).not.toMatch(/SuperSecretPassword99/);
-    expect(blob).not.toMatch(/chinthaka:Super/);
+    expect(blob).not.toMatch(/FakePasswordForRedactionTest99/);
+    expect(blob).not.toMatch(/testuser:Fake/);
   });
 });
 
