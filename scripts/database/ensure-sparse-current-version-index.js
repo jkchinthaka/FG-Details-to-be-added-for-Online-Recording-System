@@ -9,9 +9,7 @@
  */
 const path = require("path");
 const { createRequire } = require("module");
-const requireFromApi = createRequire(
-  path.join(__dirname, "../../apps/api/package.json"),
-);
+const requireFromApi = createRequire(path.join(__dirname, "../../apps/api/package.json"));
 const { MongoClient } = requireFromApi("mongodb");
 
 const INDEX_NAME = "checklist_templates_currentVersionId_key";
