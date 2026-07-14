@@ -41,7 +41,15 @@ describeIfDb("checklist template version constraints (requires DATABASE_URL)", (
 
   afterAll(async () => {
     if (dbReachable && templateId) {
-      await prisma.checklistTemplateVersion.deleteMany({ where: { templateId } });
+      await prisma.checklistTemplate
+        .update({
+          where: { id: templateId },
+          data: { currentVersionId: null },
+        })
+        .catch(() => undefined);
+      await prisma.checklistTemplateVersion
+        .deleteMany({ where: { templateId } })
+        .catch(() => undefined);
       await prisma.checklistTemplate
         .delete({ where: { id: templateId } })
         .catch(() => undefined);
