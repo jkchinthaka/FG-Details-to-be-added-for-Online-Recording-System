@@ -16,8 +16,8 @@ Not `PRODUCTION_READY`: live Cloudflare/Render smoke not verified this pass; pla
 |------|-------|
 | Starting SHA | `97ef2fd` |
 | Safety tag | `pre-enterprise-improvement-20260715-0112` (pushed) |
-| Ending SHA | `2e95441` (feat `32fdc2d` + docs SHA note) |
-| Push | `origin/main` updated — local HEAD matches remote |
+| Ending SHA | Feature commit `32fdc2d`; tip after report commits — verify with `git rev-parse origin/main` |
+| Push | Pushed to `origin/main` (no force) |
 
 ## Architecture (actual)
 
