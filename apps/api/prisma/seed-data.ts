@@ -324,12 +324,36 @@ export const SEED_USER_DEFINITIONS: SeedUserDefinition[] = [
     role: "FG_OPERATOR",
   },
   {
+    employeeCodeEnv: "SEED_SUPERVISOR_EMPLOYEE_CODE",
+    emailEnv: "SEED_SUPERVISOR_EMAIL",
+    passwordEnv: "SEED_SUPERVISOR_PASSWORD",
+    fullNameEnv: "SEED_SUPERVISOR_FULL_NAME",
+    defaultFullName: "FG Supervisor",
+    role: "FG_SUPERVISOR",
+  },
+  {
     employeeCodeEnv: "SEED_QA_EMPLOYEE_CODE",
     emailEnv: "SEED_QA_EMAIL",
     passwordEnv: "SEED_QA_PASSWORD",
     fullNameEnv: "SEED_QA_FULL_NAME",
     defaultFullName: "QA Executive",
     role: "QA_EXECUTIVE",
+  },
+  {
+    employeeCodeEnv: "SEED_FOOD_SAFETY_EMPLOYEE_CODE",
+    emailEnv: "SEED_FOOD_SAFETY_EMAIL",
+    passwordEnv: "SEED_FOOD_SAFETY_PASSWORD",
+    fullNameEnv: "SEED_FOOD_SAFETY_FULL_NAME",
+    defaultFullName: "Food Safety Team Leader",
+    role: "FOOD_SAFETY_TEAM_LEADER",
+  },
+  {
+    employeeCodeEnv: "SEED_AUDITOR_EMPLOYEE_CODE",
+    emailEnv: "SEED_AUDITOR_EMAIL",
+    passwordEnv: "SEED_AUDITOR_PASSWORD",
+    fullNameEnv: "SEED_AUDITOR_FULL_NAME",
+    defaultFullName: "Auditor",
+    role: "AUDITOR",
   },
 ];
 

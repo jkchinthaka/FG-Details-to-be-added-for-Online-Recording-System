@@ -15,7 +15,11 @@
     "build": "pnpm --filter @nelna/shared build && pnpm --filter @nelna/ui build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build && pnpm --filter @nelna/web build",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test",
+    "test": "pnpm --filter @nelna/shared test && pnpm --filter @nelna/ui test && pnpm --filter @nelna/api test && pnpm --filter @nelna/web test",
+    "test:integration": "pnpm --filter @nelna/api test -- db-integration db-constraints",
+    "test:e2e": "pnpm --filter @nelna/e2e test",
+    "db:test:up": "docker compose -f docker-compose.test.yml up -d --wait",
+    "db:test:down": "docker compose -f docker-compose.test.yml down -v",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
