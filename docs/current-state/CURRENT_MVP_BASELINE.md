@@ -54,7 +54,7 @@ This snapshot describes the synchronized MVP baseline after branch normalization
 | Self-check / self-verify policy enforcement | Missing (DEF-004) |
 | CA assignment, evidence, overdue, closure UI/API | Incomplete (DEF-006) |
 | Truck re-inspection picker / full chain UI | Incomplete (DEF-002) |
-| Reports / PDF / CSV | Deferred (DEF-007) |
+| Reports / PDF / CSV | Delivered (Prompt 31); BD-25 paper parity PENDING |
 | Admin user & vehicle CRUD | Incomplete (DEF-008) |
 | Offline sync (service worker) | Deferred (DEF-009) |
 | Web JWT/role page guards | Cookie presence only (DEF-010) |
@@ -74,7 +74,7 @@ See `docs/uat/DEFECT_REGISTER.md`.
 | DEF-004 | High | Self-verification restriction not enforceable | Open |
 | DEF-005 | Medium | Void / amend process missing | Open |
 | DEF-006 | High | CA lifecycle incomplete | Open |
-| DEF-007 | High | Reports / PDF / CSV missing | Open |
+| DEF-007 | High | Reports / PDF / CSV | Closed (product); plant UAT unsigned |
 | DEF-008 | High | Admin user & vehicle CRUD missing | Open |
 | DEF-009 | Medium | Offline sync missing | Open |
 | DEF-010 | Medium | Web middleware lacks JWT/role enforcement | Open |

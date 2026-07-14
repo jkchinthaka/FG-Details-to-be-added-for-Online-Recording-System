@@ -4,7 +4,7 @@
 2. **Self-check / self-verify** — Interim backend SoD defaults active; awaiting BD-05/06 APPROVED confirmation.  
 3. **CA assignment, evidence, overdue, closure UI/API** — Incomplete (DEF-006)  
 4. **Truck re-inspection picker / full chain UI** — Incomplete (DEF-002)  
-5. **Reports / PDF / CSV** — Deferred (DEF-007)  
+5. **Reports / PDF / CSV** — Delivered (Prompt 31). Limitations: in-memory page slice for some aggregations (5k row take / 50 CSV pages); PDF layout is audit pack not paper facsimile (BD-25 PENDING).  
 6. **Admin user & vehicle CRUD** — Incomplete (DEF-008)  
 7. **Offline sync (service worker)** — Deferred (DEF-009)  
 8. **Web JWT/role page guards** — Cookie presence only (DEF-010)  

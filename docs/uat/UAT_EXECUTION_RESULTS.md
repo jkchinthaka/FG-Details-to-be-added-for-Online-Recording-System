@@ -86,7 +86,7 @@ Timestamp: same CI-equivalent run as Prompt 21 verification (re-run before Promp
 
 | ID | Result | Evidence | Notes |
 |----|--------|----------|-------|
-| RPT-01–RPT-07 | **Deferred** | Placeholder reports page; ADR-009 | DEF-007 |
+| RPT-01–RPT-07 | **Implemented (code)** | See `UAT_REPORTS_EXPORT.md`; plant run unsigned | DEF-007 closed (product) |
 
 ### Administration
 

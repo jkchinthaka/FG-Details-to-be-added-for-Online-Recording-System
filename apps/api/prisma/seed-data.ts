@@ -60,6 +60,7 @@ function rolePermissions(role: UserRole): PermissionKey[] {
         "records:return",
         "corrective_actions:manage",
         "corrective_actions:read",
+        "reports:read",
         "loading_decisions:approve",
         "vehicles:manual_entry",
       ];

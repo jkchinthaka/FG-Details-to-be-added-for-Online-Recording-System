@@ -39,6 +39,27 @@ export type InspectionRecordWorkspaceProps = {
 };
 
 const AUTOSAVE_DELAY_MS = 1500;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+async function downloadOfficialPdf(recordId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/reports/record-pdf/${encodeURIComponent(recordId)}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { message?: string };
+    throw new Error(body.message ?? `PDF download failed (${response.status})`);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] ?? `record-${recordId}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 /**
  * Full "open task → mark all acceptable → review → submit" workflow for one
@@ -311,7 +332,20 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
           </h2>
           <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--nelna-text-muted)" }}>Record #{header.recordNumber}</p>
         </div>
-        <Badge tone={statusTone(header.status)}>{RECORD_STATUS_LABELS[header.status]}</Badge>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.5rem" }}>
+          <Badge tone={statusTone(header.status)}>{RECORD_STATUS_LABELS[header.status]}</Badge>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => {
+              void downloadOfficialPdf(header.id).catch((err: unknown) => {
+                window.alert(err instanceof Error ? err.message : "PDF download failed");
+              });
+            }}
+          >
+            Download official PDF
+          </Button>
+        </div>
       </div>
 
       <dl

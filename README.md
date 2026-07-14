@@ -21,6 +21,7 @@ Daily cleaning verification and freezer truck inspections are still captured on 
 - Freezer Truck Inspection Before Loading (`NMS/PPU/CL/30`) with critical loading block  
 - Dynamic checklist template engine (versioned)  
 - Corrective-action auto-create on configured fails (full CA workspace still roadmap)  
+- Operational reports (16 kinds) + formula-safe CSV + official record PDF  
 - Audit logging for key decisions  
 - PWA manifest + local draft backup (full offline sync still roadmap)  
 
@@ -161,6 +162,7 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 
 - [UAT test plan](docs/uat/UAT_TEST_PLAN.md)  
 - [UAT test cases](docs/uat/UAT_TEST_CASES.md)  
+- [UAT reports / PDF / CSV cases](docs/uat/UAT_REPORTS_EXPORT.md)  
 - [UAT execution results](docs/uat/UAT_EXECUTION_RESULTS.md)  
 - [Defect register](docs/uat/DEFECT_REGISTER.md)  
 - [UAT sign-off template](docs/uat/UAT_SIGNOFF_TEMPLATE.md)  

@@ -14,7 +14,7 @@ Evidence-based answers to the Prompt 17 verification questions.
 | 8 | Critical truck failures block loading | **Pass** | `computeRecommendedLoadingDecision` + `isOverrideToApprovedAllowed` + API/UI enforcement + tests |
 | 9 | Re-inspections preserve previous inspection | **Partial** | `reinspectionOfId` on create; UI picker for linking still limited (known follow-up) |
 | 10 | Workflow status has owner + next action | **Partial** | Dashboard + `nextResponsibleRoleForStatus`; Check/Verify transitions deferred |
-| 11 | Reports/PDFs use same record data | **Deferred** | No PDF module yet; matrix marks `PDF_DEFERRED` — must not invent parallel stores |
+| 11 | Reports/PDFs use same record data | **Pass (Prompt 31)** | `GET /reports/record-pdf/:id` builds from InspectionRecord + template version; CSV from same aggregates |
 | 12 | Sri Lankan date/time consistency | **Pass (implemented this phase)** | `Asia/Colombo` helpers; record date + truck Time; shift hour via Colombo |
 | 13 | Unconfirmed Nelna decisions listed honestly | **Pass** | `OPEN_BUSINESS_DECISIONS.md` |
 

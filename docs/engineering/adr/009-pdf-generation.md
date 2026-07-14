@@ -1,16 +1,30 @@
 # ADR-009: PDF Generation
 
-- **Status:** Deferred
+- **Status:** Accepted (implemented)
 - **Date:** 2026-07-14
+- **Supersedes:** Deferred stance from earlier MVP baseline
 
 ## Context
 
-The system may need printable, auditable record exports. A compliant document requires approved layout, field coverage, historical template rendering, signatures, evidence links, generation authority, and retention rules.
+Operational records must be exportable as official, audit-safe PDFs without inventing a second data store. Electronic approvals must not be labelled as cryptographic digital signatures (BD-25 / legal wording).
 
 ## Decision
 
-Defer PDF generation. No PDF library, export endpoint, or client-side rendering workaround is introduced by this audit.
+Generate official record PDFs **server-side** with PDFKit from the live `InspectionRecord` graph (template version, results, truck detail, approvals).
+
+| Concern | Choice |
+| --- | --- |
+| Source of truth | Same Prisma record used by checklists and workflow APIs |
+| Branding | Nelna FG Digital Recording System header |
+| Template history | `documentCode` + template `versionNumber` shown as revision |
+| Approvals | Timestamps + users; disclaimer is not a crypto signature |
+| Access | Operators: own records; others via `records:read` / `reports:read` |
+| Storage | Generated on demand (not stored as blobs in this phase) |
+
+Companion CSV exports for operational reports escape `= + - @` formula-injection prefixes.
 
 ## Consequences
 
-When requirements are approved, create a follow-up ADR that decides server versus client generation, immutable source payload, template/version rendering, pagination, signatures, access control, storage, and test fixtures. Until then, reports/pages are not evidence of a formal export capability.
+- Layout is audit-oriented, **not** pixel-perfect paper parity until BD-25 APPROVED.
+- Large report CSV export pages until row cap (50 × 100); not a background job queue yet.
+- PDF binary dependency (`pdfkit`) is added to `@nelna/api`.

@@ -76,13 +76,13 @@
 
 | Field | Value |
 |-------|-------|
-| Test case | RPT-01–RPT-07 |
+| Test case | RPT-01–RPT-07 / `UAT_REPORTS_EXPORT.md` |
 | Severity | **High** |
 | Priority | P1 |
 | Steps | Open Reports → export PDF/CSV |
 | Expected | Operational reports + PDF traceability |
-| Actual | Placeholder page; ADR-009 deferred |
-| Closure | **Open** |
+| Actual (Prompt 31) | 16 report kinds, CSV formula-safe export, official PDFKit PDF, role-scoped kinds, record PDF download control |
+| Closure | **Closed (product)** — Plant UAT still unsigned (DEF-012); BD-25 paper-layout parity still PENDING |
 
 ### DEF-008 — Admin user & vehicle CRUD missing
 
