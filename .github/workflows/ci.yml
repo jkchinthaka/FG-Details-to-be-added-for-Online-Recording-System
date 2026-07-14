@@ -39,18 +39,8 @@ jobs:
   mongodb-integration:
     name: MongoDB integration
     runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 }).ok' --quiet"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
-      DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test
+      DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
       RUN_DB_INTEGRATION: "1"
       JWT_ACCESS_SECRET: test-only-access-secret-min-32-chars-xx
       JWT_REFRESH_SECRET: test-only-refresh-secret-min-32-chars-x
@@ -69,6 +59,17 @@ jobs:
       SEED_QA_EMPLOYEE_CODE: TST-QA
     steps:
       - uses: actions/checkout@v4
+      - name: Start MongoDB replica set (fg_online_test only)
+        run: |
+          docker run -d --rm --name mongo-test -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 40); do
+            if docker exec mongo-test mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]}).ok }' | grep -q 1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MongoDB replica set failed to initialize" >&2
+          exit 1
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -85,24 +86,13 @@ jobs:
       - name: Integration tests
         working-directory: apps/api
         run: pnpm test -- db-integration db-constraints
-        continue-on-error: true
 
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
     needs: [quality]
-    services:
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 }).ok' --quiet"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
-      DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test
+      DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
       JWT_ACCESS_SECRET: test-only-access-secret-min-32-chars-xx
       JWT_REFRESH_SECRET: test-only-refresh-secret-min-32-chars-x
       COOKIE_SECURE: "false"
@@ -127,6 +117,17 @@ jobs:
       SEED_QA_EMPLOYEE_CODE: TST-QA
     steps:
       - uses: actions/checkout@v4
+      - name: Start MongoDB replica set (fg_online_test only)
+        run: |
+          docker run -d --rm --name mongo-test -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 40); do
+            if docker exec mongo-test mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]}).ok }' | grep -q 1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MongoDB replica set failed to initialize" >&2
+          exit 1
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
