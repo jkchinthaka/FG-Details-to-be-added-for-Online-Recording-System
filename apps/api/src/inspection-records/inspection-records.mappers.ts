@@ -1,5 +1,7 @@
 import {
   formatRecordNumber,
+  monthLabelFromDateOnly,
+  utcDateToDateOnly,
   type ChecklistItemResponse,
   type ChecklistItemType as SharedChecklistItemType,
   type ChecklistResponseMap,
@@ -26,6 +28,8 @@ export type TruckDetailWithRelations = Prisma.TruckInspectionDetailGetPayload<{
 
 export const RECORD_HEADER_INCLUDE = {
   createdBy: true,
+  checkedBy: true,
+  verifiedBy: true,
   shift: true,
   truckDetail: { include: TRUCK_DETAIL_INCLUDE },
   reinspectionOf: true,
@@ -44,7 +48,7 @@ export type ResultWithAttachments = Prisma.InspectionResultGetPayload<{
 }>;
 
 export function toDateOnlyString(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return utcDateToDateOnly(date);
 }
 
 export function toHeader(
@@ -61,6 +65,7 @@ export function toHeader(
     templateVersionNumber,
     status: record.status as SharedRecordStatus,
     recordDate,
+    recordMonth: monthLabelFromDateOnly(recordDate),
     shiftLabel: record.shift?.name ?? null,
     areaLabel: record.areaLabel,
     recordedBy: {
@@ -68,6 +73,20 @@ export function toHeader(
       fullName: record.createdBy.fullName,
       employeeCode: record.createdBy.employeeCode,
     },
+    checkedBy: record.checkedBy
+      ? {
+          id: record.checkedBy.id,
+          fullName: record.checkedBy.fullName,
+          employeeCode: record.checkedBy.employeeCode,
+        }
+      : null,
+    verifiedBy: record.verifiedBy
+      ? {
+          id: record.verifiedBy.id,
+          fullName: record.verifiedBy.fullName,
+          employeeCode: record.verifiedBy.employeeCode,
+        }
+      : null,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     submittedAt: record.submittedAt ? record.submittedAt.toISOString() : null,
@@ -142,6 +161,7 @@ export function toTruckDetail(record: RecordWithHeaderRelations): TruckInspectio
     transporter: detail.transporter ? toTransporterSummary(detail.transporter) : null,
     freezerTruckNumber: detail.freezerTruckNumber,
     vehicleNumber: detail.vehicleNumber,
+    inspectionTime: detail.inspectionTime ?? null,
     loadingReference: detail.loadingReference,
     productCategory: detail.productCategory,
     temperature: {

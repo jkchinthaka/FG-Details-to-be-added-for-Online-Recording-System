@@ -87,7 +87,7 @@ export function FailureDetailPanel({
       />
       {correctionOptions && onCorrectionChange ? (
         <QuickChoiceField
-          label="Immediate correction taken"
+          label="Correction (immediate)"
           value={correction ?? ""}
           options={correctionOptions}
           onChange={onCorrectionChange}

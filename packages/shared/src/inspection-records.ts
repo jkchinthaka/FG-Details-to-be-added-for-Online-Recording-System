@@ -96,6 +96,12 @@ export type SubmitInspectionRecordInput = z.infer<typeof submitInspectionRecordS
 // Response shapes
 // ---------------------------------------------------------------------------
 
+export type InspectionActorSummary = {
+  id: string;
+  fullName: string;
+  employeeCode: string;
+};
+
 export type InspectionRecordHeader = {
   id: string;
   documentCode: string;
@@ -105,11 +111,17 @@ export type InspectionRecordHeader = {
   templateTitle: string;
   templateVersionNumber: number;
   status: RecordStatus;
-  /** `YYYY-MM-DD`. */
+  /** `YYYY-MM-DD` operational calendar date (Asia/Colombo). */
   recordDate: string;
+  /** Derived month label for paper-form parity (e.g. "July 2026"). */
+  recordMonth: string;
   shiftLabel: string | null;
   areaLabel: string | null;
-  recordedBy: { id: string; fullName: string; employeeCode: string };
+  recordedBy: InspectionActorSummary;
+  /** Populated once a Check workflow transition records an actor (deferred). */
+  checkedBy: InspectionActorSummary | null;
+  /** Populated once a Verify workflow transition records an actor (deferred). */
+  verifiedBy: InspectionActorSummary | null;
   createdAt: string;
   updatedAt: string;
   submittedAt: string | null;

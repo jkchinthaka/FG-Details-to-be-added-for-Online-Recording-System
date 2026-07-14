@@ -307,10 +307,26 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
         }}
       >
         <HeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
+        <HeaderField label="Month" value={header.recordMonth} />
         <HeaderField label="Shift" value={header.shiftLabel ?? "—"} />
         <HeaderField label="Section / area" value={header.areaLabel ?? "—"} />
         <HeaderField label="Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
-      </dl>
+        <HeaderField
+          label="Checked by"
+          value={
+            header.checkedBy
+              ? `${header.checkedBy.fullName} (${header.checkedBy.employeeCode})`
+              : "Pending check"
+          }
+        />
+        <HeaderField
+          label="Verified by"
+          value={
+            header.verifiedBy
+              ? `${header.verifiedBy.fullName} (${header.verifiedBy.employeeCode})`
+              : "Pending verification"
+          }
+        />      </dl>
     </Card>
   );
 }

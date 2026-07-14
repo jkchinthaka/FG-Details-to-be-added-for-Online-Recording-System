@@ -6,6 +6,10 @@ import {
   computeRecommendedLoadingDecision,
   createCleaningDraftSchema,
   createTruckDraftSchema,
+  colomboDateOnly,
+  colomboHour,
+  colomboTimeHm,
+  dateOnlyToUtcMidnight,
   detectWorkShiftForHour,
   flattenItems,
   formatRecordNumber,
@@ -62,6 +66,7 @@ import {
   parseDataUrlMimeType,
   resultStatusFromNormalized,
   toHeader,
+  toDateOnlyString,
   toResponseMap,
   toTruckDetail,
   type RecordWithHeaderRelations,
@@ -104,9 +109,9 @@ export class InspectionRecordsService {
       throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
     }
 
-    const recordDate = parsed.data.recordDate ?? todayDateString();
+    const recordDate = parsed.data.recordDate ?? colomboDateOnly();
     const recordDateAtMidnight = dateOnlyToUtcMidnight(recordDate);
-    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(new Date().getUTCHours());
+    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
     const areaLabel = parsed.data.areaLabel ?? DEFAULT_CLEANING_AREA_LABEL;
 
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
@@ -167,9 +172,9 @@ export class InspectionRecordsService {
       throw new InvalidRecordPayloadException(formatZodIssues(parsed.error.issues));
     }
 
-    const recordDate = parsed.data.recordDate ?? todayDateString();
+    const recordDate = parsed.data.recordDate ?? colomboDateOnly();
     const recordDateAtMidnight = dateOnlyToUtcMidnight(recordDate);
-    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(new Date().getUTCHours());
+    const shiftCode: WorkShift = parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
     const areaLabel = parsed.data.areaLabel ?? DEFAULT_TRUCK_AREA_LABEL;
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
 
@@ -219,6 +224,7 @@ export class InspectionRecordsService {
               transporterId: parsed.data.transporterId ?? resolvedVehicle.transporterId,
               freezerTruckNumber: resolvedVehicle.freezerTruckNumber,
               vehicleNumber: resolvedVehicle.vehicleNumber,
+              inspectionTime: colomboTimeHm(),
               loadingReference: parsed.data.loadingReference,
               productCategory: parsed.data.productCategory,
             },
@@ -331,7 +337,7 @@ export class InspectionRecordsService {
     return {
       recordId: record.id,
       documentCode: record.documentCode,
-      recordNumber: formatRecordNumber(record.documentCode, toDateOnlyStringLocal(record.recordDate), record.id),
+      recordNumber: formatRecordNumber(record.documentCode, toDateOnlyString(record.recordDate), record.id),
       status,
       submittedAt: submittedAt.toISOString(),
       counts,
@@ -702,18 +708,6 @@ export class InspectionRecordsService {
 
     return created;
   }
-}
-
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function dateOnlyToUtcMidnight(dateOnly: string): Date {
-  return new Date(`${dateOnly}T00:00:00.000Z`);
-}
-
-function toDateOnlyStringLocal(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 function formatZodIssues(issues: Array<{ message: string }>): string {

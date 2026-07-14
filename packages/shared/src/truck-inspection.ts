@@ -119,6 +119,8 @@ export type TruckInspectionDetailPayload = {
   transporter: TransporterSummary | null;
   freezerTruckNumber: string;
   vehicleNumber: string;
+  /** Inspection clock time (HH:mm) in Asia/Colombo, captured at draft create. */
+  inspectionTime: string | null;
   loadingReference: string | null;
   productCategory: string | null;
   temperature: TemperatureReading;

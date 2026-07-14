@@ -645,6 +645,9 @@ model TruckInspectionDetail {
   transporter        Transporter?     @relation(fields: [transporterId], references: [id], onDelete: SetNull)
   freezerTruckNumber String
   vehicleNumber      String
+  /** Paper form “Time” for NMS/PPU/CL/30 — HH:mm in Asia/Colombo, set at
+   *  draft creation (auto-captured, not free-typed by the operator). */
+  inspectionTime String?
   /** Free-text loading/dispatch reference (e.g. a delivery order/loading
    *  plan number) and the product category being loaded, when applicable —
    *  both optional since not every inspection is tied to a specific load. */

@@ -592,6 +592,7 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
         }}
       >
         <HeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
+        <HeaderField label="Time" value={truck?.inspectionTime ?? "—"} />
         <HeaderField label="Shift" value={header.shiftLabel ?? "—"} />
         <HeaderField label="Vehicle number" value={truck?.vehicleNumber ?? "—"} />
         <HeaderField label="Freezer truck number" value={truck?.freezerTruckNumber ?? "—"} />
@@ -599,8 +600,23 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
         <HeaderField label="Driver" value={truck?.driver?.fullName ?? "—"} />
         <HeaderField label="Loading reference" value={truck?.loadingReference ?? "—"} />
         <HeaderField label="Product category" value={truck?.productCategory ?? "—"} />
-        <HeaderField label="Inspector" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
-      </dl>
+        <HeaderField label="Inspector / Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
+        <HeaderField
+          label="Checked by"
+          value={
+            header.checkedBy
+              ? `${header.checkedBy.fullName} (${header.checkedBy.employeeCode})`
+              : "Pending check"
+          }
+        />
+        <HeaderField
+          label="Verified by"
+          value={
+            header.verifiedBy
+              ? `${header.verifiedBy.fullName} (${header.verifiedBy.employeeCode})`
+              : "Pending verification"
+          }
+        />      </dl>
 
       {truck?.reinspectionOf ? (
         <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "var(--nelna-text-secondary)" }}>

@@ -87,7 +87,9 @@ function makeRecord(overrides: Record<string, unknown> = {}) {
     createdById: "user-operator-1",
     createdBy: { id: "user-operator-1", fullName: "Test Operator", employeeCode: "EMP-001" },
     checkedById: null,
+    checkedBy: null,
     verifiedById: null,
+    verifiedBy: null,
     submittedAt: null,
     checkedAt: null,
     verifiedAt: null,
@@ -119,6 +121,7 @@ function makeTruckDetail(overrides: Record<string, unknown> = {}) {
     transporter: { id: "transporter-1", name: "Lanka Cold Logistics" },
     freezerTruckNumber: "FT-01",
     vehicleNumber: "WP CAB-1234",
+    inspectionTime: "08:30",
     loadingReference: null,
     productCategory: null,
     temperatureCurrent: null,
@@ -684,7 +687,7 @@ describe("InspectionRecordsService", () => {
       expect(prismaMock.inspectionRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            truckDetail: { create: expect.objectContaining({ vehicleId: null, freezerTruckNumber: "FT-09", vehicleNumber: "WP AB-1111" }) },
+            truckDetail: { create: expect.objectContaining({ vehicleId: null, freezerTruckNumber: "FT-09", vehicleNumber: "WP AB-1111", inspectionTime: expect.any(String) }) },
           }),
         }),
       );
