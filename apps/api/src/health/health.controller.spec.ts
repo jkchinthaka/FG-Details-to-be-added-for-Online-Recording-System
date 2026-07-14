@@ -47,6 +47,23 @@ describe("HealthController", () => {
     expect(controller.getLive()).toEqual({ status: "ok", service: "nelna-fg-api" });
   });
 
+  it("safe database-config diagnostic hides credentials and host", () => {
+    const previous = process.env.DATABASE_URL;
+    process.env.DATABASE_URL =
+      "mongodb+srv://user:secret@cluster0.example.mongodb.net/fg_online?retryWrites=true";
+    const result = controller.getDatabaseConfig();
+    expect(result).toEqual({
+      provider: "MongoDB",
+      databaseConnected: true,
+      databaseName: "fg_online",
+      clusterDetails: "hidden",
+      credentials: "hidden",
+    });
+    expect(JSON.stringify(result)).not.toMatch(/secret|cluster0\.example/);
+    if (previous) process.env.DATABASE_URL = previous;
+    else delete process.env.DATABASE_URL;
+  });
+
   it("readiness is available in non-production when db is not_configured", async () => {
     const previous = process.env.DATABASE_URL;
     const previousNode = process.env.NODE_ENV;

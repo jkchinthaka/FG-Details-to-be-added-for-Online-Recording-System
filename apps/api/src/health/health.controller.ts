@@ -1,6 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Public } from "../auth/decorators/public.decorator";
+import { getSafeDatabaseConfigDiagnostic } from "../config/validate-production-env";
 import { HealthService, type HealthResponse } from "./health.service";
 
 @ApiTags("health")
@@ -31,5 +32,22 @@ export class HealthController {
   @ApiOperation({ summary: "Readiness probe — safe to receive traffic" })
   getReady() {
     return this.healthService.getReadiness();
+  }
+
+  @Public()
+  @Get("database-config")
+  @ApiOperation({
+    summary:
+      "Safe database configuration diagnostic (provider/name only). Never returns host or credentials.",
+  })
+  getDatabaseConfig() {
+    const configured = getSafeDatabaseConfigDiagnostic();
+    return {
+      provider: configured.provider,
+      databaseConnected: configured.databaseConnectedHint === "configured",
+      databaseName: configured.databaseName,
+      clusterDetails: "hidden" as const,
+      credentials: "hidden" as const,
+    };
   }
 }

@@ -1,16 +1,40 @@
 import {
   assertProductionEnv,
   collectProductionEnvIssues,
+  extractMongoDatabaseName,
+  isMongoConnectionUrl,
+  type ProductionEnvIssue,
 } from "./validate-production-env";
+import {
+  buildCorsOptions,
+  isCorsOriginAllowed,
+  PRODUCTION_FRONTEND_ORIGIN,
+} from "./cors-origin";
 
-describe("validate-production-env", () => {
+describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
+  const completeProduction = {
+    NODE_ENV: "production",
+    NELNA_DEPLOY_TIER: "production",
+    DATABASE_URL:
+      "mongodb+srv://user:secret@cluster0.example.mongodb.net/fg_online?retryWrites=true&w=majority",
+    JWT_ACCESS_SECRET: "access-secret-with-sufficient-entropy-01",
+    JWT_REFRESH_SECRET: "refresh-secret-with-sufficient-entropy-02",
+    API_CORS_ORIGIN: "https://fg.nelna.lk",
+    COOKIE_SECURE: "true",
+    COOKIE_DOMAIN: ".nelna.lk",
+    ACCESS_TOKEN_TTL: "15m",
+    REFRESH_TOKEN_TTL: "7d",
+    APP_VERSION: "1.0.0",
+    APP_BUILD_ID: "abc1234",
+  } satisfies NodeJS.ProcessEnv;
+
   it("allows incomplete env outside production", () => {
     expect(collectProductionEnvIssues({ NODE_ENV: "development" })).toEqual([]);
   });
 
   it("rejects production without critical variables", () => {
     const issues = collectProductionEnvIssues({ NODE_ENV: "production" });
-    const vars = issues.map((i) => i.variable);
+    const vars = issues.map((i: ProductionEnvIssue) => i.variable);
     expect(vars).toEqual(
       expect.arrayContaining([
         "DATABASE_URL",
@@ -18,26 +42,121 @@ describe("validate-production-env", () => {
         "JWT_REFRESH_SECRET",
         "API_CORS_ORIGIN",
         "COOKIE_SECURE",
+        "COOKIE_DOMAIN",
+        "ACCESS_TOKEN_TTL",
+        "REFRESH_TOKEN_TTL",
+        "APP_VERSION",
+        "APP_BUILD_ID",
       ]),
     );
   });
 
-  it("passes a complete production env", () => {
+  it("passes a complete production env for fg.nelna.lk", () => {
+    expect(collectProductionEnvIssues(completeProduction)).toEqual([]);
+  });
+
+  it("requires API_CORS_ORIGIN to be https://fg.nelna.lk in production tier", () => {
+    const issues = collectProductionEnvIssues({
+      ...completeProduction,
+      API_CORS_ORIGIN: "https://evil.example",
+    });
+    expect(issues.some((i) => i.variable === "API_CORS_ORIGIN")).toBe(true);
+  });
+
+  it("requires COOKIE_DOMAIN=.nelna.lk in production", () => {
+    const issues = collectProductionEnvIssues({
+      ...completeProduction,
+      COOKIE_DOMAIN: "fg-api.nelna.lk",
+    });
+    expect(issues.some((i) => i.variable === "COOKIE_DOMAIN")).toBe(true);
+  });
+
+  it("requires MongoDB Atlas URL and database fg_online", () => {
     expect(
       collectProductionEnvIssues({
-        NODE_ENV: "production",
+        ...completeProduction,
         DATABASE_URL: "postgresql://u:p@db:5432/nelna_fg",
-        JWT_ACCESS_SECRET: "access-secret-with-sufficient-entropy-01",
-        JWT_REFRESH_SECRET: "refresh-secret-with-sufficient-entropy-02",
-        API_CORS_ORIGIN: "https://fg.example.nelna",
-        COOKIE_SECURE: "true",
-      }),
-    ).toEqual([]);
+      }).some((i) => i.variable === "DATABASE_URL"),
+    ).toBe(true);
+
+    expect(
+      collectProductionEnvIssues({
+        ...completeProduction,
+        DATABASE_URL:
+          "mongodb+srv://user:secret@cluster0.example.mongodb.net/wrong_db?retryWrites=true",
+      }).some((i) => i.variable === "DATABASE_URL"),
+    ).toBe(true);
+  });
+
+  it("UAT tier requires fg_online_uat and forbids production DB name", () => {
+    const issues = collectProductionEnvIssues({
+      ...completeProduction,
+      NELNA_DEPLOY_TIER: "uat",
+      DATABASE_URL:
+        "mongodb+srv://user:secret@cluster0.example.mongodb.net/fg_online_uat?retryWrites=true",
+      API_CORS_ORIGIN: "https://fg-uat.nelna.lk",
+    });
+    expect(issues).toEqual([]);
+
+    const blocked = collectProductionEnvIssues({
+      ...completeProduction,
+      NELNA_DEPLOY_TIER: "uat",
+      DATABASE_URL:
+        "mongodb+srv://user:secret@cluster0.example.mongodb.net/fg_online?retryWrites=true",
+      API_CORS_ORIGIN: "https://fg-uat.nelna.lk",
+    });
+    expect(blocked.some((i) => i.variable === "DATABASE_URL")).toBe(true);
   });
 
   it("assertProductionEnv throws with readable detail", () => {
     expect(() => assertProductionEnv({ NODE_ENV: "production" })).toThrow(
       /Refusing to start Nelna FG API/,
     );
+  });
+
+  it("never includes password material in issue messages", () => {
+    const issues = collectProductionEnvIssues({
+      ...completeProduction,
+      DATABASE_URL:
+        "mongodb+srv://chinthaka:SuperSecretPassword99@cluster0.example.mongodb.net/bad",
+    });
+    const blob = JSON.stringify(issues);
+    expect(blob).not.toMatch(/SuperSecretPassword99/);
+    expect(blob).not.toMatch(/chinthaka:Super/);
+  });
+});
+
+describe("mongo url helpers", () => {
+  it("detects mongodb schemes", () => {
+    expect(isMongoConnectionUrl("mongodb://localhost:27017/fg_online")).toBe(true);
+    expect(isMongoConnectionUrl("mongodb+srv://h/fg_online")).toBe(true);
+    expect(isMongoConnectionUrl("postgresql://h/db")).toBe(false);
+  });
+
+  it("extracts database name without exposing credentials", () => {
+    expect(
+      extractMongoDatabaseName(
+        "mongodb+srv://user:pass@cluster0.example.mongodb.net/fg_online?retryWrites=true",
+      ),
+    ).toBe("fg_online");
+  });
+});
+
+describe("CORS origin policy", () => {
+  it("production allows only the configured frontend origin", () => {
+    const env = {
+      NODE_ENV: "production",
+      API_CORS_ORIGIN: PRODUCTION_FRONTEND_ORIGIN,
+    };
+    expect(isCorsOriginAllowed("https://fg.nelna.lk", env)).toBe(true);
+    expect(isCorsOriginAllowed("http://localhost:3000", env)).toBe(false);
+    expect(isCorsOriginAllowed("https://evil.example", env)).toBe(false);
+    expect(buildCorsOptions(env).credentials).toBe(true);
+  });
+
+  it("non-production allows localhost and rejects arbitrary origins", () => {
+    const env = { NODE_ENV: "development", API_CORS_ORIGIN: "http://localhost:3000" };
+    expect(isCorsOriginAllowed("http://localhost:3000", env)).toBe(true);
+    expect(isCorsOriginAllowed("https://fg.nelna.lk", env)).toBe(false);
   });
 });

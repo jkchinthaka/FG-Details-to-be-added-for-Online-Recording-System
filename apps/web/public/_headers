@@ -1,0 +1,12 @@
+# Static asset caching for Cloudflare (OpenNext / Workers Assets)
+/_next/static/*
+  Cache-Control: public,max-age=31536000,immutable
+
+/icons/*
+  Cache-Control: public,max-age=86400
+
+/manifest.webmanifest
+  Cache-Control: public,max-age=3600
+
+/sw.js
+  Cache-Control: public,max-age=0,must-revalidate
