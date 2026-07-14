@@ -12,7 +12,7 @@
     "test": "jest",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
-    "prisma:push": "prisma db push",
+    "prisma:push": "prisma db push && node ../../scripts/database/ensure-sparse-current-version-index.js",
     "prisma:seed": "prisma db seed",
     "prisma:seed:production": "prisma db seed",
     "prisma:seed:demo": "node ./prisma/run-demo-seed.cjs",

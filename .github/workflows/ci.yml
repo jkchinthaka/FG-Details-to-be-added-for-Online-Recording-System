@@ -82,10 +82,11 @@ jobs:
         working-directory: apps/api
         run: |
           pnpm exec prisma db push
+          node ../../scripts/database/ensure-sparse-current-version-index.js
           pnpm exec prisma db seed
       - name: Integration tests
         working-directory: apps/api
-        run: pnpm test -- db-integration db-constraints
+        run: pnpm test -- --runInBand --testPathPattern="db-integration|db-constraints"
 
   e2e:
     name: Playwright E2E
@@ -141,6 +142,7 @@ jobs:
         working-directory: apps/api
         run: |
           pnpm exec prisma db push
+          node ../../scripts/database/ensure-sparse-current-version-index.js
           pnpm exec prisma db seed
       - run: pnpm --filter @nelna/api build
       - run: pnpm --filter @nelna/web build

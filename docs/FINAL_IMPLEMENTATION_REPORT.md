@@ -74,6 +74,7 @@ Browser → Cloudflare Worker (OpenNext) → same-origin `/api` proxy → Render
 | `prisma validate` | PASS |
 | Cloudflare build/deploy | **BLOCKED_BY_CREDENTIALS** (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) |
 | Render deploy | **BLOCKED_BY_CREDENTIALS** (`RENDER_API_KEY`, `RENDER_SERVICE_ID`) |
+| GitHub Actions (prior) | Sample-cleanup push failed Mongo integration (`currentVersionId` unique-null); fixed with sparse index script + `runInBand` in follow-up commit |
 | MongoDB connectivity (local .env) | Present in untracked `apps/api/.env` (not printed) |
 | Live login/CRUD smoke on public URLs | **NOT EXECUTED** (no deploy credentials) |
 

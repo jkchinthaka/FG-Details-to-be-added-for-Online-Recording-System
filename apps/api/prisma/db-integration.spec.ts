@@ -58,14 +58,22 @@ describeIntegration("MongoDB integration (fg_online_test only)", () => {
     const template = await prisma.checklistTemplate.create({
       data: { code: `INT/TV/${Date.now()}`, title: "Integration template" },
     });
-    await prisma.checklistTemplateVersion.create({
+    const v1 = await prisma.checklistTemplateVersion.create({
       data: { templateId: template.id, versionNumber: 1, status: TemplateStatus.DRAFT },
+    });
+    await prisma.checklistTemplate.update({
+      where: { id: template.id },
+      data: { currentVersionId: v1.id },
     });
     await expect(
       prisma.checklistTemplateVersion.create({
         data: { templateId: template.id, versionNumber: 1, status: TemplateStatus.DRAFT },
       }),
     ).rejects.toThrow();
+    await prisma.checklistTemplate.update({
+      where: { id: template.id },
+      data: { currentVersionId: null },
+    });
     await prisma.checklistTemplateVersion.deleteMany({
       where: { templateId: template.id },
     });
@@ -84,9 +92,17 @@ describeIntegration("MongoDB integration (fg_online_test only)", () => {
         status: TemplateStatus.PUBLISHED,
       },
     });
+    await prisma.checklistTemplate.update({
+      where: { id: template.id },
+      data: { currentVersionId: version.id },
+    });
     const user = await prisma.user.findFirst({ where: { status: "ACTIVE" } });
     if (!user) {
       console.warn("Skipping historical ref: no seed user");
+      await prisma.checklistTemplate.update({
+        where: { id: template.id },
+        data: { currentVersionId: null },
+      });
       await prisma.checklistTemplateVersion.delete({ where: { id: version.id } });
       await prisma.checklistTemplate.delete({ where: { id: template.id } });
       return;
@@ -104,6 +120,10 @@ describeIntegration("MongoDB integration (fg_online_test only)", () => {
     const linked = await prisma.inspectionRecord.findUnique({ where: { id: record.id } });
     expect(linked?.templateVersionId).toBe(version.id);
     await prisma.inspectionRecord.delete({ where: { id: record.id } });
+    await prisma.checklistTemplate.update({
+      where: { id: template.id },
+      data: { currentVersionId: null },
+    });
     await prisma.checklistTemplateVersion.delete({ where: { id: version.id } });
     await prisma.checklistTemplate.delete({ where: { id: template.id } });
   });

@@ -28,6 +28,15 @@ describeIfDb("checklist template version constraints (requires DATABASE_URL)", (
       },
     });
     templateId = template.id;
+    // Occupy currentVersionId immediately so parallel suites can create other
+    // draft templates under MongoDB's default non-sparse unique semantics.
+    const placeholder = await prisma.checklistTemplateVersion.create({
+      data: { templateId, versionNumber: 100, status: "DRAFT" },
+    });
+    await prisma.checklistTemplate.update({
+      where: { id: templateId },
+      data: { currentVersionId: placeholder.id },
+    });
   });
 
   afterAll(async () => {
