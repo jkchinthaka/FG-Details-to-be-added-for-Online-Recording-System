@@ -102,21 +102,16 @@ role/permission claims momentarily lag.
 
 ## Frontend (`apps/web`)
 
-- **`middleware.ts`** — lightweight, defense-in-depth check: redirects to
-  `/login?next=...` when *neither* auth cookie is present for a protected
-  path. It only checks cookie *presence* (httpOnly cookies aren't readable
-  from JS, and middleware intentionally avoids re-implementing JWT
-  verification) — the API's `JwtAuthGuard` is what actually verifies the
-  token on every request.
-- **`AuthProvider`/`useAuth`** (`src/lib/auth/auth-context.tsx`) — client-side
-  session state. On mount, calls `/auth/me`; on a `SESSION_EXPIRED` /
-  `NOT_AUTHENTICATED` response it attempts one silent `/auth/refresh` before
-  falling back to "unauthenticated". This is the second layer of defense:
-  it catches an access token that expired *during* an active client session
-  (middleware only runs on navigation).
-- **`AppShell`** — role-aware navigation (`src/lib/auth/nav-config.ts` maps
-  each nav destination to the roles allowed to see it), a working sign-out,
-  and a loading/redirect gate while the session is being resolved.
+- **`middleware.ts`** — verifies the session with the Nest API (`GET /auth/me`, with one
+  `/auth/refresh` attempt on 401) using forwarded httpOnly cookies. Cookie presence alone
+  is no longer sufficient. Inactive accounts redirect to `/account-inactive`; wrong role
+  to `/unauthorized`. Safe `next` return URLs reject open redirects.
+- **`route-access.ts` / `server-auth.ts`** — permission-aware route mapping and a server
+  utility for RSC / server actions (tokens never read in browser JS).
+- **`AuthProvider`/`useAuth`** — live `/auth/me` + refresh; `SessionExpiredDialog` on
+  mid-workflow expiry without marking a submission complete; local drafts remain on device.
+- **`AppShell`** — role-aware navigation, session gate, inactive redirect, unauthorized path check.
+- API client helpers emit `nelna:session-expired` on protected 401 responses (not on `/auth/login`).
 - **`/login`** — Nelna-branded, mobile-first, minimal fields (email,
   password with a show/hide toggle), large primary-green submit button,
   distinct banners for invalid credentials / inactive account / locked

@@ -1,19 +1,51 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { decideMiddlewareAction } from "@/lib/auth/middleware-logic";
+import { decideVerifiedMiddlewareAction } from "@/lib/auth/middleware-logic";
+import { isPublicAppPath } from "@/lib/auth/route-access";
+import { verifySessionFromCookieHeader } from "@/lib/auth/verify-session";
+import { AUTH_COOKIE_NAMES } from "@nelna/shared";
+import { buildLoginRedirectUrl } from "@/lib/auth/session";
 
-export function middleware(request: NextRequest) {
-  const decision = decideMiddlewareAction(request.nextUrl.pathname, (name) =>
-    request.cookies.has(name),
-  );
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
 
-  if (decision.action === "redirect") {
-    return NextResponse.redirect(new URL(decision.url, request.url));
+  if (isPublicAppPath(pathname)) {
+    return NextResponse.next();
   }
-  return NextResponse.next();
+
+  const hasAnyAuthCookie =
+    request.cookies.has(AUTH_COOKIE_NAMES.accessToken) ||
+    request.cookies.has(AUTH_COOKIE_NAMES.refreshToken);
+
+  if (!hasAnyAuthCookie) {
+    return NextResponse.redirect(new URL(buildLoginRedirectUrl(pathname), request.url));
+  }
+
+  const cookieHeader = request.headers.get("cookie");
+  let verification: Awaited<ReturnType<typeof verifySessionFromCookieHeader>>;
+  try {
+    verification = await verifySessionFromCookieHeader(cookieHeader);
+  } catch {
+    return NextResponse.redirect(
+      new URL(buildLoginRedirectUrl(pathname, "session-expired"), request.url),
+    );
+  }
+
+  const decision = decideVerifiedMiddlewareAction(pathname, verification.session);
+  if (decision.action === "redirect") {
+    const response = NextResponse.redirect(new URL(decision.url, request.url));
+    for (const header of verification.setCookieHeaders) {
+      response.headers.append("Set-Cookie", header);
+    }
+    return response;
+  }
+
+  const response = NextResponse.next();
+  for (const header of verification.setCookieHeaders) {
+    response.headers.append("Set-Cookie", header);
+  }
+  return response;
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.webmanifest).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js).*)"],
 };

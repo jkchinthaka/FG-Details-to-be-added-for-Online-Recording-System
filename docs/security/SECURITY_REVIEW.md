@@ -39,3 +39,16 @@ The review inspected authentication, authorization, API and browser controls, da
 7. **Formal data retention, subject/access handling, backups, and disposal processes are outside this repository.** Assign an operational data owner and document them before go-live.
 
 See `THREAT_MODEL.md`, `DATA_PROTECTION.md`, and `INCIDENT_RESPONSE.md` for ownership and operational detail.
+
+## Prompt 33 follow-up (verified web route auth)
+
+| Control | Status |
+| --- | --- |
+| Cookie HttpOnly / SameSite=Lax / Secure-in-prod | Confirmed in API cookie helpers + config validators |
+| Middleware verifies session via API | Implemented (`verifySessionFromCookieHeader`) |
+| Open-redirect safe return URLs | `resolvePostLoginPath` hardened |
+| CSRF | SameSite=Lax + cookie session; no bearer-in-JS; keep API CORS allowlist tight in deploy |
+| Access token after logout | Still valid until TTL (deferred risk #5) |
+| Rate limits | Still deferred (#4) |
+
+No plant penetration-test evidence is claimed here.

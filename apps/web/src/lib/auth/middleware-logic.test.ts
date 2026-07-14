@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { decideMiddlewareAction } from "./middleware-logic";
+import { decideMiddlewareAction, decideVerifiedMiddlewareAction } from "./middleware-logic";
+import type { CurrentUser } from "@nelna/shared";
 
 function cookieSet(names: string[]) {
   return (name: string) => names.includes(name);
 }
 
-describe("decideMiddlewareAction", () => {
+const activeUser: CurrentUser = {
+  id: "u1",
+  employeeCode: "E1",
+  fullName: "Op",
+  email: "op@example.com",
+  status: "ACTIVE",
+  roles: ["FG_OPERATOR"],
+  permissions: ["records:create", "records:read"],
+  lastLoginAt: null,
+};
+
+describe("decideMiddlewareAction (cookie presence)", () => {
   it("always allows /login through, even with no session", () => {
     expect(decideMiddlewareAction("/login", cookieSet([]))).toEqual({ action: "allow" });
   });
@@ -33,6 +45,48 @@ describe("decideMiddlewareAction", () => {
     expect(decideMiddlewareAction("/", cookieSet([]))).toEqual({
       action: "redirect",
       url: "/login",
+    });
+  });
+});
+
+describe("decideVerifiedMiddlewareAction", () => {
+  it("redirects missing session to login with session-expired reason", () => {
+    expect(decideVerifiedMiddlewareAction("/records", { status: "missing" })).toEqual({
+      action: "redirect",
+      url: "/login?next=%2Frecords&reason=session-expired",
+    });
+  });
+
+  it("redirects expired session to login", () => {
+    expect(decideVerifiedMiddlewareAction("/tasks", { status: "expired" })).toEqual({
+      action: "redirect",
+      url: "/login?next=%2Ftasks&reason=session-expired",
+    });
+  });
+
+  it("redirects inactive users to account-inactive", () => {
+    expect(decideVerifiedMiddlewareAction("/tasks", { status: "inactive" })).toEqual({
+      action: "redirect",
+      url: "/account-inactive",
+    });
+  });
+
+  it("allows an operator on records", () => {
+    expect(decideVerifiedMiddlewareAction("/records", { status: "ok", user: activeUser })).toEqual({
+      action: "allow",
+    });
+  });
+
+  it("blocks an operator from /admin (wrong role)", () => {
+    expect(decideVerifiedMiddlewareAction("/admin", { status: "ok", user: activeUser })).toEqual({
+      action: "redirect",
+      url: "/unauthorized?from=%2Fadmin",
+    });
+  });
+
+  it("allows public unauthorized page without a session", () => {
+    expect(decideVerifiedMiddlewareAction("/unauthorized", { status: "missing" })).toEqual({
+      action: "allow",
     });
   });
 });

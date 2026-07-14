@@ -44,6 +44,9 @@ function mockUser(overrides: Partial<CurrentUser> = {}) {
     login: vi.fn(),
     logout: vi.fn(),
     refetch: vi.fn(),
+    sessionExpiredNotice: false,
+    clearSessionExpiredNotice: vi.fn(),
+    canOpenPath: () => true,
   });
 }
 

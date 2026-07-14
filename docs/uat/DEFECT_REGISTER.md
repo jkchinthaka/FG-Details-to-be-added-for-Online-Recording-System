@@ -113,14 +113,14 @@
 
 | Field | Value |
 |-------|-------|
-| Test case | AUTH-05 |
+| Test case | AUTH-05 / `UAT_VERIFIED_ROUTE_AUTH.md` |
 | Severity | **Medium** |
 | Priority | P2 |
 | Steps | Operator pastes Admin URL while cookies present |
 | Expected | Page-level deny or redirect |
-| Actual | Middleware checks cookie presence only; API still 403 for mutations |
-| Root cause | Defence-in-depth incomplete on Next.js routes |
-| Closure | **Open** |
+| Actual (Prompt 33) | Middleware verifies `/auth/me` (+ refresh), route ACL, unauthorized/inactive pages, session-expired dialog |
+| Residual | Access JWT still valid until TTL after logout (known SEC note); middleware depends on API reachability |
+| Closure | **Closed (product)** — plant UAT unsigned (DEF-012) |
 
 ### DEF-011 — Database restore not proven in this environment
 

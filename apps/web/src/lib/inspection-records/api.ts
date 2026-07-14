@@ -48,6 +48,14 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      const { notifySessionExpired } = await import("@/lib/http/session-events");
+      notifySessionExpired();
+    }
+    if (response.status === 403) {
+      const { notifyForbidden } = await import("@/lib/http/session-events");
+      notifyForbidden();
+    }
     let message = `Request failed (${response.status})`;
     let validationErrors: ChecklistValidationError[] | undefined;
     try {

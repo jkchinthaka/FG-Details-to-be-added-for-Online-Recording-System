@@ -64,5 +64,7 @@ describe("resolvePostLoginPath", () => {
     expect(resolvePostLoginPath("//evil.example.com")).toBe("/tasks");
     expect(resolvePostLoginPath("https://evil.example.com")).toBe("/tasks");
     expect(resolvePostLoginPath("evil.example.com")).toBe("/tasks");
+    expect(resolvePostLoginPath("/login")).toBe("/tasks");
+    expect(resolvePostLoginPath("/\\evil")).toBe("/tasks");
   });
 });

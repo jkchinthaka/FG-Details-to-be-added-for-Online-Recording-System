@@ -57,7 +57,7 @@ This snapshot describes the synchronized MVP baseline after branch normalization
 | Truck re-inspection picker / full chain UI | Incomplete (DEF-002) |
 | Reports / PDF / CSV | Delivered (Prompt 31); BD-25 paper parity PENDING |
 | Offline sync (service worker) | Deferred (DEF-009) |
-| Web JWT/role page guards | Cookie presence only (DEF-010) |
+| Web route authorization | Verified `/auth/me` + role ACL (Prompt 33; DEF-010 closed product) |
 | Void / amendment of verified records | Missing (DEF-005) |
 
 ---
@@ -77,7 +77,7 @@ See `docs/uat/DEFECT_REGISTER.md`.
 | DEF-007 | High | Reports / PDF / CSV | Closed (product); plant UAT unsigned |
 | DEF-008 | High | Admin user & vehicle CRUD missing | Closed (product); see `DEFECT_REGISTER.md` |
 | DEF-009 | Medium | Offline sync missing | Open |
-| DEF-010 | Medium | Web middleware lacks JWT/role enforcement | Open |
+| DEF-010 | Medium | Web middleware route auth | Closed (product); residual access-token TTL |
 | DEF-011 | High | DB restore not proven | Open |
 | DEF-012 | High | Formal multi-role UAT not executed | Open |
 

@@ -58,9 +58,28 @@ export function buildLoginRedirectUrl(
 /** Where an unqualified/invalid `next` param falls back to — the "Today's Tasks" dashboard home. */
 const DEFAULT_POST_LOGIN_PATH = "/tasks";
 
+const DISALLOWED_NEXT_PREFIXES = ["/login", "/unauthorized", "/account-inactive"];
+
 /** Resolves where to send the user after a successful login (defends against open-redirect via `next`). */
 export function resolvePostLoginPath(nextParam: string | null | undefined): string {
   if (!nextParam) return DEFAULT_POST_LOGIN_PATH;
-  if (!nextParam.startsWith("/") || nextParam.startsWith("//")) return DEFAULT_POST_LOGIN_PATH;
-  return nextParam;
+  const trimmed = nextParam.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return DEFAULT_POST_LOGIN_PATH;
+  if (trimmed.includes("://") || trimmed.includes("\\") || trimmed.includes("@")) {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
+  // Block control characters and encoded path tricks
+  if (/[\u0000-\u001F\u007F]/.test(trimmed)) return DEFAULT_POST_LOGIN_PATH;
+  try {
+    const decoded = decodeURIComponent(trimmed);
+    if (decoded !== trimmed && (!decoded.startsWith("/") || decoded.startsWith("//"))) {
+      return DEFAULT_POST_LOGIN_PATH;
+    }
+  } catch {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
+  if (DISALLOWED_NEXT_PREFIXES.some((p) => trimmed === p || trimmed.startsWith(`${p}/`))) {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
+  return trimmed;
 }

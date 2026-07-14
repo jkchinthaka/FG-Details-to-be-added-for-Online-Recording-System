@@ -8,6 +8,7 @@ import { USER_ROLE_LABELS } from "@nelna/shared";
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import { filterNavItemsByRole } from "@/lib/auth/nav-config";
 import { buildLoginRedirectUrl } from "@/lib/auth/session";
+import { SessionExpiredDialog } from "@/components/SessionExpiredDialog";
 
 type NavItem = {
   href: string;
@@ -33,6 +34,7 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 const LOGIN_PATH = "/login";
+const CHROMELESS_PATHS = new Set(["/login", "/unauthorized", "/account-inactive"]);
 
 /** Responsive application shell: bottom nav on mobile, sidebar from tablet up. */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -48,8 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 function ShellLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  // The login page renders its own full-bleed, chrome-free layout.
-  if (pathname === LOGIN_PATH) {
+  if (CHROMELESS_PATHS.has(pathname)) {
     return <div className="nelna-app-shell min-h-dvh">{children}</div>;
   }
 
@@ -68,15 +69,32 @@ function AuthenticatedShell({
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
-    if (auth.status === "unauthenticated") {
+    if (auth.status === "inactive") {
+      router.replace("/account-inactive");
+      return;
+    }
+    if (auth.status === "unauthenticated" && !auth.sessionExpiredNotice) {
       router.replace(buildLoginRedirectUrl(pathname, "session-expired"));
     }
-  }, [auth.status, pathname, router]);
+  }, [auth.status, auth.sessionExpiredNotice, pathname, router]);
+
+  useEffect(() => {
+    if (auth.status === "authenticated" && !auth.canOpenPath(pathname)) {
+      router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}`);
+    }
+  }, [auth, pathname, router]);
 
   if (auth.status !== "authenticated") {
     return (
       <div className="nelna-app-shell flex min-h-dvh items-center justify-center">
         <LoadingState message="Checking your session…" />
+        <SessionExpiredDialog
+          open={auth.sessionExpiredNotice}
+          onSignIn={() => {
+            auth.clearSessionExpiredNotice();
+            router.replace(buildLoginRedirectUrl(pathname, "session-expired"));
+          }}
+        />
       </div>
     );
   }
@@ -123,6 +141,13 @@ function AuthenticatedShell({
           ))}
         </ul>
       </Drawer>
+      <SessionExpiredDialog
+        open={auth.sessionExpiredNotice}
+        onSignIn={() => {
+          auth.clearSessionExpiredNotice();
+          router.replace(buildLoginRedirectUrl(pathname, "session-expired"));
+        }}
+      />
     </div>
   );
 }

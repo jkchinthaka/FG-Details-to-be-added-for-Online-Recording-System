@@ -2,6 +2,10 @@ import type { AuthErrorCode, CurrentUser, LoginInput } from "@nelna/shared";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
+function isSessionExpiredAuthCode(code: AuthErrorCode | "UNKNOWN"): boolean {
+  return code === "SESSION_EXPIRED" || code === "NOT_AUTHENTICATED";
+}
+
 export class ApiError extends Error {
   readonly code: AuthErrorCode | "UNKNOWN";
   readonly status: number;
@@ -40,7 +44,16 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw await parseErrorResponse(response);
+    const error = await parseErrorResponse(response);
+    const isAuthBootstrap = path.startsWith("/auth/login") || path.startsWith("/auth/refresh");
+    if (
+      typeof window !== "undefined" &&
+      !isAuthBootstrap &&
+      (response.status === 401 || isSessionExpiredAuthCode(error.code))
+    ) {
+      window.dispatchEvent(new CustomEvent("nelna:session-expired"));
+    }
+    throw error;
   }
 
   if (response.status === HTTP_NO_CONTENT) {
