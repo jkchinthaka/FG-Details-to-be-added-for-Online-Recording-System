@@ -40,7 +40,7 @@ async function bootstrap() {
     .setDescription(
       "REST API for Finished Goods cleaning verification, freezer truck inspection, QA workflows and audit trails at Nelna Farm.",
     )
-    .setVersion("0.1.0")
+    .setVersion("1.0.0")
     .setContact("Chinthaka Jayaweera", "", "")
     .addCookieAuth("nelna_access_token")
     .build();

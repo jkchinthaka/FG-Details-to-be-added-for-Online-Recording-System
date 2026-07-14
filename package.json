@@ -1,7 +1,7 @@
 {
   "name": "nelna-fg-digital-recording-system",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Nelna FG Digital Recording System — Finished Goods and QA digital recording for Nelna Farm",
   "author": "Chinthaka Jayaweera",
   "packageManager": "pnpm@9.12.0",

@@ -27,7 +27,7 @@ export type HealthResponse = {
 };
 
 function appVersion(): string {
-  return process.env.APP_VERSION?.trim() || "0.1.0";
+  return process.env.APP_VERSION?.trim() || "1.0.0";
 }
 
 function buildId(): string | null {
