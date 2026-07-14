@@ -16,7 +16,7 @@ Not `PRODUCTION_READY`: live Cloudflare/Render smoke not verified this pass; pla
 |------|-------|
 | Starting SHA | `97ef2fd` |
 | Safety tag | `pre-enterprise-improvement-20260715-0112` (pushed) |
-| Ending SHA | _(filled at commit)_ |
+| Ending SHA | `32fdc2d` |
 | Remote | `https://github.com/jkchinthaka/FG-Details-to-be-added-for-Online-Recording-System.git` |
 | Push | Required after quality gate |
 
