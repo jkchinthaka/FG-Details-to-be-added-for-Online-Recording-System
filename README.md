@@ -105,14 +105,21 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 - Verify lint, typecheck, tests and build before every commit  
 - Push with `git push origin develop`  
 - **Queue rules:** [`docs/QUEUE_CONTROLLER.md`](docs/QUEUE_CONTROLLER.md) — one phase at a time; Prompt 16 = RC on `develop` only; **only Prompt 25** may merge to `main` and tag `v1.0.0`  
-- Promote to `main` only after an evidence-based Go-Live Decision (Prompt 25)  
+- Promote to `main` only after an evidence-based go-live decision; current production gate is **NO-GO** ([Final go-live decision](docs/release/FINAL_GO_LIVE_DECISION.md))  
 
 ## Documentation index
+
+### Current state (Phase 1 reconciliation)
+
+- [Current system audit](docs/current-state/CURRENT_SYSTEM_AUDIT.md)  
+- [Implementation inventory](docs/current-state/IMPLEMENTATION_INVENTORY.md)  
+- [Documentation reconciliation](docs/current-state/DOCUMENTATION_RECONCILIATION.md)  
+- [Next implementation plan](docs/current-state/NEXT_IMPLEMENTATION_PLAN.md)  
+- [Current MVP baseline](docs/current-state/CURRENT_MVP_BASELINE.md) (historical snapshot; updated status tables)  
 
 ### Product & domain
 
 - [Master queue controller](docs/QUEUE_CONTROLLER.md)  
-- [Current MVP baseline](docs/current-state/CURRENT_MVP_BASELINE.md)  
 - [Project brief](docs/PROJECT_BRIEF.md)  
 - [Architecture](docs/ARCHITECTURE.md)  
 - [Database design](docs/DATABASE_DESIGN.md)  
@@ -192,14 +199,15 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 - [Future roadmap](docs/handover/FUTURE_ROADMAP.md)  
 - [Change request template](docs/handover/CHANGE_REQUEST_TEMPLATE.md)  
 
-### Release (after gate)
+### Release
 
+- [**Final go-live decision (authoritative — NO-GO)**](docs/release/FINAL_GO_LIVE_DECISION.md)  
+- [MVP tag go-live decision (historical CONDITIONAL GO / v1.0.0)](docs/release/GO_LIVE_DECISION.md)  
 - [Release gate report](docs/release/RELEASE_GATE_REPORT.md)  
 - [Test summary](docs/release/TEST_SUMMARY.md)  
 - [Security summary](docs/release/SECURITY_SUMMARY.md)  
 - [Known limitations](docs/release/KNOWN_LIMITATIONS.md)  
 - [Release notes v1.0.0](docs/release/RELEASE_NOTES_V1.0.0.md)  
-- [Go-live decision](docs/release/GO_LIVE_DECISION.md)  
 
 ## Developer attribution
 

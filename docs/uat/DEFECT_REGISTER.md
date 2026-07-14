@@ -1,41 +1,55 @@
-# Defect Register — Nelna FG Digital Recording System
+# Defect Register ? Nelna FG Digital Recording System
 
 **Register opened:** 2026-07-14 (Prompt 22)  
+**Last reconciled:** 2026-07-14 (Phase 1 current-state audit)  
 **Rules:** Every defect needs ID, severity, priority, repro, expected/actual, status.  
 **Severity:** Critical = data loss / unsafe loading / auth bypass of safety controls. High = core workflow unusable or compliance control missing for claimed capability. Medium = partial gap. Low = polish.
 
+**Status vocabulary:** `PRODUCT_FIXED` | `AUTOMATED_TEST_PASSED` | `MANUAL_UAT_PENDING` | `BUSINESS_APPROVAL_PENDING` | `INFRASTRUCTURE_TEST_PENDING` | `OPEN` | `PARTIAL` | `CLOSED`  
+See `docs/current-state/DOCUMENTATION_RECONCILIATION.md`. Do **not** mark `CLOSED` while plant UAT or infrastructure evidence remains required.
+
 ---
 
-## Active defects
+## Active and reconciled defects
 
-### DEF-001 — Supervisor general Return (set REJECTED) missing
+### DEF-001 ? Supervisor general Return missing
 
 | Field | Value |
 |-------|-------|
 | Test case | CL24-09, WF-02 |
 | Severity | **High** |
 | Priority | P1 |
-| Closure | **Fixed (Prompt 28)** — `POST /inspection-records/:id/return` sets `RETURNED_FOR_CORRECTION` with mandatory comment; operator may resubmit |
+| Closure | **PRODUCT_FIXED** (Prompt 28) ? `POST /inspection-records/:id/return` sets `RETURNED_FOR_CORRECTION` with mandatory comment; operator may resubmit |
+| Engineering evidence | **AUTOMATED_TEST_PASSED** ? shared + API workflow policy tests |
+| Formal UAT | **MANUAL_UAT_PENDING** (DEF-012) |
 | Fix commit | Prompt 28 `feat: complete FG check and verification workflow` |
-| Retest | Shared + API workflow policy tests; manual UAT still required |
+| Retest | Shared + API workflow policy tests; plant UAT still required |
 
-### DEF-003 — Checked By / Verified By transitions not implemented
+### DEF-003 ? Checked By / Verified By transitions not implemented
 
 | Field | Value |
 |-------|-------|
-| Closure | **Fixed (Prompt 28)** — check/verify APIs + pending queues; SoD defaults pending BD-05/06 APPROVED |
+| Severity | **High** |
+| Priority | P1 |
+| Closure | **PRODUCT_FIXED** (Prompt 28) ? check/verify APIs + pending queues |
+| Engineering evidence | **AUTOMATED_TEST_PASSED** |
+| Formal UAT | **MANUAL_UAT_PENDING** |
+| Business | **BUSINESS_APPROVAL_PENDING** ? BD-03/04/05/06 |
 | Fix commit | Prompt 28 |
 | Retest | Unit tests; plant UAT pending |
 
-### DEF-004 — Self-verification restriction not enforceable
+### DEF-004 ? Self-verification restriction not enforceable
 
 | Field | Value |
 |-------|-------|
-| Closure | **Fixed (interim)** — backend SoD defaults refuse creator self-check and checker self-verify until BD-05/06 APPROVED otherwise |
+| Severity | **High** |
+| Priority | P1 |
+| Closure | **PRODUCT_FIXED** (interim) ? backend SoD defaults refuse creator self-check and checker self-verify |
+| Business | **BUSINESS_APPROVAL_PENDING** ? BD-05/06 must APPROVE before treating defaults as Nelna policy |
 | Fix commit | Prompt 28 |
 | Retest | `record-workflow` / policy specs |
 
-### DEF-002 — Truck re-inspection UI picker incomplete
+### DEF-002 ? Truck re-inspection UI picker incomplete
 
 | Field | Value |
 |-------|-------|
@@ -45,10 +59,10 @@
 | Steps | After critical block, start re-inspection of prior truck record from UI |
 | Expected | Operator selects prior record; `reinspectionOfId` set; history visible |
 | Actual | API/schema support; UI picker incomplete (OBD-07 / BD-13) |
-| Root cause | UX deferred to Prompt 30 |
-| Closure | **Open** |
+| Root cause | UX deferred; re-inspection product UI still incomplete |
+| Closure | **OPEN** |
 
-### DEF-005 — Void / controlled amend process missing
+### DEF-005 ? Void / controlled amend process missing
 
 | Field | Value |
 |-------|-------|
@@ -57,60 +71,64 @@
 | Priority | P2 |
 | Steps | Attempt void or amend verified record |
 | Expected | Controlled process with audit |
-| Actual | **Partial (Prompt 28)** — `POST /:id/void` soft-archives verified/completed with mandatory comment; dedicated amend API still thin |
-| Closure | **Partial** |
+| Actual | **PARTIAL** (Prompt 28) ? `POST /:id/void` soft-archives verified/completed with mandatory comment; dedicated amend API still thin |
+| Closure | **PARTIAL** |
 
-### DEF-006 — Corrective-action lifecycle UI/API incomplete
+### DEF-006 ? Corrective-action lifecycle UI/API incomplete
 
 | Field | Value |
 |-------|-------|
-| Test case | CA-02–CA-09 |
+| Test case | CA-02?CA-09 |
 | Severity | **High** |
 | Priority | P1 |
 | Steps | Assign, evidence, complete, close CA from product |
 | Expected | Full lifecycle |
 | Actual | Auto-create on submit only; placeholder `/corrective-actions` page; no CA controller |
-| Closure | **Open** |
+| Closure | **OPEN** |
 
-### DEF-007 — Reports / PDF / CSV not delivered
+### DEF-007 ? Reports / PDF / CSV not delivered
 
 | Field | Value |
 |-------|-------|
-| Test case | RPT-01–RPT-07 / `UAT_REPORTS_EXPORT.md` |
+| Test case | RPT-01?RPT-07 / `UAT_REPORTS_EXPORT.md` |
 | Severity | **High** |
 | Priority | P1 |
-| Steps | Open Reports → export PDF/CSV |
+| Steps | Open Reports ? export PDF/CSV |
 | Expected | Operational reports + PDF traceability |
 | Actual (Prompt 31) | 16 report kinds, CSV formula-safe export, official PDFKit PDF, role-scoped kinds, record PDF download control |
-| Closure | **Closed (product)** — Plant UAT still unsigned (DEF-012); BD-25 paper-layout parity still PENDING |
+| Closure | **PRODUCT_FIXED** ? not CLOSED (plant evidence incomplete) |
+| Formal UAT | **MANUAL_UAT_PENDING** (DEF-012) |
+| Business | **BUSINESS_APPROVAL_PENDING** ? BD-25 paper-layout parity |
 
-### DEF-008 — Admin user & vehicle CRUD missing
+### DEF-008 ? Admin user & vehicle CRUD missing
 
 | Field | Value |
 |-------|-------|
-| Test case | ADM-01–ADM-09 / `UAT_ADMIN_MASTER_DATA.md` |
+| Test case | ADM-01?ADM-09 / `UAT_ADMIN_MASTER_DATA.md` |
 | Severity | **High** |
 | Priority | P1 |
 | Steps | Admin creates user/vehicle from UI |
 | Expected | Manage master data |
-| Actual (Prompt 32) | `/admin/users`, `/admin/master-data/*` (departments, sections, shifts, failure reasons, corrective action categories, temperature profiles, priorities, loading-decision-policies), `/admin/vehicles`, `/admin/drivers`, `/admin/transporters` APIs + minimal web admin pages under `/admin/*`. Last-active-admin protection, role/audit logging, soft-deactivate only (no hard delete), duplicate prevention on vehicle/driver/transporter creation. |
-| Known limits | Users list UI shows only the first page (no paging controls yet); no bulk import; loading-decision-policy content is admin-supplied only, never invented by the system |
-| Closure | **Closed (product)** — Plant UAT still to be executed against `UAT_ADMIN_MASTER_DATA.md` |
+| Actual (Prompt 32) | `/admin/users`, `/admin/master-data/*`, `/admin/vehicles`, `/admin/drivers`, `/admin/transporters` APIs + web admin pages. Last-active-admin protection, soft-deactivate, duplicate prevention. |
+| Known limits | Users list UI first page only (no paging controls yet); no bulk import; loading-decision-policy content is admin-supplied only |
+| Closure | **PRODUCT_FIXED** ? not CLOSED (plant evidence incomplete) |
+| Formal UAT | **MANUAL_UAT_PENDING** |
 
-### DEF-009 — Offline sync / PWA service worker missing
+### DEF-009 ? Offline sync / PWA service worker missing
 
 | Field | Value |
 |-------|-------|
-| Test case | PWA-04–PWA-06 / `UAT_OFFLINE_PWA.md` |
+| Test case | PWA-04?PWA-06 / `UAT_OFFLINE_PWA.md` |
 | Severity | **Medium** |
 | Priority | P2 |
-| Steps | Install PWA → go offline → edit → reconnect → sync |
+| Steps | Install PWA ? go offline ? edit ? reconnect ? sync |
 | Expected | Queued sync with status and duplicate prevention |
 | Actual (Prompt 34) | IndexedDB queue + SW + conflict review + logout cleanup |
 | Residual | CA draft online submit limited; IndexedDB not encrypted at rest |
-| Closure | **Closed (product)** — plant network UAT unsigned |
+| Closure | **PRODUCT_FIXED** ? not CLOSED (plant evidence incomplete) |
+| Formal UAT | **MANUAL_UAT_PENDING** |
 
-### DEF-010 — Web middleware lacks JWT/role enforcement
+### DEF-010 ? Web middleware lacks JWT/role enforcement
 
 | Field | Value |
 |-------|-------|
@@ -120,60 +138,63 @@
 | Steps | Operator pastes Admin URL while cookies present |
 | Expected | Page-level deny or redirect |
 | Actual (Prompt 33) | Middleware verifies `/auth/me` (+ refresh), route ACL, unauthorized/inactive pages, session-expired dialog |
-| Residual | Access JWT still valid until TTL after logout (known SEC note); middleware depends on API reachability |
-| Closure | **Closed (product)** — plant UAT unsigned (DEF-012) |
+| Residual | Access JWT still valid until TTL after logout; middleware depends on API reachability |
+| Closure | **PRODUCT_FIXED** ? not CLOSED (plant evidence incomplete) |
+| Formal UAT | **MANUAL_UAT_PENDING** (DEF-012) |
 
-### DEF-011 — Database restore not proven in this environment
+### DEF-011 ? Database restore not proven in this environment
 
 | Field | Value |
 |-------|-------|
-| Test case | Ops recovery (Prompt 21) |
+| Test case | Ops recovery |
 | Severity | **High** (ops) |
 | Priority | P1 |
-| Steps | Backup → restore → reconcile counts |
+| Steps | Backup ? restore ? reconcile counts |
 | Expected | Matching counts |
-| Actual | Restore **not performed** (Postgres auth / Docker unavailable) |
+| Actual | Restore **not performed** (Postgres auth / Docker unavailable in evidence window) |
 | Evidence | `docs/database/RESTORE_TEST_EVIDENCE.md` |
-| Closure | **Open** |
+| Closure | **OPEN** + **INFRASTRUCTURE_TEST_PENDING** |
 
-### DEF-012 — Formal plant/role UAT not executed
+### DEF-012 ? Formal plant/role UAT not executed
 
 | Field | Value |
 |-------|-------|
 | Test case | All manual |
 | Severity | **High** (release process) |
 | Priority | P1 |
-| Steps | Execute `UAT_TEST_CASES.md` with six roles on Test env |
+| Steps | Execute `UAT_TEST_CASES.md` with required roles on Test env |
 | Expected | Pass evidence per case |
 | Actual | Documentation + automated Partial only |
-| Closure | **Open** |
+| Closure | **OPEN** + **MANUAL_UAT_PENDING** |
 
 ---
 
-## Closed defects
+## Closed defects (`CLOSED` = product + required UAT/ops evidence)
 
-_None closed in Prompt 22._ Automated suite found **no new failing regressions** to fix as code defects. Product completeness gaps remain open above.
+_None._ Product-fixed defects remain open for plant/UAT closure under DEF-012.
 
 ---
 
-## Severity summary
+## Severity summary (Phase 1 reconciled)
 
-| Severity | Open | Closed |
-|----------|-----:|-------:|
-| Critical | 0 | 0 |
-| High | 9 | 0 |
-| Medium | 3 | 0 |
-| Low | 0 | 0 |
+| Category | Count | IDs |
+|----------|------:|-----|
+| Critical open | 0 | - |
+| High product-open | 2 | DEF-002, DEF-006 |
+| High process/ops-open | 2 | DEF-011, DEF-012 |
+| Medium partial | 1 | DEF-005 |
+| PRODUCT_FIXED awaiting UAT/BD (High/Medium) | 7 | DEF-001, 003, 004, 007, 008, 009, 010 |
+| Fully CLOSED | 0 | - |
 
-**Prompt 22 mandate:** “Fix all critical and high-severity defects before release.”  
-**Status:** **Not met** — High defects remain open; several blocked on Nelna OBDs. Release gate must be **NO-GO** or **CONDITIONAL GO** with explicit waivers — not Unconditional GO.
+**Prompt 22 mandate:** "Fix all critical and high-severity defects before release."  
+**Status:** **Not met** for production - product High residuals (DEF-002, DEF-006) plus process/ops High (DEF-011, DEF-012). Authoritative production gate: **NO-GO** (`docs/release/FINAL_GO_LIVE_DECISION.md`).
 
 ---
 
 ## Template for new defects
 
 ```
-### DEF-XXX — <title>
+### DEF-XXX - <title>
 | Field | Value |
 | Test case | |
 | Severity | |
@@ -185,15 +206,15 @@ _None closed in Prompt 22._ Automated suite found **no new failing regressions**
 | Root cause | |
 | Fix commit | |
 | Retest result | |
-| Closure status | Open / Fixed / Won't fix / Deferred |
+| Closure status | OPEN / PARTIAL / PRODUCT_FIXED / CLOSED (+ UAT/BD/infra flags) |
 ```
 
-## Prompt 38 � Formal multi-role UAT
+## Formal multi-role UAT (Prompt 38 / Phase evidence)
 
 | Item | Status |
 | --- | --- |
 | Formal multi-role UAT | **FORMAL UAT NOT EXECUTED** |
-| Defect closures from plant UAT | None � no plant defects filed this window |
-| Sign-off | Not signed � see `UAT_SIGNOFF.md` |
+| Defect closures from plant UAT | None ? no plant defects filed this window |
+| Sign-off | Not signed ? see `UAT_SIGNOFF.md` |
 
-Open High residuals and unsigned formal UAT remain release blockers under Prompt 41 rules.
+Open High residuals and unsigned formal UAT remain release blockers under the final go-live gate.

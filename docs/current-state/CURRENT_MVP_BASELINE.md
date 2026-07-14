@@ -1,10 +1,11 @@
 # Current MVP Baseline — Nelna FG Digital Recording System
 
 **Documented:** 2026-07-14 (Prompt 26)  
+**Status tables refreshed:** 2026-07-14 (Phase 1 reconciliation)  
 **Developer:** Chinthaka Jayaweera  
 **Repository:** https://github.com/jkchinthaka/FG-Details-to-be-added-for-Online-Recording-System.git  
 
-This snapshot describes the synchronized MVP baseline after branch normalization. It does **not** invent business policy or claim new test results beyond what was executed in this phase / prior documented gates.
+This snapshot describes the synchronized MVP baseline after branch normalization. Commit/SHA rows below remain historical Prompt-26 values. For live `develop` tip, inventory, and production **NO-GO**, see `CURRENT_SYSTEM_AUDIT.md`, `IMPLEMENTATION_INVENTORY.md`, and `docs/release/FINAL_GO_LIVE_DECISION.md`. It does **not** invent business policy or claim plant UAT / restore PASS.
 
 ---
 
@@ -51,33 +52,38 @@ This snapshot describes the synchronized MVP baseline after branch normalization
 
 | Area | Status |
 |------|--------|
-| Checked By / Verified By / Return workflow | Missing (DEF-003, DEF-001) |
-| Self-check / self-verify policy enforcement | Missing (DEF-004) |
-| CA assignment, evidence, overdue, closure UI/API | Incomplete (DEF-006) |
-| Truck re-inspection picker / full chain UI | Incomplete (DEF-002) |
-| Reports / PDF / CSV | Delivered (Prompt 31); BD-25 paper parity PENDING |
-| Offline sync (service worker) | Delivered (Prompt 34; DEF-009 closed product) |
-| Web route authorization | Verified `/auth/me` + role ACL (Prompt 33; DEF-010 closed product) |
-| Void / amendment of verified records | Missing (DEF-005) |
+| Checked By / Verified By / Return workflow | **PRODUCT_FIXED** (Prompt 28) — **MANUAL_UAT_PENDING** (DEF-001, DEF-003) |
+| Self-check / self-verify policy enforcement | **PRODUCT_FIXED** interim SoD — **BUSINESS_APPROVAL_PENDING** BD-05/06 (DEF-004) |
+| CA assignment, evidence, overdue, closure UI/API | Incomplete (DEF-006 **OPEN**) |
+| Truck re-inspection picker / full chain UI | Incomplete (DEF-002 **OPEN**); API linkage present |
+| Reports / PDF / CSV | Delivered (Prompt 31); BD-25 paper parity PENDING; UAT pending |
+| Offline sync (service worker) | Delivered (Prompt 34; DEF-009 PRODUCT_FIXED; UAT pending) |
+| Web route authorization | Verified `/auth/me` + role ACL (Prompt 33; DEF-010 PRODUCT_FIXED; UAT pending) |
+| Void / amendment of verified records | Void present; amend thin (DEF-005 **PARTIAL**) |
+| Recurring task scheduling | Not implemented (one-shot TaskAssignment only) |
+| Controlled NonConformity entity | Not decided / not implemented |
+| Formal UAT / restore / pilot | NOT EXECUTED / PLANNED — production gate **NO-GO** |
 
 ---
 
 ## Open defects
 
-See `docs/uat/DEFECT_REGISTER.md`.
+See `docs/uat/DEFECT_REGISTER.md` and `docs/current-state/DOCUMENTATION_RECONCILIATION.md`.
 
 | ID | Severity | Title | Status |
 |----|----------|-------|--------|
-| DEF-001 | High | Supervisor general Return missing | Open |
-| DEF-002 | High | Truck re-inspection UI incomplete | Open |
-| DEF-003 | High | Check / Verify transitions missing | Open |
-| DEF-004 | High | Self-verification restriction not enforceable | Open |
-| DEF-005 | Medium | Void / amend process missing | Open |
-| DEF-006 | High | CA lifecycle incomplete | Open |
-| DEF-007 | High | Reports / PDF / CSV | Closed (product); plant UAT unsigned |
-| DEF-008 | High | Admin user & vehicle CRUD missing | Closed (product); see `DEFECT_REGISTER.md` |
-| DEF-009 | Medium | Offline sync / PWA | Closed (product); plant UAT unsigned |
-| DEF-010 | Medium | Web middleware route auth | Closed (product); residual access-token TTL |
+| DEF-001 | High | Supervisor general Return | PRODUCT_FIXED; MANUAL_UAT_PENDING |
+| DEF-002 | High | Truck re-inspection UI incomplete | OPEN |
+| DEF-003 | High | Check / Verify transitions | PRODUCT_FIXED; MANUAL_UAT_PENDING; BD pending |
+| DEF-004 | High | Self-verification restriction | PRODUCT_FIXED interim; BD pending |
+| DEF-005 | Medium | Void / amend process | PARTIAL |
+| DEF-006 | High | CA lifecycle incomplete | OPEN |
+| DEF-007 | High | Reports / PDF / CSV | PRODUCT_FIXED; MANUAL_UAT_PENDING |
+| DEF-008 | High | Admin user & vehicle CRUD | PRODUCT_FIXED; MANUAL_UAT_PENDING |
+| DEF-009 | Medium | Offline sync / PWA | PRODUCT_FIXED; MANUAL_UAT_PENDING |
+| DEF-010 | Medium | Web middleware route auth | PRODUCT_FIXED; MANUAL_UAT_PENDING |
+| DEF-011 | High | Database restore unproven | OPEN; INFRASTRUCTURE_TEST_PENDING |
+| DEF-012 | High | Formal plant UAT | OPEN; MANUAL_UAT_PENDING |
 | DEF-011 | High | DB restore not proven | Open |
 | DEF-012 | High | Formal multi-role UAT not executed | Open |
 

@@ -15,4 +15,6 @@
 13. **Dependency advisories** — Reviewed; see `docs/engineering/DEPENDENCY_REVIEW.md` (no unsafe bulk upgrades).  
 14. Open BD-01–BD-25 remain PENDING in `docs/approvals/APPROVED_BUSINESS_DECISIONS.md` 
 
-These limitations bound the CONDITIONAL GO — see `GO_LIVE_DECISION.md`.
+These limitations bound the historical CONDITIONAL GO for MVP tag `v1.0.0` — see `GO_LIVE_DECISION.md`.  
+**Authoritative production / `main` promotion gate:** **NO-GO** — see `FINAL_GO_LIVE_DECISION.md` and `docs/current-state/DOCUMENTATION_RECONCILIATION.md`.  
+Item 6 defect note: DEF-008 is **PRODUCT_FIXED** with **MANUAL_UAT_PENDING** (not fully CLOSED).
