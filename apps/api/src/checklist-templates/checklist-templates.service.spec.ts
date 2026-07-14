@@ -251,6 +251,101 @@ describe("ChecklistTemplatesService", () => {
     });
   });
 
+  describe("createDraftVersion — clone from published", () => {
+    it("creates an empty draft when the template has never been published", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate({ versions: [] }));
+      prismaMock.checklistTemplateVersion.create.mockResolvedValue(makeVersion({ versionNumber: 1, sections: [] }));
+      const service = buildService(prismaMock);
+
+      const result = await service.createDraftVersion("NMS/PPU/CL/24");
+
+      expect(result.sections).toHaveLength(0);
+      expect(prismaMock.checklistTemplateVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ versionNumber: 1, sections: undefined }) }),
+      );
+    });
+
+    it("clones sections/items/options from the highest published version by default", async () => {
+      const prismaMock = buildPrismaMock();
+      const publishedSummary = {
+        id: "v1",
+        versionNumber: 1,
+        status: "PUBLISHED",
+        notes: null,
+        publishedAt: new Date("2026-01-01"),
+      };
+      prismaMock.checklistTemplate.findUnique.mockResolvedValue(
+        makeTemplate({ currentVersionId: "v1", versions: [publishedSummary] }),
+      );
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({
+          id: "v1",
+          versionNumber: 1,
+          status: "PUBLISHED",
+          sections: [makeSection({ items: [makeItem({ label: "Floor" })] })],
+        }),
+      );
+      prismaMock.checklistTemplateVersion.create.mockResolvedValue(
+        makeVersion({ id: "v2", versionNumber: 2, sections: [makeSection({ items: [makeItem({ label: "Floor" })] })] }),
+      );
+      const service = buildService(prismaMock);
+
+      const result = await service.createDraftVersion("NMS/PPU/CL/24");
+
+      expect(prismaMock.checklistTemplateVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            versionNumber: 2,
+            sections: {
+              create: [
+                expect.objectContaining({
+                  name: "Finished Goods",
+                  items: { create: [expect.objectContaining({ label: "Floor" })] },
+                }),
+              ],
+            },
+          }),
+        }),
+      );
+      expect(result.sections).toHaveLength(1);
+      expect(result.sections[0]?.items[0]?.label).toBe("Floor");
+    });
+  });
+
+  describe("cloneDraftFromVersion", () => {
+    it("clones a specific version's content into a new draft regardless of publish status", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.checklistTemplate.findUnique
+        .mockResolvedValueOnce(makeTemplate({ versions: [{ id: "v1", versionNumber: 1, status: "DRAFT" }] }))
+        .mockResolvedValueOnce(makeTemplate());
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(
+        makeVersion({ id: "v1", versionNumber: 1, sections: [makeSection({ items: [makeItem()] })] }),
+      );
+      prismaMock.checklistTemplateVersion.create.mockResolvedValue(
+        makeVersion({ id: "v2", versionNumber: 2, sections: [makeSection({ items: [makeItem()] })] }),
+      );
+      const service = buildService(prismaMock);
+
+      const result = await service.cloneDraftFromVersion("NMS/PPU/CL/24", 1);
+
+      expect(result.sections).toHaveLength(1);
+      expect(result.sections[0]?.items).toHaveLength(1);
+    });
+
+    it("propagates TemplateVersionNotFoundException for an unknown source version", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.checklistTemplate.findUnique.mockResolvedValue(makeTemplate({ versions: [] }));
+      prismaMock.checklistTemplateVersion.findUnique.mockResolvedValue(null);
+      const service = buildService(prismaMock);
+
+      await expect(service.cloneDraftFromVersion("NMS/PPU/CL/24", 99)).rejects.toBeInstanceOf(
+        TemplateVersionNotFoundException,
+      );
+      expect(prismaMock.checklistTemplateVersion.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe("published-version immutability (409/400 on direct edits)", () => {
     it("rejects adding a section to a PUBLISHED version with 409", async () => {
       const prismaMock = buildPrismaMock();

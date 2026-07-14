@@ -22,6 +22,7 @@ Daily cleaning verification and freezer truck inspections are still captured on 
 - Dynamic checklist template engine (versioned)  
 - Corrective-action auto-create on configured fails (full CA workspace still roadmap)  
 - Operational reports (16 kinds) + formula-safe CSV + official record PDF  
+- Admin/master-data management: users, roles & departments, fleet (vehicles/drivers/transporters), and checklist master data (departments, sections, shifts, failure reasons, corrective-action categories, temperature profiles, loading-decision policies)  
 - Audit logging for key decisions  
 - PWA manifest + local draft backup (full offline sync still roadmap)  
 
@@ -163,6 +164,7 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 - [UAT test plan](docs/uat/UAT_TEST_PLAN.md)  
 - [UAT test cases](docs/uat/UAT_TEST_CASES.md)  
 - [UAT reports / PDF / CSV cases](docs/uat/UAT_REPORTS_EXPORT.md)  
+- [UAT admin / master-data cases](docs/uat/UAT_ADMIN_MASTER_DATA.md)  
 - [UAT execution results](docs/uat/UAT_EXECUTION_RESULTS.md)  
 - [Defect register](docs/uat/DEFECT_REGISTER.md)  
 - [UAT sign-off template](docs/uat/UAT_SIGNOFF_TEMPLATE.md)  

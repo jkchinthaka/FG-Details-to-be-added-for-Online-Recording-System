@@ -617,6 +617,9 @@ model Vehicle {
   id                 String        @id @default(cuid())
   vehicleNumber      String        @unique
   freezerTruckNumber String?       @unique
+  /** Optional QR code identifier printed/affixed to the vehicle for
+   *  quick lookup at the loading bay — admin-assigned, not auto-generated. */
+  qrIdentifier       String?       @unique
   status             VehicleStatus @default(ACTIVE)
   transporterId      String?
   transporter        Transporter?  @relation(fields: [transporterId], references: [id], onDelete: SetNull)
@@ -760,6 +763,61 @@ model CorrectiveActionEvidence {
   uploadedAt         DateTime         @default(now())
 
   @@index([correctiveActionId])
+}
+
+// ---------------------------------------------------------------------------
+// Admin master data (Prompt 32)
+//
+// All master-data rows are soft-lifecycle only (`isActive`) — the admin APIs
+// never physically delete a row that may already be referenced historically
+// (see docs/DATABASE_DESIGN.md "no hard-delete of masters" principle).
+// ---------------------------------------------------------------------------
+
+model FailureReason {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  label     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CorrectiveActionCategory {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TemperatureProfile {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  minCelsius Float
+  maxCelsius Float
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+/**
+ * Admin-managed key/value store for approved loading-decision policy
+ * configuration (e.g. which checklist items block loading, escalation
+ * rules). The API only stores/returns whatever `config` an admin posts —
+ * it never invents or hard-codes Nelna's actual policy content (see
+ * docs/requirements/OPEN_BUSINESS_DECISIONS.md).
+ */
+model LoadingDecisionPolicy {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  config      Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------

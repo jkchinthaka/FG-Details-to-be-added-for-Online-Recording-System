@@ -31,3 +31,29 @@ export function toDriverSummary(driver: {
 }): DriverSummary {
   return { id: driver.id, fullName: driver.fullName, licenseNumber: driver.licenseNumber, phone: driver.phone };
 }
+
+// ---------------------------------------------------------------------------
+// Admin-facing variants — carry a couple of extra fields (`qrIdentifier`,
+// `isActive`, `transporterId`) that operator-facing search never needed to
+// expose. Kept local to the API rather than added to the shared `*Summary`
+// types so the operator vehicle selector's payload shape stays unchanged.
+// ---------------------------------------------------------------------------
+
+export type AdminVehicleSummary = VehicleSummary & { qrIdentifier: string | null; transporterId: string | null };
+
+export function toAdminVehicleSummary(vehicle: VehicleWithTransporter): AdminVehicleSummary {
+  return { ...toVehicleSummary(vehicle), qrIdentifier: vehicle.qrIdentifier, transporterId: vehicle.transporterId };
+}
+
+export type AdminDriverSummary = DriverSummary & { isActive: boolean; transporterId: string | null };
+
+export function toAdminDriverSummary(driver: {
+  id: string;
+  fullName: string;
+  licenseNumber: string;
+  phone: string | null;
+  isActive: boolean;
+  transporterId: string | null;
+}): AdminDriverSummary {
+  return { ...toDriverSummary(driver), isActive: driver.isActive, transporterId: driver.transporterId };
+}

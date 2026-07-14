@@ -88,13 +88,14 @@
 
 | Field | Value |
 |-------|-------|
-| Test case | ADM-01–ADM-05 |
+| Test case | ADM-01–ADM-09 / `UAT_ADMIN_MASTER_DATA.md` |
 | Severity | **High** |
 | Priority | P1 |
 | Steps | Admin creates user/vehicle from UI |
 | Expected | Manage master data |
-| Actual | Seed/API search only; no manage controllers/UI |
-| Closure | **Open** |
+| Actual (Prompt 32) | `/admin/users`, `/admin/master-data/*` (departments, sections, shifts, failure reasons, corrective action categories, temperature profiles, priorities, loading-decision-policies), `/admin/vehicles`, `/admin/drivers`, `/admin/transporters` APIs + minimal web admin pages under `/admin/*`. Last-active-admin protection, role/audit logging, soft-deactivate only (no hard delete), duplicate prevention on vehicle/driver/transporter creation. |
+| Known limits | Users list UI shows only the first page (no paging controls yet); no bulk import; loading-decision-policy content is admin-supplied only, never invented by the system |
+| Closure | **Closed (product)** — Plant UAT still to be executed against `UAT_ADMIN_MASTER_DATA.md` |
 
 ### DEF-009 — Offline sync / PWA service worker missing
 

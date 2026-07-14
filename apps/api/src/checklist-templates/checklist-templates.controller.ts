@@ -7,6 +7,7 @@ import type { RequestUser } from "../auth/auth.types";
 import { ChecklistTemplatesService } from "./checklist-templates.service";
 import { AddItemDto } from "./dto/add-item.dto";
 import { AddSectionDto } from "./dto/add-section.dto";
+import { CreateDraftVersionDto } from "./dto/create-draft-version.dto";
 import { CreateTemplateDto } from "./dto/create-template.dto";
 import { PublishVersionDto } from "./dto/publish-version.dto";
 import { ReorderDto } from "./dto/reorder.dto";
@@ -73,9 +74,25 @@ export class ChecklistTemplatesController {
 
   @Post(":code/versions")
   @RequirePermissions("templates:manage")
-  @ApiOperation({ summary: "Create a new draft version for an existing template" })
-  createDraftVersion(@Param("code") code: string): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.createDraftVersion(decodeURIComponent(code));
+  @ApiOperation({
+    summary:
+      "Create a new draft version for an existing template — clones the highest published version by default, or `fromVersionNumber` when given",
+  })
+  createDraftVersion(
+    @Param("code") code: string,
+    @Body() dto?: CreateDraftVersionDto,
+  ): Promise<ChecklistTemplateVersionDefinition> {
+    return this.service.createDraftVersion(decodeURIComponent(code), dto?.fromVersionNumber);
+  }
+
+  @Post(":code/versions/:versionNumber/clone")
+  @RequirePermissions("templates:manage")
+  @ApiOperation({ summary: "Create a new draft version by cloning a specific existing version" })
+  cloneDraftFromVersion(
+    @Param("code") code: string,
+    @Param("versionNumber", ParseIntPipe) versionNumber: number,
+  ): Promise<ChecklistTemplateVersionDefinition> {
+    return this.service.cloneDraftFromVersion(decodeURIComponent(code), versionNumber);
   }
 
   @Post(":code/versions/:versionNumber/sections")

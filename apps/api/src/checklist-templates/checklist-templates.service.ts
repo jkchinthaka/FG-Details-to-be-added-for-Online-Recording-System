@@ -162,15 +162,36 @@ export class ChecklistTemplatesService {
     return mapVersionToDefinition(version);
   }
 
-  async createDraftVersion(code: string): Promise<ChecklistTemplateVersionDefinition> {
+  /**
+   * Creates a new draft version. Unless `fromVersionNumber` is given, it
+   * clones sections/items/options from the template's highest *published*
+   * version (an empty draft when the template has never been published) —
+   * so admins don't have to rebuild an entire checklist from scratch just
+   * to make a small revision. See `cloneDraftFromVersion` for the explicit
+   * "clone this specific version" entry point.
+   */
+  async createDraftVersion(code: string, fromVersionNumber?: number): Promise<ChecklistTemplateVersionDefinition> {
     const template = await this.findTemplateOrThrow(code);
     const nextVersionNumber = Math.max(0, ...template.versions.map((v) => v.versionNumber)) + 1;
+    const source = await this.resolveCloneSource(template, fromVersionNumber);
 
     const created = await this.prisma.checklistTemplateVersion.create({
-      data: { templateId: template.id, versionNumber: nextVersionNumber, status: TemplateStatus.DRAFT },
+      data: {
+        templateId: template.id,
+        versionNumber: nextVersionNumber,
+        status: TemplateStatus.DRAFT,
+        sections: source ? { create: buildClonedSectionsInput(source.sections) } : undefined,
+      },
       include: VERSION_WITH_CONTENT_INCLUDE,
     });
     return mapVersionToDefinition(created);
+  }
+
+  /** Explicit "clone this specific version into a new draft" entry point —
+   *  same cloning logic as `createDraftVersion`, but always requires a
+   *  source version rather than falling back to the latest published one. */
+  async cloneDraftFromVersion(code: string, fromVersionNumber: number): Promise<ChecklistTemplateVersionDefinition> {
+    return this.createDraftVersion(code, fromVersionNumber);
   }
 
   // -------------------------------------------------------------------------
@@ -418,6 +439,28 @@ export class ChecklistTemplatesService {
   // Internal helpers
   // -------------------------------------------------------------------------
 
+  /** Resolves which version (if any) a new draft should clone its content
+   *  from: the explicitly-requested version when `fromVersionNumber` is
+   *  given, otherwise the template's highest PUBLISHED version, otherwise
+   *  `null` (empty draft — e.g. a brand-new template with no history). */
+  private async resolveCloneSource(
+    template: TemplateWithVersions,
+    fromVersionNumber: number | undefined,
+  ): Promise<VersionWithContent | null> {
+    if (fromVersionNumber !== undefined) {
+      return this.findVersionOrThrow(template.code, fromVersionNumber);
+    }
+
+    const publishedVersions = template.versions.filter((v) => v.status === TemplateStatus.PUBLISHED);
+    if (publishedVersions.length === 0) return null;
+
+    const highest = publishedVersions.reduce((a, b) => (b.versionNumber > a.versionNumber ? b : a));
+    return this.prisma.checklistTemplateVersion.findUnique({
+      where: { id: highest.id },
+      include: VERSION_WITH_CONTENT_INCLUDE,
+    });
+  }
+
   private async findTemplateOrThrow(code: string): Promise<TemplateWithVersions> {
     const template = await this.prisma.checklistTemplate.findUnique({
       where: { code },
@@ -451,4 +494,39 @@ export class ChecklistTemplatesService {
       throw new InvalidItemRulesException(message);
     }
   }
+}
+
+/** Builds the nested Prisma `create` input that clones a source version's
+ *  sections/items/options verbatim (fresh ids, same content and ordering) —
+ *  shared by `createDraftVersion`'s default-clone behaviour and
+ *  `cloneDraftFromVersion`'s explicit "clone this version" entry point. */
+function buildClonedSectionsInput(sections: VersionWithContent["sections"]) {
+  return sections.map((section) => ({
+    name: section.name,
+    sortOrder: section.sortOrder,
+    items: {
+      create: section.items.map((item) => ({
+        label: item.label,
+        helpText: item.helpText,
+        sortOrder: item.sortOrder,
+        itemType: item.itemType,
+        isRequired: item.isRequired,
+        allowNotApplicable: item.allowNotApplicable,
+        requiresEvidenceOnFail: item.requiresEvidenceOnFail,
+        isCriticalFailure: item.isCriticalFailure,
+        remarkRequiredOnFail: item.remarkRequiredOnFail,
+        correctiveActionRequiredOnFail: item.correctiveActionRequiredOnFail,
+        minValue: item.minValue,
+        maxValue: item.maxValue,
+        defaultResponse: item.defaultResponse,
+        options: {
+          create: item.options.map((option) => ({
+            value: option.value,
+            label: option.label,
+            sortOrder: option.sortOrder,
+          })),
+        },
+      })),
+    },
+  }));
 }

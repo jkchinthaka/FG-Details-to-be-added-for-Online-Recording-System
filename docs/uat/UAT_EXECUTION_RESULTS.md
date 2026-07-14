@@ -92,8 +92,8 @@ Timestamp: same CI-equivalent run as Prompt 21 verification (re-run before Promp
 
 | ID | Result | Evidence | Notes |
 |----|--------|----------|-------|
-| ADM-01–ADM-05 | **Deferred** | No users/vehicles CRUD UI/API for manage | DEF-008 |
-| ADM-06–ADM-09 | **Partial** | `checklist-templates.service.spec.ts` publish/archive immutability | Admin authoring UI thin (preview only) |
+| ADM-01–ADM-09 | **Implemented (code)** | See `UAT_ADMIN_MASTER_DATA.md`; `users.service.spec.ts`, `master-data.service.spec.ts`, `admin-fleet.service.spec.ts`; plant run unsigned | DEF-008 closed (product) |
+| ADM-10–ADM-11 | **Partial** | `checklist-templates.service.spec.ts` publish/archive immutability + draft cloning | Admin authoring UI thin (preview only) |
 
 ### PWA
 

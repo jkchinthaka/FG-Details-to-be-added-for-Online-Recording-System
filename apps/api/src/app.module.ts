@@ -3,9 +3,11 @@ import { AuthModule } from "./auth/auth.module";
 import { ChecklistTemplatesModule } from "./checklist-templates/checklist-templates.module";
 import { HealthModule } from "./health/health.module";
 import { InspectionRecordsModule } from "./inspection-records/inspection-records.module";
+import { MasterDataModule } from "./master-data/master-data.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RecordsModule } from "./records/records.module";
 import { TasksModule } from "./tasks/tasks.module";
+import { UsersModule } from "./users/users.module";
 import { VehiclesModule } from "./vehicles/vehicles.module";
 import { ReportsModule } from "./reports/reports.module";
 
@@ -20,6 +22,8 @@ import { ReportsModule } from "./reports/reports.module";
     InspectionRecordsModule,
     VehiclesModule,
     ReportsModule,
+    UsersModule,
+    MasterDataModule,
   ],
 })
 export class AppModule {}

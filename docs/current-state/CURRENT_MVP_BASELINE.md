@@ -41,6 +41,7 @@ This snapshot describes the synchronized MVP baseline after branch normalization
 - Freezer truck (`NMS/PPU/CL/30`) draft → submit, critical loading block, permissioned loading decision  
 - Versioned checklist template engine (draft / publish / archive immutability)  
 - Corrective-action **auto-create** on configured fails (submit path)  
+- Admin/master-data APIs + minimal web admin (Prompt 32): user lifecycle & role/department assignment, department/section/shift/failure-reason/corrective-action-category/temperature-profile management, loading-decision-policy storage, fleet (vehicle/driver/transporter) administration, checklist template draft cloning  
 - Health: `/health`, `/health/live`, `/health/ready`; production env fail-closed  
 - Documentation packs: requirements, security, performance, database, UAT, operations, handover, release, queue controller  
 
@@ -55,7 +56,6 @@ This snapshot describes the synchronized MVP baseline after branch normalization
 | CA assignment, evidence, overdue, closure UI/API | Incomplete (DEF-006) |
 | Truck re-inspection picker / full chain UI | Incomplete (DEF-002) |
 | Reports / PDF / CSV | Delivered (Prompt 31); BD-25 paper parity PENDING |
-| Admin user & vehicle CRUD | Incomplete (DEF-008) |
 | Offline sync (service worker) | Deferred (DEF-009) |
 | Web JWT/role page guards | Cookie presence only (DEF-010) |
 | Void / amendment of verified records | Missing (DEF-005) |
@@ -75,13 +75,13 @@ See `docs/uat/DEFECT_REGISTER.md`.
 | DEF-005 | Medium | Void / amend process missing | Open |
 | DEF-006 | High | CA lifecycle incomplete | Open |
 | DEF-007 | High | Reports / PDF / CSV | Closed (product); plant UAT unsigned |
-| DEF-008 | High | Admin user & vehicle CRUD missing | Open |
+| DEF-008 | High | Admin user & vehicle CRUD missing | Closed (product); see `DEFECT_REGISTER.md` |
 | DEF-009 | Medium | Offline sync missing | Open |
 | DEF-010 | Medium | Web middleware lacks JWT/role enforcement | Open |
 | DEF-011 | High | DB restore not proven | Open |
 | DEF-012 | High | Formal multi-role UAT not executed | Open |
 
-Critical open: **0**. High open: **9**.
+Critical open: **0**. High open: **8**.
 
 ---
 
