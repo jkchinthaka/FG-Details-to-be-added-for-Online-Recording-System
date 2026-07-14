@@ -10,6 +10,7 @@ import type {
 } from "@nelna/shared";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_TIMEOUT_MS = 15_000;
 
 export class InspectionRecordApiError extends Error {
   readonly status: number;
@@ -28,14 +29,22 @@ export class InspectionRecordApiError extends Error {
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
+  const timeoutController = new AbortController();
+  const timeout = setTimeout(() => timeoutController.abort(), API_TIMEOUT_MS);
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       credentials: "include",
       headers: { "Content-Type": "application/json", ...init?.headers },
+      signal: init?.signal ?? timeoutController.signal,
     });
   } catch {
+    if (timeoutController.signal.aborted) {
+      throw new InspectionRecordApiError(0, "The request timed out. Check your connection and try again.");
+    }
     throw new InspectionRecordApiError(0, "Could not reach the server. Check your connection and try again.");
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (!response.ok) {

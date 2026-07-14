@@ -20,7 +20,7 @@ import {
   saveInspectionDraft,
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
-import { clearDraft, formatDraftSavedAt, saveDraft } from "@/lib/draft-storage";
+import { clearDraft, formatDraftSavedAt, loadRecoverableDraft, saveDraft } from "@/lib/draft-storage";
 import { RecordHeaderField } from "@/components/records/RecordHeaderField";
 
 type WorkflowPhase = "editing" | "review";
@@ -55,11 +55,13 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
   const [dirty, setDirty] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | undefined>();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [draftRecovered, setDraftRecovered] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextAutosave = useRef(false);
   const loadAttempt = useRef(0);
+  const submitInFlight = useRef(false);
 
   function loadWorkspace() {
     const attempt = ++loadAttempt.current;
@@ -73,7 +75,12 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
       .then((detail) => {
         if (attempt !== loadAttempt.current) return;
         skipNextAutosave.current = true;
-        setResponses(detail.responses);
+        const recovered = loadRecoverableDraft<ChecklistResponseMap>(
+          `inspection-record:${detail.header.id}`,
+          detail.header.updatedAt,
+        );
+        setResponses(recovered?.responses ?? detail.responses);
+        setDraftRecovered(Boolean(recovered));
         setPhase("editing");
         setDirty(false);
         setState({ status: "ready", detail });
@@ -115,6 +122,7 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
           setDirty(false);
           setDraftSavedAt(new Date().toISOString());
           clearDraft(`inspection-record:${activeRecordId}`);
+          setDraftRecovered(false);
         })
         .catch((error: unknown) => {
           setSaveError(
@@ -158,12 +166,14 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
   }
 
   async function handleSubmit() {
-    if (!activeRecordId) return;
+    if (!activeRecordId || submitInFlight.current) return;
+    submitInFlight.current = true;
     setSubmitting(true);
     setSubmitError(null);
     try {
       const result = await submitInspectionRecord(activeRecordId, { responses });
       clearDraft(`inspection-record:${activeRecordId}`);
+      setDraftRecovered(false);
       setDirty(false);
       setState((current) => {
         if (current.status !== "ready") return current;
@@ -179,6 +189,7 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
         setSubmitError("Something went wrong while submitting. Please try again.");
       }
     } finally {
+      submitInFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -222,6 +233,11 @@ export function InspectionRecordWorkspace({ recordId, assignmentId }: Inspection
       ) : null}
 
       {saveError ? <Alert tone="warning">{saveError}</Alert> : null}
+      {draftRecovered ? (
+        <Alert tone="warning" title="Local draft restored">
+          A newer backup saved on this device was restored. Review and save it before submitting.
+        </Alert>
+      ) : null}
       {submitError ? (
         <Alert tone="danger" title="Couldn't submit">
           {submitError}

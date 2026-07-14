@@ -156,7 +156,7 @@ function makeTruckTemplateVersion(overrides: Record<string, unknown> = {}) {
 }
 
 function buildPrismaMock() {
-  return {
+  const prismaMock = {
     shift: {
       findUnique: jest.fn().mockResolvedValue({ id: "shift-morning", name: "Morning", code: "MORNING" }),
     },
@@ -173,6 +173,7 @@ function buildPrismaMock() {
       findUniqueOrThrow: jest.fn(),
       create: jest.fn(),
       update: jest.fn().mockResolvedValue(undefined),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     inspectionResult: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -203,7 +204,10 @@ function buildPrismaMock() {
     auditLog: {
       create: jest.fn().mockResolvedValue(undefined),
     },
+    $transaction: jest.fn(),
   };
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock));
+  return prismaMock;
 }
 
 function buildService(prismaMock: ReturnType<typeof buildPrismaMock>) {
@@ -431,8 +435,11 @@ describe("InspectionRecordsService", () => {
       expect(result.status).toBe("SUBMITTED");
       expect(result.counts).toEqual({ acceptable: 1, failed: 0, notApplicable: 0, unanswered: 0, total: 1 });
       expect(result.nextResponsibleRole).toBe("FG_SUPERVISOR");
-      expect(prismaMock.inspectionRecord.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: "record-1" }, data: expect.objectContaining({ status: "SUBMITTED" }) }),
+      expect(prismaMock.inspectionRecord.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "record-1", status: { in: ["DRAFT", "REJECTED"] } },
+          data: expect.objectContaining({ status: "SUBMITTED" }),
+        }),
       );
       expect(prismaMock.taskAssignment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { recordId: "record-1" }, data: { status: "SUBMITTED" } }),
@@ -496,6 +503,47 @@ describe("InspectionRecordsService", () => {
       const service = buildService(prismaMock);
 
       await expect(service.submit(buildUser(), "record-1", {})).rejects.toBeInstanceOf(RecordLockedException);
+    });
+
+    it("locks a duplicate submit before it can create another corrective action", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.inspectionRecord.findUnique
+        .mockResolvedValueOnce(makeRecord())
+        .mockResolvedValueOnce(makeRecord({ status: "SUBMITTED" }));
+      prismaMock.inspectionResult.findMany.mockResolvedValue([
+        {
+          id: "result-1",
+          itemId: "item-wall",
+          status: "UNACCEPTABLE",
+          notes: "Visible dirt",
+          issueReason: "Dirt / residue",
+          correction: null,
+          correctiveAction: "Escalated to maintenance",
+          attachments: [],
+        },
+      ]);
+      const service = buildService(prismaMock);
+
+      await service.submit(buildUser(), "record-1", {});
+      await expect(service.submit(buildUser(), "record-1", {})).rejects.toBeInstanceOf(RecordLockedException);
+
+      expect(prismaMock.correctiveAction.create).toHaveBeenCalledTimes(1);
+      expect(prismaMock.taskAssignment.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it("treats a lost submit race as locked without creating downstream workflow rows", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.inspectionRecord.findUnique.mockResolvedValue(makeRecord());
+      prismaMock.inspectionResult.findMany.mockResolvedValue([
+        { id: "result-1", itemId: "item-wall", status: "ACCEPTABLE", notes: null, issueReason: null, correction: null, correctiveAction: null, attachments: [] },
+      ]);
+      prismaMock.inspectionRecord.updateMany.mockResolvedValue({ count: 0 });
+      const service = buildService(prismaMock);
+
+      await expect(service.submit(buildUser(), "record-1", {})).rejects.toBeInstanceOf(RecordLockedException);
+
+      expect(prismaMock.correctiveAction.create).not.toHaveBeenCalled();
+      expect(prismaMock.taskAssignment.updateMany).not.toHaveBeenCalled();
     });
 
     it("allows resubmission of a REJECTED record (returned-correction workflow)", async () => {

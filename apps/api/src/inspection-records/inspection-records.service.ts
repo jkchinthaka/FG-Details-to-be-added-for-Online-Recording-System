@@ -308,28 +308,39 @@ export class InspectionRecordsService {
     }
 
     const submittedAt = new Date();
-    await this.prisma.inspectionRecord.update({
-      where: { id: record.id },
-      data: { status: RecordStatus.SUBMITTED, submittedAt },
+    const { correctiveActionsCreated, loadingDecision } = await this.prisma.$transaction(async (tx) => {
+      // The conditional update is the concurrency gate. Two double-taps (or
+      // retries after a lost response) may both read a DRAFT, but only one may
+      // transition it to SUBMITTED and create its downstream workflow rows.
+      const claimed = await tx.inspectionRecord.updateMany({
+        where: { id: record.id, status: { in: [RecordStatus.DRAFT, RecordStatus.REJECTED] } },
+        data: { status: RecordStatus.SUBMITTED, submittedAt },
+      });
+      if (claimed.count !== 1) {
+        throw new RecordLockedException();
+      }
+
+      const correctiveActionsCreated = await this.createCorrectiveActionsForFailures(
+        record.id,
+        items,
+        responseMap,
+        results,
+        user.id,
+        tx,
+      );
+
+      await tx.taskAssignment.updateMany({
+        where: { recordId: record.id },
+        data: { status: "SUBMITTED" },
+      });
+
+      const loadingDecision =
+        record.documentCode === DOCUMENT_CODES.FREEZER_TRUCK
+          ? await this.recordLoadingDecisionRecommendation(record, items, responseMap, user.id, tx)
+          : null;
+
+      return { correctiveActionsCreated, loadingDecision };
     });
-
-    const correctiveActionsCreated = await this.createCorrectiveActionsForFailures(
-      record.id,
-      items,
-      responseMap,
-      results,
-      user.id,
-    );
-
-    await this.prisma.taskAssignment.updateMany({
-      where: { recordId: record.id },
-      data: { status: "SUBMITTED" },
-    });
-
-    let loadingDecision: LoadingDecision | null = null;
-    if (record.documentCode === DOCUMENT_CODES.FREEZER_TRUCK) {
-      loadingDecision = await this.recordLoadingDecisionRecommendation(record, items, responseMap, user.id);
-    }
 
     const counts = computeRecordCounts(items, responseMap);
     const status: SharedRecordStatus = "SUBMITTED";
@@ -361,10 +372,11 @@ export class InspectionRecordsService {
     items: ChecklistItemDefinition[],
     responseMap: ChecklistResponseMap,
     userId: string,
+    prisma: Pick<PrismaService, "truckInspectionDetail" | "auditLog"> = this.prisma,
   ): Promise<LoadingDecision> {
     const { decision } = computeRecommendedLoadingDecision(items, responseMap);
 
-    await this.prisma.truckInspectionDetail.update({
+    await prisma.truckInspectionDetail.update({
       where: { recordId: record.id },
       data: {
         recommendedDecision: decision as LoadingDecisionStatus,
@@ -372,7 +384,7 @@ export class InspectionRecordsService {
       },
     });
 
-    await this.prisma.auditLog.create({
+    await prisma.auditLog.create({
       data: {
         actorId: userId,
         action: "LOADING_DECISION_RECOMMENDED",
@@ -673,6 +685,7 @@ export class InspectionRecordsService {
     responseMap: ChecklistResponseMap,
     results: Array<{ id: string; itemId: string }>,
     userId: string,
+    prisma: Pick<PrismaService, "correctiveAction"> = this.prisma,
   ): Promise<number> {
     const resultByItemId = new Map(results.map((result) => [result.itemId, result]));
     let created = 0;
@@ -685,14 +698,14 @@ export class InspectionRecordsService {
       const result = resultByItemId.get(item.id);
       if (!result) continue;
 
-      const alreadyExists = await this.prisma.correctiveAction.findFirst({ where: { resultId: result.id } });
+      const alreadyExists = await prisma.correctiveAction.findFirst({ where: { resultId: result.id } });
       if (alreadyExists) continue;
 
       const description =
         [response?.issueReason, response?.remark, response?.correction].filter(Boolean).join(" — ") ||
         `Failure recorded for "${item.label}"`;
 
-      await this.prisma.correctiveAction.create({
+      await prisma.correctiveAction.create({
         data: {
           recordId,
           resultId: result.id,

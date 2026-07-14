@@ -727,6 +727,9 @@ model CorrectiveAction {
 
   evidence CorrectiveActionEvidence[]
 
+  // A result may require at most one automatically-created corrective action.
+  // This also protects the invariant if a submission is retried at the DB layer.
+  @@unique([resultId])
   @@index([status, priority])
   @@index([assignedToId, status])
 }

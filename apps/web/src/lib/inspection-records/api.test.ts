@@ -89,4 +89,26 @@ describe("inspection-records api client", () => {
       message: "Could not reach the server. Check your connection and try again.",
     });
   });
+
+  it("surfaces a request timeout as a connection-recovery error", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        });
+      }),
+    );
+
+    const request = fetchInspectionRecord("record-1");
+    const assertion = expect(request).rejects.toMatchObject({
+      status: 0,
+      message: "The request timed out. Check your connection and try again.",
+    });
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    await assertion;
+    vi.useRealTimers();
+  });
 });

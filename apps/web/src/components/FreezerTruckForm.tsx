@@ -38,7 +38,7 @@ import {
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
 import { searchVehicles } from "@/lib/vehicles/api";
-import { clearDraft, formatDraftSavedAt, saveDraft } from "@/lib/draft-storage";
+import { clearDraft, formatDraftSavedAt, loadRecoverableDraft, saveDraft } from "@/lib/draft-storage";
 import { useAuth } from "@/lib/auth/auth-context";
 import { RecordHeaderField } from "@/components/records/RecordHeaderField";
 
@@ -77,11 +77,13 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
   const [dirty, setDirty] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | undefined>();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [draftRecovered, setDraftRecovered] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextAutosave = useRef(false);
   const loadAttempt = useRef(0);
+  const submitInFlight = useRef(false);
 
   function loadRecord() {
     if (!recordId) return;
@@ -91,7 +93,12 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
       .then((detail) => {
         if (attempt !== loadAttempt.current) return;
         skipNextAutosave.current = true;
-        setResponses(detail.responses);
+        const recovered = loadRecoverableDraft<ChecklistResponseMap>(
+          `inspection-record:${detail.header.id}`,
+          detail.header.updatedAt,
+        );
+        setResponses(recovered?.responses ?? detail.responses);
+        setDraftRecovered(Boolean(recovered));
         setPhase("editing");
         setDirty(false);
         setState({ status: "ready", detail });
@@ -111,7 +118,12 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
 
   function handleDraftReady(detail: InspectionRecordDetail) {
     skipNextAutosave.current = true;
-    setResponses(detail.responses);
+    const recovered = loadRecoverableDraft<ChecklistResponseMap>(
+      `inspection-record:${detail.header.id}`,
+      detail.header.updatedAt,
+    );
+    setResponses(recovered?.responses ?? detail.responses);
+    setDraftRecovered(Boolean(recovered));
     setPhase("editing");
     setDirty(false);
     setState({ status: "ready", detail });
@@ -145,6 +157,7 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
           setDirty(false);
           setDraftSavedAt(new Date().toISOString());
           clearDraft(`inspection-record:${activeRecordId}`);
+          setDraftRecovered(false);
         })
         .catch((error: unknown) => {
           setSaveError(
@@ -186,12 +199,14 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
   }
 
   async function handleSubmit() {
-    if (!activeRecordId) return;
+    if (!activeRecordId || submitInFlight.current) return;
+    submitInFlight.current = true;
     setSubmitting(true);
     setSubmitError(null);
     try {
       const result = await submitInspectionRecord(activeRecordId, { responses });
       clearDraft(`inspection-record:${activeRecordId}`);
+      setDraftRecovered(false);
       setDirty(false);
       setState((current) => {
         if (current.status !== "ready") return current;
@@ -207,6 +222,7 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
         setSubmitError("Something went wrong while submitting. Please try again.");
       }
     } finally {
+      submitInFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -260,6 +276,11 @@ export function FreezerTruckForm({ recordId, assignmentId }: FreezerTruckFormPro
       ) : null}
 
       {saveError ? <Alert tone="warning">{saveError}</Alert> : null}
+      {draftRecovered ? (
+        <Alert tone="warning" title="Local draft restored">
+          A newer backup saved on this device was restored. Review and save it before submitting.
+        </Alert>
+      ) : null}
       {submitError ? (
         <Alert tone="danger" title="Couldn't submit">
           {submitError}
