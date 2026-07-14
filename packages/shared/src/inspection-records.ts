@@ -23,6 +23,31 @@ import type { TruckInspectionDetailPayload } from "./truck-inspection";
 // ---------------------------------------------------------------------------
 
 const YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_EVIDENCE_BYTES = 5 * 1024 * 1024;
+const DATA_URL_IMAGE_PATTERN = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+/**
+ * Evidence is currently persisted as a data URL rather than an object-storage
+ * reference. Accept only supported image MIME types and enforce a decoded
+ * per-file size cap before the API reaches the persistence layer.
+ */
+const evidenceAttachmentSchema = z.object({
+  id: z.string().min(1).max(200),
+  url: z
+    .string()
+    .max(Math.ceil((MAX_EVIDENCE_BYTES * 4) / 3) + 128)
+    .regex(DATA_URL_IMAGE_PATTERN, "Evidence must be a base64 JPEG, PNG, or WebP data URL.")
+    .refine(
+      (url) => {
+        const base64 = url.slice(url.indexOf(",") + 1);
+        const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+        return (base64.length * 3) / 4 - padding <= MAX_EVIDENCE_BYTES;
+      },
+      `Evidence image must not exceed ${MAX_EVIDENCE_BYTES / (1024 * 1024)} MiB.`,
+    ),
+  fileName: z.string().trim().min(1).max(255),
+  capturedAt: z.string().datetime(),
+});
 
 export const createCleaningDraftSchema = z.object({
   /** Calendar date the cleaning verification covers, `YYYY-MM-DD`. Defaults to today. */
@@ -44,16 +69,7 @@ const checklistItemValueSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("select"), value: z.string() }),
   z.object({
     kind: z.literal("photo"),
-    value: z
-      .array(
-        z.object({
-          id: z.string(),
-          url: z.string(),
-          fileName: z.string(),
-          capturedAt: z.string(),
-        }),
-      )
-      .max(4),
+    value: z.array(evidenceAttachmentSchema).max(4),
   }),
   z.object({
     kind: z.literal("signature"),
@@ -69,14 +85,7 @@ export const checklistItemResponseSchema = z.object({
   correction: z.string().max(200).optional(),
   correctiveAction: z.string().max(2000).optional(),
   evidence: z
-    .array(
-      z.object({
-        id: z.string(),
-        url: z.string(),
-        fileName: z.string(),
-        capturedAt: z.string(),
-      }),
-    )
+    .array(evidenceAttachmentSchema)
     .max(4)
     .optional(),
 });

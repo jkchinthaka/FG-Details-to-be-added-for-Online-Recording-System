@@ -35,6 +35,9 @@ export function getAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig 
         "JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set in production",
       );
     }
+    if ((env.COOKIE_SECURE ?? "").toLowerCase() !== "true") {
+      throw new Error("COOKIE_SECURE must be true in production");
+    }
   }
 
   const accessTokenTtl = env.ACCESS_TOKEN_TTL ?? "15m";

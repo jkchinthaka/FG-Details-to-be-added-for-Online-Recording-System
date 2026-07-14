@@ -168,4 +168,61 @@ describe("saveDraftResponsesSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts supported image data-URL evidence", () => {
+    const result = saveDraftResponsesSchema.safeParse({
+      responses: {
+        "item-1": {
+          itemId: "item-1",
+          value: { kind: "status", value: "FAIL" },
+          evidence: [
+            {
+              id: "evidence-1",
+              url: "data:image/png;base64,aGVsbG8=",
+              fileName: "evidence.png",
+              capturedAt: "2026-07-14T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects non-image or oversized data-URL evidence", () => {
+    const nonImage = saveDraftResponsesSchema.safeParse({
+      responses: {
+        "item-1": {
+          itemId: "item-1",
+          value: { kind: "status", value: "FAIL" },
+          evidence: [
+            {
+              id: "evidence-1",
+              url: "data:text/html;base64,PHNjcmlwdD4=",
+              fileName: "evidence.html",
+              capturedAt: "2026-07-14T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    });
+    const oversized = saveDraftResponsesSchema.safeParse({
+      responses: {
+        "item-1": {
+          itemId: "item-1",
+          value: { kind: "status", value: "FAIL" },
+          evidence: [
+            {
+              id: "evidence-1",
+              url: `data:image/jpeg;base64,${"A".repeat(7_000_000)}`,
+              fileName: "large.jpg",
+              capturedAt: "2026-07-14T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    });
+    expect(nonImage.success).toBe(false);
+    expect(oversized.success).toBe(false);
+  });
 });

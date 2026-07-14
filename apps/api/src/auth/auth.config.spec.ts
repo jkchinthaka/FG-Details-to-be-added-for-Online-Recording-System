@@ -37,13 +37,25 @@ describe("getAuthConfig", () => {
     );
   });
 
-  it("does not throw in production when secrets are provided", () => {
+  it("does not throw in production when secrets and secure cookies are configured", () => {
     expect(() =>
       getAuthConfig({
         NODE_ENV: "production",
         JWT_ACCESS_SECRET: "a",
         JWT_REFRESH_SECRET: "b",
+        COOKIE_SECURE: "true",
       } as NodeJS.ProcessEnv),
     ).not.toThrow();
+  });
+
+  it("requires secure auth cookies in production", () => {
+    expect(() =>
+      getAuthConfig({
+        NODE_ENV: "production",
+        JWT_ACCESS_SECRET: "a",
+        JWT_REFRESH_SECRET: "b",
+        COOKIE_SECURE: "false",
+      } as NodeJS.ProcessEnv),
+    ).toThrow(/COOKIE_SECURE must be true/);
   });
 });
