@@ -15,14 +15,25 @@
 | Test case | CL24-09, WF-02 |
 | Severity | **High** |
 | Priority | P1 |
-| Steps | Complete cleaning submit → as Supervisor attempt Return for correction |
-| Expected | Status REJECTED with reason; operator can correct and resubmit |
-| Actual | No general Return API/UI; only truck loading decision may use REJECTED |
-| Screenshot/log | N/A — capability absent (`inspection-records` routes) |
-| Root cause | Workflow deferred pending OBD-05/06 |
-| Fix commit | — |
-| Retest | — |
-| Closure | **Open** |
+| Closure | **Fixed (Prompt 28)** — `POST /inspection-records/:id/return` sets `RETURNED_FOR_CORRECTION` with mandatory comment; operator may resubmit |
+| Fix commit | Prompt 28 `feat: complete FG check and verification workflow` |
+| Retest | Shared + API workflow policy tests; manual UAT still required |
+
+### DEF-003 — Checked By / Verified By transitions not implemented
+
+| Field | Value |
+|-------|-------|
+| Closure | **Fixed (Prompt 28)** — check/verify APIs + pending queues; SoD defaults pending BD-05/06 APPROVED |
+| Fix commit | Prompt 28 |
+| Retest | Unit tests; plant UAT pending |
+
+### DEF-004 — Self-verification restriction not enforceable
+
+| Field | Value |
+|-------|-------|
+| Closure | **Fixed (interim)** — backend SoD defaults refuse creator self-check and checker self-verify until BD-05/06 APPROVED otherwise |
+| Fix commit | Prompt 28 |
+| Retest | `record-workflow` / policy specs |
 
 ### DEF-002 — Truck re-inspection UI picker incomplete
 
@@ -33,33 +44,8 @@
 | Priority | P1 |
 | Steps | After critical block, start re-inspection of prior truck record from UI |
 | Expected | Operator selects prior record; `reinspectionOfId` set; history visible |
-| Actual | API/schema support; UI picker incomplete (OBD-07) |
-| Root cause | UX deferred |
-| Closure | **Open** |
-
-### DEF-003 — Checked By / Verified By transitions not implemented
-
-| Field | Value |
-|-------|-------|
-| Test case | WF-01, WF-03, WF-05 |
-| Severity | **High** |
-| Priority | P1 |
-| Steps | After submit, Supervisor Check then QA Verify |
-| Expected | Status transitions; immutable after VERIFIED; audit |
-| Actual | Header fields display pending; no transition endpoints |
-| Root cause | OBD-05/06 not confirmed; intentionally not invented |
-| Closure | **Open** — blocked on business decision |
-
-### DEF-004 — Self-verification restriction not enforceable
-
-| Field | Value |
-|-------|-------|
-| Test case | WF-06 |
-| Severity | **High** |
-| Priority | P1 |
-| Steps | Creator attempts Verify on own record |
-| Expected | Denied per policy |
-| Actual | Verify API absent; policy unspecified (OBD-06) |
+| Actual | API/schema support; UI picker incomplete (OBD-07 / BD-13) |
+| Root cause | UX deferred to Prompt 30 |
 | Closure | **Open** |
 
 ### DEF-005 — Void / controlled amend process missing
@@ -71,8 +57,8 @@
 | Priority | P2 |
 | Steps | Attempt void or amend verified record |
 | Expected | Controlled process with audit |
-| Actual | Soft archive fields only; no void/amend API |
-| Closure | **Open** |
+| Actual | **Partial (Prompt 28)** — `POST /:id/void` soft-archives verified/completed with mandatory comment; dedicated amend API still thin |
+| Closure | **Partial** |
 
 ### DEF-006 — Corrective-action lifecycle UI/API incomplete
 

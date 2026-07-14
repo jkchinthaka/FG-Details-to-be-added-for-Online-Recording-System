@@ -57,6 +57,7 @@ function rolePermissions(role: UserRole): PermissionKey[] {
         "records:create",
         "records:read",
         "records:check",
+        "records:return",
         "corrective_actions:manage",
         "corrective_actions:read",
         "loading_decisions:approve",
@@ -66,6 +67,8 @@ function rolePermissions(role: UserRole): PermissionKey[] {
       return [
         "records:read",
         "records:verify",
+        "records:return",
+        "records:reject",
         "corrective_actions:manage",
         "corrective_actions:read",
         "reports:read",
@@ -76,6 +79,10 @@ function rolePermissions(role: UserRole): PermissionKey[] {
       return [
         "records:read",
         "records:verify",
+        "records:return",
+        "records:reject",
+        "records:void",
+        "records:amend",
         "corrective_actions:manage",
         "corrective_actions:read",
         "reports:read",

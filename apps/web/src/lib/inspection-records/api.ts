@@ -113,3 +113,43 @@ export function submitInspectionRecord(
     body: JSON.stringify(input),
   });
 }
+
+export function fetchPendingCheckQueue(): Promise<InspectionRecordDetail[]> {
+  return apiFetch("/inspection-records/queues/pending-check");
+}
+
+export function fetchPendingVerificationQueue(): Promise<InspectionRecordDetail[]> {
+  return apiFetch("/inspection-records/queues/pending-verification");
+}
+
+export function checkInspectionRecord(id: string, comment?: string): Promise<InspectionRecordDetail> {
+  return apiFetch(`/inspection-records/${encodeURIComponent(id)}/check`, {
+    method: "POST",
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export function verifyInspectionRecord(id: string, comment?: string): Promise<InspectionRecordDetail> {
+  return apiFetch(`/inspection-records/${encodeURIComponent(id)}/verify`, {
+    method: "POST",
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export function returnInspectionRecord(id: string, comment: string): Promise<InspectionRecordDetail> {
+  return apiFetch(`/inspection-records/${encodeURIComponent(id)}/return`, {
+    method: "POST",
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export function rejectInspectionRecord(id: string, comment: string): Promise<InspectionRecordDetail> {
+  return apiFetch(`/inspection-records/${encodeURIComponent(id)}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export function fetchInspectionApprovals(id: string): Promise<unknown[]> {
+  return apiFetch(`/inspection-records/${encodeURIComponent(id)}/approvals`);
+}

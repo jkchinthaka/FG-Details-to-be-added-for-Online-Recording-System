@@ -10,3 +10,4 @@ export * from "./inspection-records";
 export * from "./truck-inspection";
 export * from "./operational-datetime";
 export * from "./requirement-coverage";
+export * from "./record-workflow";

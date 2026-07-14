@@ -64,8 +64,13 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
 export const RECORD_STATUSES = [
   "DRAFT",
   "SUBMITTED",
+  "PENDING_CHECK",
   "CHECKED",
+  "PENDING_VERIFICATION",
   "VERIFIED",
+  "COMPLETED",
+  "RETURNED_FOR_CORRECTION",
+  "RESUBMITTED",
   "REJECTED",
   "ARCHIVED",
 ] as const;
@@ -74,10 +79,15 @@ export type RecordStatus = (typeof RECORD_STATUSES)[number];
 export const RECORD_STATUS_LABELS: Record<RecordStatus, string> = {
   DRAFT: "Draft",
   SUBMITTED: "Submitted",
+  PENDING_CHECK: "Pending check",
   CHECKED: "Checked",
+  PENDING_VERIFICATION: "Pending verification",
   VERIFIED: "Verified",
+  COMPLETED: "Completed",
+  RETURNED_FOR_CORRECTION: "Returned for correction",
+  RESUBMITTED: "Resubmitted",
   REJECTED: "Rejected",
-  ARCHIVED: "Archived",
+  ARCHIVED: "Archived / voided",
 };
 
 /** Detects the current work shift for a given hour of day (0–23), local time.

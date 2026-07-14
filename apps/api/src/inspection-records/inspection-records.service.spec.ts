@@ -432,13 +432,16 @@ describe("InspectionRecordsService", () => {
 
       const result = await service.submit(buildUser(), "record-1", {});
 
-      expect(result.status).toBe("SUBMITTED");
+      expect(result.status).toBe("PENDING_CHECK");
       expect(result.counts).toEqual({ acceptable: 1, failed: 0, notApplicable: 0, unanswered: 0, total: 1 });
       expect(result.nextResponsibleRole).toBe("FG_SUPERVISOR");
       expect(prismaMock.inspectionRecord.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "record-1", status: { in: ["DRAFT", "REJECTED"] } },
-          data: expect.objectContaining({ status: "SUBMITTED" }),
+          where: {
+            id: "record-1",
+            status: { in: ["DRAFT", "REJECTED", "RETURNED_FOR_CORRECTION"] },
+          },
+          data: expect.objectContaining({ status: "PENDING_CHECK" }),
         }),
       );
       expect(prismaMock.taskAssignment.updateMany).toHaveBeenCalledWith(
@@ -555,7 +558,7 @@ describe("InspectionRecordsService", () => {
       const service = buildService(prismaMock);
 
       const result = await service.submit(buildUser(), "record-1", {});
-      expect(result.status).toBe("SUBMITTED");
+      expect(result.status).toBe("PENDING_CHECK");
     });
 
     it("does not compute a loading decision for a non-truck (cleaning) record", async () => {

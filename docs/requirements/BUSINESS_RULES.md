@@ -5,7 +5,7 @@
 1. **Exception-based recording** — Mark All Acceptable fills only unanswered eligible items; does not overwrite manual failures.
 2. **Failure progressive disclosure** — Failure detail panel appears only after Fail/Unacceptable.
 3. **Remark / evidence on fail** — Driven by checklist item rules (`remarkRequiredOnFail`, `photoRequiredOnFail`).
-4. **Submission locking** — After SUBMITTED/CHECKED/VERIFIED, operator cannot edit (REJECTED may resume correction workflow).
+4. **Submission locking** — After PENDING_CHECK / later workflow statuses (except RETURNED_FOR_CORRECTION / REJECTED), operator cannot edit.
 5. **Duplicate active draft prevention** — Same date/shift/area (cleaning) or equivalent truck draft resolution.
 6. **Document + version stamp** — Every record references a published template version.
 7. **Published template immutability** — API rejects mutating published versions.
@@ -14,10 +14,13 @@
 10. **Audit of loading decisions** — `AuditLog` (+ approval record) on final decision.
 11. **Asia/Colombo operational calendar** — Date-of-record and truck inspection time.
 12. **Correction vs Corrective Action** — Distinct storage and UI.
+13. **Check / Verify / Return / Reject / Void transitions** — Backend transition map + permissions; queues at `/records/pending-check` and `/records/pending-verification`.
+14. **Segregation of duty (interim defaults)** — Creator cannot check own record; creator/checker cannot verify same record until BD-05/06 APPROVED otherwise.
+15. **Mandatory comments** — Required for return, reject, and void.
 
 ## Deferred (must not be invented)
 
-1. **Checked By / Verified By operational transitions** — Who may check/verify, self-check prohibition, SLA — schema ready only.
+1. **Approved BD role names / SoD exemptions** — Permissions are configurable; production role policy awaits `APPROVED_BUSINESS_DECISIONS.md` (BD-02…BD-06).
 2. **Mandatory Correction on every failure** — Currently optional quick-choice.
 3. **Mandatory Corrective Action on every failure** — Seed configures critical items only.
 4. **Whether Final Loading Decision replaces or sits beside Check/Verify** for CL/30.

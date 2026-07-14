@@ -10,12 +10,27 @@ import { CreateTruckDraftDto } from "./dto/create-truck-draft.dto";
 import { LoadingDecisionDto } from "./dto/loading-decision.dto";
 import { SaveDraftDto } from "./dto/save-draft.dto";
 import { SubmitRecordDto } from "./dto/submit-record.dto";
+import { WorkflowCommentDto } from "./dto/workflow-comment.dto";
 import { InspectionRecordsService } from "./inspection-records.service";
 
 @ApiTags("inspection-records")
 @Controller("inspection-records")
 export class InspectionRecordsController {
   constructor(private readonly service: InspectionRecordsService) {}
+
+  @Get("queues/pending-check")
+  @RequirePermissions("records:check")
+  @ApiOperation({ summary: "List records awaiting supervisor check" })
+  listPendingCheck(@CurrentUser() user: RequestUser) {
+    return this.service.listPendingCheck(user);
+  }
+
+  @Get("queues/pending-verification")
+  @RequirePermissions("records:verify")
+  @ApiOperation({ summary: "List records awaiting QA verification" })
+  listPendingVerification(@CurrentUser() user: RequestUser) {
+    return this.service.listPendingVerification(user);
+  }
 
   @Post("cleaning/draft")
   @RequirePermissions("records:create")
@@ -84,5 +99,72 @@ export class InspectionRecordsController {
     @CurrentUser() user: RequestUser,
   ): Promise<SubmitRecordResult> {
     return this.service.submit(user, id, dto);
+  }
+
+  @Post(":id/check")
+  @RequirePermissions("records:check")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Supervisor check — advances to pending verification" })
+  check(
+    @Param("id") id: string,
+    @Body() dto: WorkflowCommentDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.checkRecord(user, id, dto);
+  }
+
+  @Post(":id/verify")
+  @RequirePermissions("records:verify")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "QA verify — locks the record as verified" })
+  verify(
+    @Param("id") id: string,
+    @Body() dto: WorkflowCommentDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.verifyRecord(user, id, dto);
+  }
+
+  @Post(":id/return")
+  @RequirePermissions("records:return")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Return record for operator correction (comment required)" })
+  returnForCorrection(
+    @Param("id") id: string,
+    @Body() dto: WorkflowCommentDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.returnRecord(user, id, dto);
+  }
+
+  @Post(":id/reject")
+  @RequirePermissions("records:reject")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Reject record at verification (comment required)" })
+  reject(
+    @Param("id") id: string,
+    @Body() dto: WorkflowCommentDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.rejectRecord(user, id, dto);
+  }
+
+  @Post(":id/void")
+  @RequirePermissions("records:void")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Void a verified record (soft archive; comment required)" })
+  voidRecord(
+    @Param("id") id: string,
+    @Body() dto: WorkflowCommentDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.voidRecord(user, id, dto);
+  }
+
+  @Get(":id/approvals")
+  @RequirePermissions("records:read")
+  @ApiOperation({ summary: "Approval / return / reject history timeline" })
+  approvalHistory(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.service.listApprovalHistory(user, id);
   }
 }

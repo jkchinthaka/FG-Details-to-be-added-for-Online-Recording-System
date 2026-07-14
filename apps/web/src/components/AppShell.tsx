@@ -19,6 +19,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/tasks", label: "Home", icon: HomeIcon },
   { href: "/records/new", label: "New Record", icon: NewRecordIcon },
   { href: "/records", label: "Records", icon: RecordsIcon },
+  { href: "/records/pending-check", label: "To Check", icon: RecordsIcon },
+  { href: "/records/pending-verification", label: "To Verify", icon: RecordsIcon },
   { href: "/corrective-actions", label: "Corrective Actions", icon: CorrectiveActionIcon },
   { href: "/reports", label: "Reports", icon: ReportsIcon },
   { href: "/admin", label: "Administration", icon: AdminIcon },

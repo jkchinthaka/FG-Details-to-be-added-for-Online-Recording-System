@@ -188,7 +188,7 @@ export function formatRecordNumber(documentCode: string, recordDate: string, id:
 /** Statuses in which the operator who created the record may still change
  *  responses — see the "submission locks operator editing except the
  *  returned-correction workflow" business rule. */
-const EDITABLE_STATUSES: readonly RecordStatus[] = ["DRAFT", "REJECTED"];
+const EDITABLE_STATUSES: readonly RecordStatus[] = ["DRAFT", "REJECTED", "RETURNED_FOR_CORRECTION"];
 export function isRecordEditable(status: RecordStatus): boolean {
   return EDITABLE_STATUSES.includes(status);
 }
@@ -196,23 +196,36 @@ export function isRecordEditable(status: RecordStatus): boolean {
 /** Statuses that already represent a completed submission for this
  *  date/shift/area — a second concurrent record must never be created while
  *  one of these is active. */
-const ACTIVE_BLOCKING_STATUSES: readonly RecordStatus[] = ["SUBMITTED", "CHECKED", "VERIFIED"];
+const ACTIVE_BLOCKING_STATUSES: readonly RecordStatus[] = [
+  "SUBMITTED",
+  "PENDING_CHECK",
+  "CHECKED",
+  "PENDING_VERIFICATION",
+  "VERIFIED",
+  "COMPLETED",
+  "RESUBMITTED",
+];
 export function isActiveBlockingStatus(status: RecordStatus): boolean {
   return ACTIVE_BLOCKING_STATUSES.includes(status);
 }
 
 /** Who is expected to act next once a record reaches `status` — surfaced on
- *  the post-submit success screen. */
+ *  the post-submit success screen. Permission-configurable in API; labels are hints. */
 export function nextResponsibleRoleForStatus(status: RecordStatus): UserRole | null {
   switch (status) {
     case "SUBMITTED":
+    case "PENDING_CHECK":
+    case "RESUBMITTED":
       return "FG_SUPERVISOR";
     case "CHECKED":
+    case "PENDING_VERIFICATION":
       return "QA_EXECUTIVE";
     case "REJECTED":
+    case "RETURNED_FOR_CORRECTION":
       return "FG_OPERATOR";
     case "DRAFT":
     case "VERIFIED":
+    case "COMPLETED":
     case "ARCHIVED":
       return null;
     default:

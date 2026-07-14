@@ -9,8 +9,13 @@ import { useRecentRecords } from "@/lib/dashboard/useRecentRecords";
 const STATUS_TONE: Record<RecentRecordSummary["status"], "neutral" | "success" | "warning" | "danger" | "information"> = {
   DRAFT: "neutral",
   SUBMITTED: "information",
+  PENDING_CHECK: "information",
   CHECKED: "warning",
+  PENDING_VERIFICATION: "warning",
   VERIFIED: "success",
+  COMPLETED: "success",
+  RETURNED_FOR_CORRECTION: "danger",
+  RESUBMITTED: "information",
   REJECTED: "danger",
   ARCHIVED: "neutral",
 };

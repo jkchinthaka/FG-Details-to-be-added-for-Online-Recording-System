@@ -96,3 +96,33 @@ export class RecordValidationException extends BadRequestException {
     });
   }
 }
+
+export class InvalidWorkflowTransitionException extends ConflictException {
+  constructor(from: string, action: string) {
+    super(`Cannot perform ${action} from status ${from}`);
+  }
+}
+
+export class WorkflowCommentRequiredException extends BadRequestException {
+  constructor(action: string) {
+    super(`A comment is required for ${action}`);
+  }
+}
+
+export class WorkflowSegregationOfDutyException extends ForbiddenException {
+  constructor(reason: string) {
+    super(reason);
+  }
+}
+
+export class DuplicateWorkflowApprovalException extends ConflictException {
+  constructor(action: string) {
+    super(`This record has already been processed for ${action}`);
+  }
+}
+
+export class WorkflowPermissionForbiddenException extends ForbiddenException {
+  constructor(action: string) {
+    super(`You do not have permission to ${action} this record`);
+  }
+}

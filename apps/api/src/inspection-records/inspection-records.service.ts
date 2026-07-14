@@ -1,7 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import {
   DOCUMENT_CODES,
+  DEFAULT_WORKFLOW_POLICY,
+  assertCheckSegregationOfDuty,
+  assertVerifySegregationOfDuty,
   checklistItemResponseSchema,
+  commentRequiredForAction,
   computeRecordCounts,
   computeRecommendedLoadingDecision,
   createCleaningDraftSchema,
@@ -14,11 +18,13 @@ import {
   flattenItems,
   formatRecordNumber,
   isFailureResponse,
+  isImmutableVerifiedStatus,
   isOverrideToApprovedAllowed,
   isRecordEditable,
   loadingDecisionInputSchema,
   nextResponsibleRoleForStatus,
   resolveDraftDuplicate,
+  resolveWorkflowTransition,
   saveDraftResponsesSchema,
   submitInspectionRecordSchema,
   validateChecklistResponses,
@@ -31,6 +37,7 @@ import {
   type RecordStatus as SharedRecordStatus,
   type SubmitRecordResult,
   type WorkShift,
+  type WorkflowAction,
 } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RequestUser } from "../auth/auth.types";
@@ -49,7 +56,9 @@ import type { SubmitRecordDto } from "./dto/submit-record.dto";
 import {
   CriticalFailureOverrideException,
   DuplicateRecordException,
+  DuplicateWorkflowApprovalException,
   InvalidRecordPayloadException,
+  InvalidWorkflowTransitionException,
   LoadingDecisionForbiddenException,
   ManualVehicleEntryForbiddenException,
   NotATruckInspectionException,
@@ -58,7 +67,11 @@ import {
   RecordNotFoundException,
   RecordValidationException,
   VehicleNotFoundException,
+  WorkflowCommentRequiredException,
+  WorkflowPermissionForbiddenException,
+  WorkflowSegregationOfDutyException,
 } from "./inspection-records.errors";
+import type { WorkflowCommentDto } from "./dto/workflow-comment.dto";
 import {
   RECORD_HEADER_INCLUDE,
   RESULT_WITH_ATTACHMENTS_INCLUDE,
@@ -313,8 +326,13 @@ export class InspectionRecordsService {
       // retries after a lost response) may both read a DRAFT, but only one may
       // transition it to SUBMITTED and create its downstream workflow rows.
       const claimed = await tx.inspectionRecord.updateMany({
-        where: { id: record.id, status: { in: [RecordStatus.DRAFT, RecordStatus.REJECTED] } },
-        data: { status: RecordStatus.SUBMITTED, submittedAt },
+        where: {
+          id: record.id,
+          status: {
+            in: [RecordStatus.DRAFT, RecordStatus.REJECTED, RecordStatus.RETURNED_FOR_CORRECTION],
+          },
+        },
+        data: { status: RecordStatus.PENDING_CHECK, submittedAt },
       });
       if (claimed.count !== 1) {
         throw new RecordLockedException();
@@ -343,7 +361,7 @@ export class InspectionRecordsService {
     });
 
     const counts = computeRecordCounts(items, responseMap);
-    const status: SharedRecordStatus = "SUBMITTED";
+    const status: SharedRecordStatus = "PENDING_CHECK";
 
     return {
       recordId: record.id,
@@ -357,6 +375,330 @@ export class InspectionRecordsService {
       nextResponsibleRole: nextResponsibleRoleForStatus(status),
       loadingDecision,
     } satisfies SubmitRecordResult;
+  }
+
+  // -------------------------------------------------------------------------
+  // Check / verify / return / reject / void workflow (Prompt 28)
+  // -------------------------------------------------------------------------
+
+  async listPendingCheck(user: RequestUser): Promise<InspectionRecordDetail[]> {
+    this.requirePermission(user, "records:check", "check");
+    return this.listByStatuses(user, ["PENDING_CHECK", "SUBMITTED", "RESUBMITTED"]);
+  }
+
+  async listPendingVerification(user: RequestUser): Promise<InspectionRecordDetail[]> {
+    this.requirePermission(user, "records:verify", "verify");
+    return this.listByStatuses(user, ["PENDING_VERIFICATION", "CHECKED"]);
+  }
+
+  async checkRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+    this.requirePermission(user, "records:check", "check");
+    return this.applyWorkflow(user, id, "CHECK", dto?.comment, async (tx, record, toStatus) => {
+      const sod = assertCheckSegregationOfDuty(DEFAULT_WORKFLOW_POLICY, user.id, record.createdById);
+      if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
+
+      const prior = await tx.approvalRecord.findFirst({
+        where: { recordId: record.id, approvalType: "CHECK", decision: "APPROVED" },
+      });
+      if (prior) throw new DuplicateWorkflowApprovalException("CHECK");
+
+      const decidedAt = new Date();
+      await tx.inspectionRecord.update({
+        where: { id: record.id },
+        data: {
+          status: toStatus as RecordStatus,
+          checkedById: user.id,
+          checkedAt: decidedAt,
+        },
+      });
+      await tx.approvalRecord.create({
+        data: {
+          recordId: record.id,
+          approvalType: "CHECK",
+          decision: "APPROVED",
+          decidedById: user.id,
+          decidedAt,
+          comments: dto?.comment?.trim() || null,
+        },
+      });
+      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_CHECKED", {
+        toStatus,
+        roles: user.roles,
+      });
+      await this.notifyUser(tx, record.createdById, "RECORD_CHECKED", "Record checked", `Record ${record.documentCode} was checked.`, record.id);
+      await this.notifyUser(
+        tx,
+        record.createdById,
+        "RECORD_PENDING_VERIFICATION",
+        "Awaiting verification",
+        `Record ${record.documentCode} is pending QA verification.`,
+        record.id,
+      );
+    });
+  }
+
+  async verifyRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+    this.requirePermission(user, "records:verify", "verify");
+    return this.applyWorkflow(user, id, "VERIFY", dto?.comment, async (tx, record, toStatus) => {
+      const sod = assertVerifySegregationOfDuty(
+        DEFAULT_WORKFLOW_POLICY,
+        user.id,
+        record.createdById,
+        record.checkedById,
+      );
+      if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
+
+      const prior = await tx.approvalRecord.findFirst({
+        where: { recordId: record.id, approvalType: "VERIFY", decision: "APPROVED" },
+      });
+      if (prior) throw new DuplicateWorkflowApprovalException("VERIFY");
+
+      const decidedAt = new Date();
+      await tx.inspectionRecord.update({
+        where: { id: record.id },
+        data: {
+          status: toStatus as RecordStatus,
+          verifiedById: user.id,
+          verifiedAt: decidedAt,
+        },
+      });
+      await tx.approvalRecord.create({
+        data: {
+          recordId: record.id,
+          approvalType: "VERIFY",
+          decision: "APPROVED",
+          decidedById: user.id,
+          decidedAt,
+          comments: dto?.comment?.trim() || null,
+        },
+      });
+      await tx.taskAssignment.updateMany({
+        where: { recordId: record.id },
+        data: { status: "VERIFIED" },
+      });
+      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VERIFIED", {
+        toStatus,
+        roles: user.roles,
+      });
+      await this.notifyUser(
+        tx,
+        record.createdById,
+        "RECORD_VERIFIED",
+        "Record verified",
+        `Record ${record.documentCode} was verified.`,
+        record.id,
+      );
+    });
+  }
+
+  async returnRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+    this.requirePermission(user, "records:return", "return");
+    const comment = dto?.comment?.trim();
+    if (!comment) throw new WorkflowCommentRequiredException("RETURN");
+    return this.applyWorkflow(user, id, "RETURN", comment, async (tx, record, toStatus) => {
+      const decidedAt = new Date();
+      await tx.inspectionRecord.update({
+        where: { id: record.id },
+        data: { status: toStatus as RecordStatus },
+      });
+      await tx.approvalRecord.create({
+        data: {
+          recordId: record.id,
+          approvalType: "RETURN",
+          decision: "REJECTED",
+          decidedById: user.id,
+          decidedAt,
+          comments: comment,
+        },
+      });
+      await tx.taskAssignment.updateMany({
+        where: { recordId: record.id },
+        data: { status: "REJECTED" },
+      });
+      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_RETURNED", {
+        toStatus,
+        roles: user.roles,
+        comment,
+      });
+      await this.notifyUser(
+        tx,
+        record.createdById,
+        "RECORD_RETURNED",
+        "Record returned for correction",
+        comment,
+        record.id,
+      );
+    });
+  }
+
+  async rejectRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+    this.requirePermission(user, "records:reject", "reject");
+    const comment = dto?.comment?.trim();
+    if (!comment) throw new WorkflowCommentRequiredException("REJECT");
+    return this.applyWorkflow(user, id, "REJECT", comment, async (tx, record, toStatus) => {
+      const decidedAt = new Date();
+      await tx.inspectionRecord.update({
+        where: { id: record.id },
+        data: { status: toStatus as RecordStatus },
+      });
+      await tx.approvalRecord.create({
+        data: {
+          recordId: record.id,
+          approvalType: "REJECT",
+          decision: "REJECTED",
+          decidedById: user.id,
+          decidedAt,
+          comments: comment,
+        },
+      });
+      await tx.taskAssignment.updateMany({
+        where: { recordId: record.id },
+        data: { status: "REJECTED" },
+      });
+      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_REJECTED", {
+        toStatus,
+        roles: user.roles,
+        comment,
+      });
+      await this.notifyUser(tx, record.createdById, "RECORD_REJECTED", "Record rejected", comment, record.id);
+    });
+  }
+
+  async voidRecord(user: RequestUser, id: string, dto: WorkflowCommentDto): Promise<InspectionRecordDetail> {
+    this.requirePermission(user, "records:void", "void");
+    const comment = dto?.comment?.trim();
+    if (!comment) throw new WorkflowCommentRequiredException("VOID");
+    return this.applyWorkflow(user, id, "VOID", comment, async (tx, record, toStatus) => {
+      if (!isImmutableVerifiedStatus(record.status as SharedRecordStatus) && record.status !== "VERIFIED" && record.status !== "COMPLETED") {
+        // applyWorkflow already validates transition; VOID only from VERIFIED/COMPLETED
+      }
+      const decidedAt = new Date();
+      await tx.inspectionRecord.update({
+        where: { id: record.id },
+        data: {
+          status: toStatus as RecordStatus,
+          archivedAt: decidedAt,
+        },
+      });
+      await tx.approvalRecord.create({
+        data: {
+          recordId: record.id,
+          approvalType: "VOID",
+          decision: "REJECTED",
+          decidedById: user.id,
+          decidedAt,
+          comments: comment,
+        },
+      });
+      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VOIDED", {
+        toStatus,
+        roles: user.roles,
+        comment,
+      });
+    });
+  }
+
+  async listApprovalHistory(user: RequestUser, id: string) {
+    const record = await this.findRecordOrThrow(id);
+    this.assertCanView(record, user);
+    return this.prisma.approvalRecord.findMany({
+      where: { recordId: id },
+      orderBy: { createdAt: "asc" },
+      include: { decidedBy: { select: { id: true, fullName: true, employeeCode: true } } },
+    });
+  }
+
+  private requirePermission(user: RequestUser, permission: PermissionKey, action: string): void {
+    if (!hasPermission(user, permission)) {
+      throw new WorkflowPermissionForbiddenException(action);
+    }
+  }
+
+  private async listByStatuses(user: RequestUser, statuses: SharedRecordStatus[]): Promise<InspectionRecordDetail[]> {
+    const rows = await this.prisma.inspectionRecord.findMany({
+      where: { status: { in: statuses as RecordStatus[] } },
+      include: RECORD_HEADER_INCLUDE,
+      orderBy: { submittedAt: "desc" },
+      take: 50,
+    });
+    const details: InspectionRecordDetail[] = [];
+    for (const row of rows) {
+      try {
+        this.assertCanView(row, user);
+        details.push(await this.buildDetail(row, user));
+      } catch {
+        // skip inaccessible
+      }
+    }
+    return details;
+  }
+
+  private async applyWorkflow(
+    user: RequestUser,
+    id: string,
+    action: WorkflowAction,
+    comment: string | undefined,
+    mutate: (
+      tx: PrismaService,
+      record: RecordWithHeaderRelations,
+      toStatus: SharedRecordStatus,
+    ) => Promise<void>,
+  ): Promise<InspectionRecordDetail> {
+    if (commentRequiredForAction(action) && !comment?.trim()) {
+      throw new WorkflowCommentRequiredException(action);
+    }
+    const record = await this.findRecordOrThrow(id);
+    this.assertCanView(record, user);
+    const from = record.status as SharedRecordStatus;
+    if (isImmutableVerifiedStatus(from) && action !== "VOID" && action !== "COMPLETE") {
+      throw new RecordLockedException();
+    }
+    const toStatus = resolveWorkflowTransition(from, action);
+    if (!toStatus) {
+      throw new InvalidWorkflowTransitionException(from, action);
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await mutate(tx as unknown as PrismaService, record, toStatus);
+    });
+    return this.getById(user, id);
+  }
+
+  private async writeWorkflowAudit(
+    prisma: Pick<PrismaService, "auditLog">,
+    user: RequestUser,
+    recordId: string,
+    action: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action,
+        entityType: "InspectionRecord",
+        entityId: recordId,
+        metadata: metadata as object,
+      },
+    });
+  }
+
+  private async notifyUser(
+    prisma: Pick<PrismaService, "notification">,
+    userId: string,
+    type: "RECORD_REJECTED" | "RECORD_VERIFIED" | "RECORD_RETURNED" | "RECORD_CHECKED" | "RECORD_PENDING_VERIFICATION" | "SYSTEM",
+    title: string,
+    body: string,
+    relatedEntityId: string,
+  ): Promise<void> {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type,
+        title,
+        body,
+        relatedEntityType: "InspectionRecord",
+        relatedEntityId,
+      },
+    });
   }
 
   // -------------------------------------------------------------------------
