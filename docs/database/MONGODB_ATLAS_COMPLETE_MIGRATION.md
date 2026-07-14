@@ -24,8 +24,11 @@ Connection strings live only in untracked `apps/api/.env` (and host secret store
 ## Operations
 
 - Prefer `prisma db push` for Mongo schema sync (legacy SQL migrations archived under `docs/database/postgresql-migration-archive/`).
+- Production seed: `pnpm --filter @nelna/api prisma:seed:production` (reference configuration only).
+- Demo seed: `prisma:seed:demo` / `ENABLE_DEMO_SEED=true` — **blocked** when `NODE_ENV=production`.
+- Sample operational cleanup: `node scripts/database/cleanup-sample-data.js` (see `SAMPLE_DATA_CLEANUP_REPORT.md`).
 - Backups/restores follow Atlas tooling — not `pg_dump` / `pg_restore`.
-- CI should use a Mongo service / Atlas test DB, not PostgreSQL 16.
+- CI should use a Mongo replica-set service DB `fg_online_test`, not production `fg_online`.
 
 ## Related docs
 
@@ -33,3 +36,4 @@ Connection strings live only in untracked `apps/api/.env` (and host secret store
 - `MONGODB_MIGRATION_AUDIT.md` / `MONGODB_MIGRATION_PLAN.md` — history and planning
 - `docs/deployment/MONGODB_ATLAS_SETUP.md` — cluster setup
 - `MONGODB_GRIDFS_EVIDENCE.md` — photo evidence storage
+- `SAMPLE_DATA_CLEANUP_REPORT.md` — removal of seeded demo operational data

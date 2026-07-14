@@ -14,6 +14,8 @@
     "prisma:validate": "prisma validate",
     "prisma:push": "prisma db push",
     "prisma:seed": "prisma db seed",
+    "prisma:seed:production": "prisma db seed",
+    "prisma:seed:demo": "node ./prisma/run-demo-seed.cjs",
     "prisma:studio": "prisma studio",
     "prisma:migrate:legacy": "prisma migrate dev",
     "prisma:migrate:deploy:legacy": "prisma migrate deploy"

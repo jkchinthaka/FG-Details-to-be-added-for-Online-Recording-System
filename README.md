@@ -52,7 +52,17 @@ scripts/db/     Backup / restore helpers
 
 ## Local setup
 
-Prerequisites: Node.js 20+, pnpm 9+, PostgreSQL (Docker optional).
+Prerequisites: Node.js 20+, pnpm 9+, MongoDB Atlas (or local MongoDB replica set for tests).
+
+```bash
+pnpm install --frozen-lockfile
+cp apps/api/.env.example apps/api/.env   # set DATABASE_URL → fg_online
+pnpm --filter @nelna/api prisma:generate
+pnpm --filter @nelna/api prisma:push
+pnpm --filter @nelna/api prisma:seed:production   # roles, permissions, templates only
+# Optional local demo data (NEVER in production):
+# ENABLE_DEMO_SEED=true pnpm --filter @nelna/api prisma:seed:demo
+```
 
 ```bash
 pnpm install
@@ -63,10 +73,10 @@ pnpm --filter @nelna/ui build
 pnpm dev:web
 
 # API
-cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env   # DATABASE_URL must target fg_online
 pnpm --filter @nelna/api prisma:generate
-pnpm --filter @nelna/api exec prisma migrate deploy
-pnpm --filter @nelna/api exec prisma db seed   # optional, needs seed env vars
+pnpm --filter @nelna/api prisma:push
+pnpm --filter @nelna/api prisma:seed:production
 pnpm dev:api
 ```
 

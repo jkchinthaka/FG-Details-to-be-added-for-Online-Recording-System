@@ -11,10 +11,10 @@
 |-------|----------------|
 | Web | Next.js (`apps/web`) behind HTTPS reverse proxy / managed Node host / container |
 | API | NestJS (`apps/api`) behind HTTPS; private to VPC where possible |
-| Database | Managed PostgreSQL 14+ (16 preferred) with automated backups |
-| File storage | Encrypted volume or object storage; path via `FILE_STORAGE_PATH` or future object SDK |
-| HTTPS | Terminated at load balancer / reverse proxy; `COOKIE_SECURE=true` |
-| Domain | Example pattern: `fg.example.nelna` (web), `fg-api.example.nelna` (API) — **confirm with Nelna IT** |
+| Database | MongoDB Atlas database `fg_online` (GridFS bucket `fgEvidence`) |
+| File storage | MongoDB GridFS (`fgEvidence`); do not use Render ephemeral disk for production evidence |
+| HTTPS | Terminated at Cloudflare / load balancer; `COOKIE_SECURE=true` |
+| Domain | Cloudflare Worker (web) + Render (API) with same-origin `/api` proxy preferred |
 
 Environments: see `ENVIRONMENT_MATRIX.md`.
 
@@ -37,15 +37,18 @@ Web: `NEXT_PUBLIC_API_URL` (or project-equivalent) pointing at HTTPS API. See `a
 
 ---
 
-## 3. Database migration process
+## 3. Database schema sync (MongoDB)
 
-1. Pre-deployment backup (`docs/database/BACKUP_RESTORE_RUNBOOK.md`).  
-2. `prisma migrate status` against target.  
-3. Optional preview: review pending SQL under `apps/api/prisma/migrations`.  
-4. `pnpm --filter @nelna/api exec prisma migrate deploy`  
-5. Seed only when intentionally provisioning reference data (`prisma db seed`).  
+1. Pre-deployment backup (`docs/database/BACKUP_RESTORE_RUNBOOK.md` / `.local-backups/`).  
+2. Confirm `DATABASE_URL` targets **`fg_online`** (never `fg_online_test` in production).  
+3. `pnpm --filter @nelna/api prisma:generate`  
+4. `pnpm --filter @nelna/api prisma:push`  
+5. Seed **production reference only**: `pnpm --filter @nelna/api prisma:seed:production`  
+   - Never set `ENABLE_DEMO_SEED=true` on Render / production.  
+   - Demo seed is local-only (`prisma:seed:demo`).  
+6. After any accidental demo seed: run `scripts/database/cleanup-sample-data.js` (dry-run then execute). See `docs/database/SAMPLE_DATA_CLEANUP_REPORT.md`.
 
-Never `db push` in production.
+Prisma Migrate SQL is **historical only** (PostgreSQL archive). Do not run `migrate deploy` against MongoDB.
 
 ---
 

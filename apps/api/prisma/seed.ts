@@ -331,10 +331,28 @@ async function seedTaskAssignments() {
 }
 
 async function main() {
+  const demoEnabled = process.env.ENABLE_DEMO_SEED === "true";
+  if (demoEnabled && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Refusing ENABLE_DEMO_SEED=true when NODE_ENV=production — demo operational data is not allowed in production",
+    );
+  }
+
+  // REFERENCE_CONFIGURATION — always safe for production
   await seedPermissions();
   await seedRoles();
   await seedOrganization();
   await seedChecklistTemplates();
+
+  // SAMPLE_OPERATIONAL_DATA — opt-in local/demo only
+  if (!demoEnabled) {
+    console.log(
+      "Demo operational seed skipped (fleet/users/tasks). Set ENABLE_DEMO_SEED=true for local demo data only.",
+    );
+    return;
+  }
+
+  console.log("ENABLE_DEMO_SEED=true — seeding demo fleet, users, and sample tasks");
   await seedFleet();
   await seedSampleUsers();
   await seedTaskAssignments();

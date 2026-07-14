@@ -33,6 +33,7 @@ pnpm-debug.log*
 tmp/
 temp/
 .tmp-migration/
+.local-backups/
 .turbo/
 
 # Prisma

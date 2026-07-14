@@ -13,7 +13,9 @@
 11. **Formal multi-role plant UAT** — Unsigned (DEF-012)  
 12. **Prettier format:check** — Cleared in Prompt 35 (`pnpm format`).  
 13. **Dependency advisories** — Reviewed; see `docs/engineering/DEPENDENCY_REVIEW.md` (no unsafe bulk upgrades).  
-14. Open BD-01–BD-25 remain PENDING in `docs/approvals/APPROVED_BUSINESS_DECISIONS.md` 
+14. Open BD-01–BD-25 remain PENDING in `docs/approvals/APPROVED_BUSINESS_DECISIONS.md`  
+15. **Sample admin retained** — After Mongo sample-data cleanup, `EMP-ADMIN-001` / `admin@example.local` remains as the only administrator until real `BOOTSTRAP_ADMIN_*` credentials are supplied and cleanup is re-run (`SAMPLE_DATA_PARTIALLY_REMOVED_ADMIN_PROTECTED`). See `docs/database/SAMPLE_DATA_CLEANUP_REPORT.md`.  
+16. **Demo seed** — Production seed never creates demo fleet/users/tasks; `ENABLE_DEMO_SEED=true` is refused when `NODE_ENV=production`.
 
 These limitations bound the historical CONDITIONAL GO for MVP tag `v1.0.0` — see `GO_LIVE_DECISION.md`.  
 **Authoritative production / `main` promotion gate:** **NO-GO** — see `FINAL_GO_LIVE_DECISION.md` and `docs/current-state/DOCUMENTATION_RECONCILIATION.md`.  
