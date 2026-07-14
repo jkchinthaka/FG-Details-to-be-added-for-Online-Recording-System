@@ -1269,6 +1269,54 @@ export class InspectionRecordsService {
     }
   }
 
+  /** Lists LOADING_BLOCKED / REJECTED truck inspections for re-inspection linking. */
+  async listReinspectionCandidates(input: {
+    query?: string;
+    vehicleNumber?: string;
+    limit: number;
+  }) {
+    const q = input.query?.trim().toLowerCase();
+    const vehicleNumber = input.vehicleNumber?.trim().toLowerCase();
+    const rows = await this.prisma.inspectionRecord.findMany({
+      where: {
+        documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+        truckDetail: {
+          is: {
+            loadingDecision: { in: ["LOADING_BLOCKED", "REJECTED"] },
+          },
+        },
+      },
+      include: {
+        truckDetail: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: Math.max(input.limit * 3, input.limit),
+    });
+
+    const filtered = rows.filter((row) => {
+      const vn = (row.truckDetail?.vehicleNumber ?? "").toLowerCase();
+      const ft = (row.truckDetail?.freezerTruckNumber ?? "").toLowerCase();
+      if (vehicleNumber && !vn.includes(vehicleNumber) && !ft.includes(vehicleNumber)) {
+        return false;
+      }
+      if (q && row.id !== q && !vn.includes(q) && !ft.includes(q)) {
+        return false;
+      }
+      return true;
+    });
+
+    return filtered.slice(0, input.limit).map((row) => ({
+      recordId: row.id,
+      documentCode: row.documentCode,
+      recordDate: toDateOnlyString(row.recordDate),
+      vehicleNumber: row.truckDetail?.vehicleNumber ?? null,
+      freezerTruckNumber: row.truckDetail?.freezerTruckNumber ?? null,
+      loadingDecision: row.truckDetail?.loadingDecision ?? null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
   /** Creates one `CorrectiveAction` per failing item that is configured to
    *  require one (`correctiveActionRequiredOnFail`) — the "generate
    *  corrective action when configured on failure" business rule.

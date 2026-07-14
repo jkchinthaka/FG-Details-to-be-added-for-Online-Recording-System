@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/PlaceholderPage";
+import { PageHeader } from "@nelna/ui";
+import { CorrectiveActionsWorkspace } from "@/components/corrective-actions/CorrectiveActionsWorkspace";
 
 export const metadata: Metadata = {
   title: "Corrective Actions",
@@ -7,12 +8,13 @@ export const metadata: Metadata = {
 
 export default function CorrectiveActionsPage() {
   return (
-    <PlaceholderPage
-      eyebrow="Food safety"
-      title="Corrective Actions"
-      description="A single view of every failure that needs follow-up, owned by the Food Safety Team Leader."
-      emptyTitle="Corrective action tracking is on the way"
-      emptyDescription="Failures already surface inline on cleaning and freezer truck records. A dedicated tracking and closure workflow lands with the operator workflow phase."
-    />
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6">
+      <PageHeader
+        eyebrow="Food safety"
+        title="Corrective Actions"
+        description="Track failures from inspection through assignment, completion, verification, and closure."
+      />
+      <CorrectiveActionsWorkspace />
+    </div>
   );
 }

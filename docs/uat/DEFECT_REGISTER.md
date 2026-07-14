@@ -1,11 +1,11 @@
 # Defect Register ? Nelna FG Digital Recording System
 
-**Register opened:** 2026-07-14 (Prompt 22)  
-**Last reconciled:** 2026-07-14 (Phase 1 current-state audit)  
-**Rules:** Every defect needs ID, severity, priority, repro, expected/actual, status.  
+**Register opened:** 2026-07-14 (Prompt 22)
+**Last reconciled:** 2026-07-14 (Phase 1 current-state audit)
+**Rules:** Every defect needs ID, severity, priority, repro, expected/actual, status.
 **Severity:** Critical = data loss / unsafe loading / auth bypass of safety controls. High = core workflow unusable or compliance control missing for claimed capability. Medium = partial gap. Low = polish.
 
-**Status vocabulary:** `PRODUCT_FIXED` | `AUTOMATED_TEST_PASSED` | `MANUAL_UAT_PENDING` | `BUSINESS_APPROVAL_PENDING` | `INFRASTRUCTURE_TEST_PENDING` | `OPEN` | `PARTIAL` | `CLOSED`  
+**Status vocabulary:** `PRODUCT_FIXED` | `AUTOMATED_TEST_PASSED` | `MANUAL_UAT_PENDING` | `BUSINESS_APPROVAL_PENDING` | `INFRASTRUCTURE_TEST_PENDING` | `OPEN` | `PARTIAL` | `CLOSED`
 See `docs/current-state/DOCUMENTATION_RECONCILIATION.md`. Do **not** mark `CLOSED` while plant UAT or infrastructure evidence remains required.
 
 ---
@@ -49,7 +49,7 @@ See `docs/current-state/DOCUMENTATION_RECONCILIATION.md`. Do **not** mark `CLOSE
 | Fix commit | Prompt 28 |
 | Retest | `record-workflow` / policy specs |
 
-### DEF-002 ? Truck re-inspection UI picker incomplete
+### DEF-002 — Truck re-inspection UI picker incomplete
 
 | Field | Value |
 |-------|-------|
@@ -58,9 +58,9 @@ See `docs/current-state/DOCUMENTATION_RECONCILIATION.md`. Do **not** mark `CLOSE
 | Priority | P1 |
 | Steps | After critical block, start re-inspection of prior truck record from UI |
 | Expected | Operator selects prior record; `reinspectionOfId` set; history visible |
-| Actual | API/schema support; UI picker incomplete (OBD-07 / BD-13) |
-| Root cause | UX deferred; re-inspection product UI still incomplete |
-| Closure | **OPEN** |
+| Actual | **PRODUCT_FIXED (code)** — `GET /inspection-records/reinspection-candidates` + FreezerTruckForm picker; plant retest pending |
+| Root cause | UX previously deferred |
+| Closure | **READY_FOR_QA** (not CLOSED without plant verification) |
 
 ### DEF-005 ? Void / controlled amend process missing
 
@@ -74,17 +74,17 @@ See `docs/current-state/DOCUMENTATION_RECONCILIATION.md`. Do **not** mark `CLOSE
 | Actual | **PARTIAL** (Prompt 28) ? `POST /:id/void` soft-archives verified/completed with mandatory comment; dedicated amend API still thin |
 | Closure | **PARTIAL** |
 
-### DEF-006 ? Corrective-action lifecycle UI/API incomplete
+### DEF-006 — Corrective-action lifecycle UI/API incomplete
 
 | Field | Value |
 |-------|-------|
-| Test case | CA-02?CA-09 |
+| Test case | CA-02–CA-09 |
 | Severity | **High** |
 | Priority | P1 |
 | Steps | Assign, evidence, complete, close CA from product |
 | Expected | Full lifecycle |
-| Actual | Auto-create on submit only; placeholder `/corrective-actions` page; no CA controller |
-| Closure | **OPEN** |
+| Actual | **PRODUCT_FIXED (code)** — `CorrectiveActionsModule` + `/corrective-actions` list/detail with assign/start/complete/verify/reject/reopen/cancel; plant retest pending |
+| Closure | **READY_FOR_QA** (not CLOSED without plant verification) |
 
 ### DEF-007 ? Reports / PDF / CSV not delivered
 
@@ -180,14 +180,14 @@ _None._ Product-fixed defects remain open for plant/UAT closure under DEF-012.
 | Category | Count | IDs |
 |----------|------:|-----|
 | Critical open | 0 | - |
-| High product-open | 2 | DEF-002, DEF-006 |
+| High product READY_FOR_QA (code fixed, plant retest pending) | 2 | DEF-002, DEF-006 |
 | High process/ops-open | 2 | DEF-011, DEF-012 |
 | Medium partial | 1 | DEF-005 |
 | PRODUCT_FIXED awaiting UAT/BD (High/Medium) | 7 | DEF-001, 003, 004, 007, 008, 009, 010 |
 | Fully CLOSED | 0 | - |
 
-**Prompt 22 mandate:** "Fix all critical and high-severity defects before release."  
-**Status:** **Not met** for production - product High residuals (DEF-002, DEF-006) plus process/ops High (DEF-011, DEF-012). Authoritative production gate: **NO-GO** (`docs/release/FINAL_GO_LIVE_DECISION.md`).
+**Prompt 22 mandate:** "Fix all critical and high-severity defects before release."
+**Status:** **Not met** for production — product High DEF-002/006 are READY_FOR_QA (not plant-CLOSED); process/ops High DEF-011/DEF-012 remain open. Authoritative production gate: **NO-GO** (`docs/release/FINAL_GO_LIVE_DECISION.md`). Enterprise readiness this pass: **UAT_READY** (see `docs/FINAL_IMPLEMENTATION_REPORT.md`).
 
 ---
 

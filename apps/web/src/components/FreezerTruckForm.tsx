@@ -15,6 +15,7 @@ import {
   type ChecklistResponseMap,
   type FinalLoadingDecision,
   type InspectionRecordDetail,
+  type ReinspectionCandidate,
   type SubmitRecordResult,
   type VehicleSummary,
 } from "@nelna/shared";
@@ -38,6 +39,7 @@ import {
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
 import { searchVehicles } from "@/lib/vehicles/api";
+import { searchReinspectionCandidates } from "@/lib/corrective-actions/api";
 import {
   clearDraft,
   formatDraftSavedAt,
@@ -396,8 +398,13 @@ function VehicleSelectionStep({
   const [productCategory, setProductCategory] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [reinspQuery, setReinspQuery] = useState("");
+  const [reinspCandidates, setReinspCandidates] = useState<ReinspectionCandidate[]>([]);
+  const [selectedPrior, setSelectedPrior] = useState<ReinspectionCandidate | null>(null);
+  const [reinspSearching, setReinspSearching] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchAttempt = useRef(0);
+  const reinspTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -433,6 +440,27 @@ function VehicleSelectionStep({
     };
   }, [query]);
 
+  useEffect(() => {
+    if (reinspTimer.current) clearTimeout(reinspTimer.current);
+    reinspTimer.current = setTimeout(
+      () => {
+        setReinspSearching(true);
+        searchReinspectionCandidates({
+          query: reinspQuery.trim() || undefined,
+          vehicleNumber: selectedVehicle?.vehicleNumber,
+          limit: 10,
+        })
+          .then(setReinspCandidates)
+          .catch(() => setReinspCandidates([]))
+          .finally(() => setReinspSearching(false));
+      },
+      reinspQuery.trim() ? 300 : 0,
+    );
+    return () => {
+      if (reinspTimer.current) clearTimeout(reinspTimer.current);
+    };
+  }, [reinspQuery, selectedVehicle?.vehicleNumber]);
+
   function selectVehicle(vehicle: VehicleSummary) {
     setSelectedVehicle(vehicle);
     setManualMode(false);
@@ -461,6 +489,7 @@ function VehicleSelectionStep({
         loadingReference: loadingReference.trim() || undefined,
         productCategory: productCategory.trim() || undefined,
         taskAssignmentId: assignmentId ?? undefined,
+        reinspectionOfRecordId: selectedPrior?.recordId,
       });
       onDraftReady(detail);
     } catch (error) {
@@ -489,6 +518,51 @@ function VehicleSelectionStep({
         <p className="mt-1 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
           Search for the truck to begin its pre-loading inspection.
         </p>
+      </Card>
+
+      <Card>
+        <Input
+          label="Link re-inspection of a blocked truck (optional)"
+          placeholder="Search vehicle number or leave blank for recent blocked trucks"
+          value={reinspQuery}
+          onChange={(event) => setReinspQuery(event.target.value)}
+        />
+        {selectedPrior ? (
+          <div className="mt-2 rounded-md border border-[var(--nelna-gold)] bg-[var(--nelna-cream)] p-3 text-sm">
+            Linking to prior {selectedPrior.loadingDecision} inspection on{" "}
+            {selectedPrior.recordDate}
+            {selectedPrior.vehicleNumber ? ` (${selectedPrior.vehicleNumber})` : ""}.{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => setSelectedPrior(null)}
+            >
+              Clear
+            </button>
+          </div>
+        ) : null}
+        {reinspSearching ? (
+          <p className="mt-2 text-sm text-[var(--nelna-text-secondary)]">Searching…</p>
+        ) : reinspCandidates.length > 0 ? (
+          <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-sm">
+            {reinspCandidates.map((candidate) => (
+              <li key={candidate.recordId}>
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-2 text-left hover:bg-[var(--nelna-surface-muted)]"
+                  onClick={() => setSelectedPrior(candidate)}
+                >
+                  {candidate.vehicleNumber ?? "Unknown vehicle"} · {candidate.recordDate}{" "}
+                  · {candidate.loadingDecision}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-[var(--nelna-text-secondary)]">
+            No blocked or rejected truck inspections matched.
+          </p>
+        )}
       </Card>
 
       <Card>

@@ -7,6 +7,9 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { InspectionRecordDetail, SubmitRecordResult } from "@nelna/shared";
@@ -39,6 +42,24 @@ export class InspectionRecordsController {
   @ApiOperation({ summary: "List records awaiting QA verification" })
   listPendingVerification(@CurrentUser() user: RequestUser) {
     return this.service.listPendingVerification(user);
+  }
+
+  @Get("reinspection-candidates")
+  @RequirePermissions("records:create", "records:read")
+  @ApiOperation({
+    summary:
+      "Search prior blocked/rejected freezer-truck inspections for re-inspection linking",
+  })
+  listReinspectionCandidates(
+    @Query("query") query?: string,
+    @Query("vehicleNumber") vehicleNumber?: string,
+    @Query("limit", new DefaultValuePipe(20), ParseIntPipe) limit = 20,
+  ) {
+    return this.service.listReinspectionCandidates({
+      query,
+      vehicleNumber,
+      limit: Math.min(50, Math.max(1, limit)),
+    });
   }
 
   @Post("cleaning/draft")

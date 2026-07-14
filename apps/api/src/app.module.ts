@@ -11,6 +11,7 @@ import { TasksModule } from "./tasks/tasks.module";
 import { UsersModule } from "./users/users.module";
 import { VehiclesModule } from "./vehicles/vehicles.module";
 import { ReportsModule } from "./reports/reports.module";
+import { CorrectiveActionsModule } from "./corrective-actions/corrective-actions.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ReportsModule } from "./reports/reports.module";
     UsersModule,
     MasterDataModule,
     EvidenceModule,
+    CorrectiveActionsModule,
   ],
 })
 export class AppModule {}
