@@ -4,13 +4,15 @@
 **Branch:** `main`  
 **Author:** Chinthaka Jayaweera  
 **Safety tag:** `pre-mongodb-main-20260715-0009`  
-**Original main SHA (pre-work):** `214fc2b`
+**Original main SHA (pre-work):** `214fc2b`  
+**Migration commit:** `576d85d`  
+**CI fix commit:** see `origin/main` tip after push
 
 ## Summary decision
 
 **CODE_COMPLETE_DEPLOYMENT_BLOCKED**
 
-Code, MongoDB Atlas `fg_online` schema sync, idempotent seed, quality gate, and
+Code, MongoDB Atlas `fg_online` schema sync, idempotent seed, local quality gate, and
 same-origin `/api` proxy are complete. Live Render and Cloudflare Worker
 deployments could not be executed from this environment because the required
 CLI/API secrets were missing.
