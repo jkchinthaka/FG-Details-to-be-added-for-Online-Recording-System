@@ -1,0 +1,112 @@
+{
+  "$schema_comment": "Example only. Do not treat values as Nelna-approved policy. Copy to a private approved file when decisions are APPROVED.",
+  "document": "Nelna FG Digital Recording System — business decisions configuration example",
+  "version": "0.0.0-example",
+  "status": "EXAMPLE_NOT_APPROVED",
+  "decisions": {
+    "BD-01": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "cleaningRecordFrequency": null,
+      "notes": "once_per_day | once_per_shift | multiple_stages — leave null until APPROVED"
+    },
+    "BD-02": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "recordingRoleKeys": null
+    },
+    "BD-03": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "checkedByRoleKeys": null
+    },
+    "BD-04": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "verifiedByRoleKeys": null
+    },
+    "BD-05": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "allowCreatorSelfCheck": null
+    },
+    "BD-06": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "allowCheckerSelfVerify": null
+    },
+    "BD-07": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "mandatoryCorrectionPolicy": null
+    },
+    "BD-08": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "formalCorrectiveActionPolicy": null
+    },
+    "BD-09": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "photoEvidencePolicy": null
+    },
+    "BD-10": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "criticalTruckItemCodes": null
+    },
+    "BD-11": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "finalLoadingAuthorizerRoleKeys": null
+    },
+    "BD-12": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "conditionalLoadingApprovalsAllowed": null
+    },
+    "BD-13": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "reinspectionProcess": null
+    },
+    "BD-14": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "truckTemperatureRecordingRequired": null
+    },
+    "BD-15": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "temperatureLimits": null,
+      "comment": "Do not invent numeric limits in code"
+    },
+    "BD-16": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "backdatedRecordsAllowed": null
+    },
+    "BD-17": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "maxBackdateDays": null
+    },
+    "BD-18": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "verifiedRecordRetentionYears": null
+    },
+    "BD-19": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "electronicApprovalsAcceptedAsPaperReplacement": null
+    },
+    "BD-20": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "paperFallbackProcess": null
+    },
+    "BD-21": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "offlineOperatingHoursRequired": null
+    },
+    "BD-22": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "defaultCorrectiveActionOwner": null
+    },
+    "BD-23": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "correctiveActionSla": null,
+      "escalationProcess": null
+    },
+    "BD-24": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "masterDataSource": null,
+      "comment": "erp | local | hybrid — null until APPROVED"
+    },
+    "BD-25": {
+      "status": "PENDING_BUSINESS_CONFIRMATION",
+      "pdfMustMatchPaperLayoutExactly": null
+    }
+  }
+}

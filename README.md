@@ -129,6 +129,10 @@ Production API refuses to start without critical configuration (`JWT_*`, `DATABA
 - [Traceability matrix](docs/requirements/TRACEABILITY_MATRIX.md)  
 - [Business rules](docs/requirements/BUSINESS_RULES.md)  
 - [Open business decisions](docs/requirements/OPEN_BUSINESS_DECISIONS.md)  
+- [Nelna decision pack](docs/approvals/NELNA_DECISION_PACK.md)  
+- [Approved business decisions](docs/approvals/APPROVED_BUSINESS_DECISIONS.md)  
+- [Requirement sign-off](docs/approvals/REQUIREMENT_SIGNOFF.md)  
+- [Decision impact matrix](docs/approvals/DECISION_IMPACT_MATRIX.md)  
 
 ### Engineering quality
 
