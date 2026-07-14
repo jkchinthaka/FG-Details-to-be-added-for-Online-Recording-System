@@ -21,6 +21,7 @@ import {
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
 import { clearDraft, formatDraftSavedAt, saveDraft } from "@/lib/draft-storage";
+import { RecordHeaderField } from "@/components/records/RecordHeaderField";
 
 type WorkflowPhase = "editing" | "review";
 
@@ -306,12 +307,12 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
           fontSize: "0.9rem",
         }}
       >
-        <HeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
-        <HeaderField label="Month" value={header.recordMonth} />
-        <HeaderField label="Shift" value={header.shiftLabel ?? "—"} />
-        <HeaderField label="Section / area" value={header.areaLabel ?? "—"} />
-        <HeaderField label="Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
-        <HeaderField
+        <RecordHeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
+        <RecordHeaderField label="Month" value={header.recordMonth} />
+        <RecordHeaderField label="Shift" value={header.shiftLabel ?? "—"} />
+        <RecordHeaderField label="Section / area" value={header.areaLabel ?? "—"} />
+        <RecordHeaderField label="Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
+        <RecordHeaderField
           label="Checked by"
           value={
             header.checkedBy
@@ -319,7 +320,7 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
               : "Pending check"
           }
         />
-        <HeaderField
+        <RecordHeaderField
           label="Verified by"
           value={
             header.verifiedBy
@@ -328,15 +329,6 @@ function RecordHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
           }
         />      </dl>
     </Card>
-  );
-}
-
-function HeaderField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt style={{ margin: 0, color: "var(--nelna-text-muted)", fontSize: "0.75rem" }}>{label}</dt>
-      <dd style={{ margin: "0.15rem 0 0", fontWeight: 600, color: "var(--nelna-text)" }}>{value}</dd>
-    </div>
   );
 }
 

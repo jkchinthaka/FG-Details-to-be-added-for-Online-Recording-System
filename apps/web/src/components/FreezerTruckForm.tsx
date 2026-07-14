@@ -40,6 +40,7 @@ import {
 import { searchVehicles } from "@/lib/vehicles/api";
 import { clearDraft, formatDraftSavedAt, saveDraft } from "@/lib/draft-storage";
 import { useAuth } from "@/lib/auth/auth-context";
+import { RecordHeaderField } from "@/components/records/RecordHeaderField";
 
 type WorkflowPhase = "editing" | "review";
 
@@ -591,17 +592,17 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
           fontSize: "0.9rem",
         }}
       >
-        <HeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
-        <HeaderField label="Time" value={truck?.inspectionTime ?? "—"} />
-        <HeaderField label="Shift" value={header.shiftLabel ?? "—"} />
-        <HeaderField label="Vehicle number" value={truck?.vehicleNumber ?? "—"} />
-        <HeaderField label="Freezer truck number" value={truck?.freezerTruckNumber ?? "—"} />
-        <HeaderField label="Transporter" value={truck?.transporter?.name ?? "—"} />
-        <HeaderField label="Driver" value={truck?.driver?.fullName ?? "—"} />
-        <HeaderField label="Loading reference" value={truck?.loadingReference ?? "—"} />
-        <HeaderField label="Product category" value={truck?.productCategory ?? "—"} />
-        <HeaderField label="Inspector / Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
-        <HeaderField
+        <RecordHeaderField label="Date" value={recordDate.toLocaleDateString(undefined, { dateStyle: "medium" })} />
+        <RecordHeaderField label="Time" value={truck?.inspectionTime ?? "—"} />
+        <RecordHeaderField label="Shift" value={header.shiftLabel ?? "—"} />
+        <RecordHeaderField label="Vehicle number" value={truck?.vehicleNumber ?? "—"} />
+        <RecordHeaderField label="Freezer truck number" value={truck?.freezerTruckNumber ?? "—"} />
+        <RecordHeaderField label="Transporter" value={truck?.transporter?.name ?? "—"} />
+        <RecordHeaderField label="Driver" value={truck?.driver?.fullName ?? "—"} />
+        <RecordHeaderField label="Loading reference" value={truck?.loadingReference ?? "—"} />
+        <RecordHeaderField label="Product category" value={truck?.productCategory ?? "—"} />
+        <RecordHeaderField label="Inspector / Recorded by" value={`${header.recordedBy.fullName} (${header.recordedBy.employeeCode})`} />
+        <RecordHeaderField
           label="Checked by"
           value={
             header.checkedBy
@@ -609,7 +610,7 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
               : "Pending check"
           }
         />
-        <HeaderField
+        <RecordHeaderField
           label="Verified by"
           value={
             header.verifiedBy
@@ -624,15 +625,6 @@ function TruckHeaderCard({ detail }: { detail: InspectionRecordDetail }) {
         </p>
       ) : null}
     </Card>
-  );
-}
-
-function HeaderField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt style={{ margin: 0, color: "var(--nelna-text-muted)", fontSize: "0.75rem" }}>{label}</dt>
-      <dd style={{ margin: "0.15rem 0 0", fontWeight: 600, color: "var(--nelna-text)" }}>{value}</dd>
-    </div>
   );
 }
 
