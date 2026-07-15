@@ -1,11 +1,11 @@
 /**
  * Cloudflare Workers configuration for the Nelna FG web app (OpenNext).
  * Connected Cloudflare Worker project name: fgdetails.
- * Do not put secrets here — use Cloudflare dashboard / .dev.vars (gitignored).
+ * Do not put secrets here.
  *
- * Browser clients call relative `/api` (same-origin proxy). Set Worker secrets:
- *   - API_INTERNAL_URL = https://<render-api-host>  (never commit the real value)
- * Do NOT set NEXT_PUBLIC_API_URL to the Render public URL for browser traffic.
+ * Production currently deploys to workers.dev.
+ * Add fg.nelna.lk only after nelna.lk becomes an active Cloudflare zone
+ * in this account.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -13,6 +13,7 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-14",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",
@@ -27,18 +28,12 @@
     "enabled": true,
   },
   "vars": {
-    // Same-origin App Router proxy at /api/[...path] → API_INTERNAL_URL
     "NEXT_PUBLIC_API_URL": "/api",
   },
-  "routes": [
-    {
-      "pattern": "fg.nelna.lk/*",
-      "zone_name": "nelna.lk",
-    },
-  ],
   "env": {
     "uat": {
       "name": "fgdetails-uat",
+      "workers_dev": true,
       "vars": {
         "NEXT_PUBLIC_API_URL": "/api",
       },
