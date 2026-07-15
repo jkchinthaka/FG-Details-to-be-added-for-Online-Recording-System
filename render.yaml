@@ -1,6 +1,8 @@
 # Render Blueprint — Nelna FG Digital Recording System (API)
 # Secrets are configured in the Render Dashboard — never commit real values here.
 # Root directory must remain the monorepo root (workspace packages required).
+# Node is pinned via .node-version / NODE_VERSION (do not run corepack enable —
+# Render's native runtime filesystem is read-only and unlink of /usr/bin/pnpm fails).
 
 services:
   - type: web
@@ -9,26 +11,30 @@ services:
     plan: starter
     region: singapore
     # Monorepo: do NOT set rootDir to apps/api
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
     startCommand: pnpm --filter @nelna/api start:prod
     healthCheckPath: /health/ready
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 22.16.0
       - key: NELNA_DEPLOY_TIER
         value: production
-      - key: API_CORS_ORIGIN
-        value: https://fg.nelna.lk
+      - key: NELNA_COOKIE_MODE
+        value: same_origin
       - key: COOKIE_SECURE
         value: "true"
-      - key: COOKIE_DOMAIN
-        value: .nelna.lk
       - key: ACCESS_TOKEN_TTL
         value: 15m
       - key: REFRESH_TOKEN_TTL
         value: 7d
       - key: APP_VERSION
         value: 1.0.0
+      - key: FRONTEND_PUBLIC_URL
+        sync: false
+      - key: API_CORS_ORIGIN
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: JWT_ACCESS_SECRET
@@ -45,12 +51,14 @@ services:
     runtime: node
     plan: starter
     region: singapore
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
     startCommand: pnpm --filter @nelna/api start:prod
     healthCheckPath: /health/ready
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 22.16.0
       - key: NELNA_DEPLOY_TIER
         value: uat
       - key: COOKIE_SECURE
