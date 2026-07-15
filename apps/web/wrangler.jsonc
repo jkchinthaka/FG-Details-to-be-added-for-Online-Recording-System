@@ -1,6 +1,6 @@
 /**
  * Cloudflare Workers configuration for the Nelna FG web app (OpenNext).
- * Worker name is used for UAT/production variants via Wrangler --env.
+ * Connected Cloudflare Worker project name: fgdetails.
  * Do not put secrets here — use Cloudflare dashboard / .dev.vars (gitignored).
  *
  * Browser clients call relative `/api` (same-origin proxy). Set Worker secrets:
@@ -9,7 +9,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "nelna-fg-web",
+  "name": "fgdetails",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-14",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -20,7 +20,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "nelna-fg-web",
+      "service": "fgdetails",
     },
   ],
   "observability": {
@@ -38,14 +38,14 @@
   ],
   "env": {
     "uat": {
-      "name": "nelna-fg-web-uat",
+      "name": "fgdetails-uat",
       "vars": {
         "NEXT_PUBLIC_API_URL": "/api",
       },
       "services": [
         {
           "binding": "WORKER_SELF_REFERENCE",
-          "service": "nelna-fg-web-uat",
+          "service": "fgdetails-uat",
         },
       ],
     },
