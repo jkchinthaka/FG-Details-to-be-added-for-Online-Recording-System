@@ -11,7 +11,7 @@ services:
     plan: starter
     region: singapore
     # Monorepo: do NOT set rootDir to apps/api
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
     startCommand: pnpm --filter @nelna/api start:prod
     healthCheckPath: /health/ready
     envVars:
@@ -51,7 +51,7 @@ services:
     runtime: node
     plan: starter
     region: singapore
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
     startCommand: pnpm --filter @nelna/api start:prod
     healthCheckPath: /health/ready
     envVars:
