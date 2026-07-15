@@ -25,6 +25,22 @@ describe("decideMiddlewareAction (cookie presence)", () => {
     expect(decideMiddlewareAction("/login", cookieSet([]))).toEqual({ action: "allow" });
   });
 
+  it("never redirects unauthenticated API POSTs to a page route", () => {
+    expect(decideMiddlewareAction("/api/auth/login", cookieSet([]))).toEqual({
+      action: "allow",
+    });
+    expect(decideMiddlewareAction("/api/auth/me", cookieSet([]))).toEqual({
+      action: "allow",
+    });
+  });
+
+  it("redirects protected pages without cookies to /login", () => {
+    expect(decideMiddlewareAction("/dashboard", cookieSet([]))).toEqual({
+      action: "redirect",
+      url: "/login?next=%2Fdashboard",
+    });
+  });
+
   it("allows a protected route when the access token cookie is present", () => {
     expect(decideMiddlewareAction("/records", cookieSet(["nelna_access_token"]))).toEqual(
       {

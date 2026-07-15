@@ -1,6 +1,6 @@
 import type { CurrentUser, PermissionKey, UserRole } from "@nelna/shared";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
-import { canAccessRoute, isPublicAppPath } from "./route-access";
+import { canAccessRoute, isApiProxyPath, isPublicAppPath } from "./route-access";
 import { buildLoginRedirectUrl } from "./session";
 
 export type MiddlewareDecision =
@@ -22,7 +22,7 @@ export function decideMiddlewareAction(
   pathname: string,
   hasCookie: (name: string) => boolean,
 ): { action: "allow" } | { action: "redirect"; url: string } {
-  if (isPublicAppPath(pathname)) {
+  if (isApiProxyPath(pathname) || isPublicAppPath(pathname)) {
     return { action: "allow" };
   }
 
@@ -44,7 +44,7 @@ export function decideVerifiedMiddlewareAction(
   pathname: string,
   session: VerifiedSession,
 ): MiddlewareDecision {
-  if (isPublicAppPath(pathname)) {
+  if (isApiProxyPath(pathname) || isPublicAppPath(pathname)) {
     return { action: "allow" };
   }
 

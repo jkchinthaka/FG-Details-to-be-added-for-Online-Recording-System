@@ -71,6 +71,28 @@ export const ROUTE_ACCESS_RULES: RouteAccessRule[] = [
 
 const PUBLIC_PATH_PREFIXES = ["/login", "/unauthorized", "/account-inactive", "/offline"];
 
+/** Same-origin NestJS proxy paths — page middleware must never rewrite these. */
+export function isApiProxyPath(pathname: string): boolean {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
+/**
+ * Mirrors `middleware.ts` `config.matcher` exclusion for `/api` and static assets.
+ * Used in unit tests so matcher regressions are caught without spinning up Next.
+ */
+export const PAGE_MIDDLEWARE_MATCHER =
+  "/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js).*)";
+
+export function pathMatchesPageMiddleware(pathname: string): boolean {
+  if (!pathname.startsWith("/")) return false;
+  const rest = pathname.slice(1);
+  // Empty path after "/" is "/", which should match (home).
+  if (rest === "") return true;
+  return !/^(?:api|_next\/static|_next\/image|favicon\.ico|icons|manifest\.webmanifest|sw\.js)(?:\/|$)/.test(
+    rest,
+  );
+}
+
 export function isPublicAppPath(pathname: string): boolean {
   return PUBLIC_PATH_PREFIXES.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),

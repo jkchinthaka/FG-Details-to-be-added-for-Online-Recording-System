@@ -1,12 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decideVerifiedMiddlewareAction } from "@/lib/auth/middleware-logic";
-import { isPublicAppPath } from "@/lib/auth/route-access";
+import { isApiProxyPath, isPublicAppPath } from "@/lib/auth/route-access";
 import { verifySessionFromCookieHeader } from "@/lib/auth/verify-session";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
 import { buildLoginRedirectUrl } from "@/lib/auth/session";
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // Same-origin /api proxy must reach NestJS without page auth redirects.
+  // Unauthenticated POST /api/auth/login must not become GET/POST /login?next=...
+  if (isApiProxyPath(pathname)) {
+    return NextResponse.next();
+  }
 
   if (isPublicAppPath(pathname)) {
     return NextResponse.next();
@@ -48,6 +54,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js).*)",
   ],
 };
