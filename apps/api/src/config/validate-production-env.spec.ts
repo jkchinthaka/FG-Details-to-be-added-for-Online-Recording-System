@@ -146,6 +146,56 @@ describe("validate-production-env (Cloudflare + Render + Atlas)", () => {
     expect(blocked.some((i) => i.variable === "DATABASE_URL")).toBe(true);
   });
 
+  it("accepts APP_BUILD_ID as the production build identifier", () => {
+    expect(
+      collectProductionEnvIssues({
+        ...completeProduction,
+        APP_BUILD_ID: "explicit-build-id",
+        RENDER: undefined,
+        RENDER_GIT_COMMIT: undefined,
+      }),
+    ).toEqual([]);
+  });
+
+  it("accepts RENDER_GIT_COMMIT when RENDER=true and APP_BUILD_ID is absent", () => {
+    expect(
+      collectProductionEnvIssues({
+        ...completeProduction,
+        APP_BUILD_ID: undefined,
+        RENDER: "true",
+        RENDER_GIT_COMMIT: "abc1234deadbeef",
+      }),
+    ).toEqual([]);
+  });
+
+  it("does not accept RENDER_GIT_COMMIT outside Render", () => {
+    const issues = collectProductionEnvIssues({
+      ...completeProduction,
+      APP_BUILD_ID: undefined,
+      RENDER: undefined,
+      RENDER_GIT_COMMIT: "abc1234deadbeef",
+    });
+    expect(issues.some((i) => i.variable === "APP_BUILD_ID")).toBe(true);
+  });
+
+  it("rejects production when both APP_BUILD_ID and Render commit are missing", () => {
+    const issues = collectProductionEnvIssues({
+      ...completeProduction,
+      APP_BUILD_ID: undefined,
+      RENDER: "true",
+      RENDER_GIT_COMMIT: undefined,
+    });
+    expect(issues.some((i) => i.variable === "APP_BUILD_ID")).toBe(true);
+
+    const outsideRender = collectProductionEnvIssues({
+      ...completeProduction,
+      APP_BUILD_ID: "",
+      RENDER: "false",
+      RENDER_GIT_COMMIT: "",
+    });
+    expect(outsideRender.some((i) => i.variable === "APP_BUILD_ID")).toBe(true);
+  });
+
   it("assertProductionEnv throws with readable detail", () => {
     expect(() => assertProductionEnv({ NODE_ENV: "production" })).toThrow(
       /Refusing to start Nelna FG API/,

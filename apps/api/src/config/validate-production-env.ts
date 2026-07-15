@@ -85,7 +85,19 @@ export function collectProductionEnvIssues(
   requireNonEmpty("ACCESS_TOKEN_TTL", "Access token TTL is required");
   requireNonEmpty("REFRESH_TOKEN_TTL", "Refresh token TTL is required");
   requireNonEmpty("APP_VERSION", "Release version label is required");
-  requireNonEmpty("APP_BUILD_ID", "Build identifier is required");
+
+  // Render injects RENDER=true and RENDER_GIT_COMMIT; accept that when APP_BUILD_ID is unset.
+  // Outside Render, APP_BUILD_ID remains mandatory (do not weaken non-Render production).
+  const buildId =
+    (env.APP_BUILD_ID ?? "").trim() ||
+    (env.RENDER === "true" ? (env.RENDER_GIT_COMMIT ?? "").trim() : "");
+  if (!buildId) {
+    issues.push({
+      variable: "APP_BUILD_ID",
+      message:
+        'Build identifier is required (set APP_BUILD_ID, or on Render rely on RENDER_GIT_COMMIT when RENDER="true")',
+    });
+  }
 
   if ((env.COOKIE_SECURE ?? "").toLowerCase() !== "true") {
     issues.push({
