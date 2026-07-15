@@ -17,6 +17,7 @@
     "prisma:seed:production": "prisma db seed",
     "prisma:seed:demo": "node ./prisma/run-demo-seed.cjs",
     "prisma:studio": "prisma studio",
+    "bootstrap:admin": "ts-node --transpile-only scripts/bootstrap-admin.ts",
     "prisma:migrate:legacy": "prisma migrate dev",
     "prisma:migrate:deploy:legacy": "prisma migrate deploy"
   },
