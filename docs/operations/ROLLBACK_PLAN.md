@@ -34,7 +34,15 @@ Restore from backup when:
 - Data loss / corruption confirmed, **or**  
 - Application rollback alone cannot serve traffic  
 
-Steps: follow `docs/database/BACKUP_RESTORE_RUNBOOK.md`, restore into verified target, reconcile counts (`DATA_RECONCILIATION.md`), then point apps at restored DB.
+Steps:
+
+1. Follow [`docs/database/MONGODB_BACKUP_RESTORE_RUNBOOK.md`](../database/MONGODB_BACKUP_RESTORE_RUNBOOK.md)  
+2. Restore **only** into an isolated target per [`ISOLATED_RESTORE_RUNBOOK.md`](../database/ISOLATED_RESTORE_RUNBOOK.md) — never onto `fg_online` without dual authorization  
+3. Reconcile with `scripts/disaster-recovery/reconcile-all.js` and [`RECONCILIATION_REPORT_TEMPLATE.md`](../database/RECONCILIATION_REPORT_TEMPLATE.md)  
+4. Cut over production only after IT Manager approval  
+
+Ownership / escalation: [`DISASTER_RECOVERY_PLAN.md`](./DISASTER_RECOVERY_PLAN.md).  
+Rollback responsibility: DBA executes isolated restore; IT Manager authorizes production cutover; developers must not overwrite production from laptops.
 
 ## 5. Communication
 
