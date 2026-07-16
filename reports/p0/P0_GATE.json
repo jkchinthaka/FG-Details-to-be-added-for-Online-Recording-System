@@ -1,7 +1,7 @@
 {
   "technicalDecision": "P0_TECHNICAL_CONDITIONAL_PASS",
   "startingSha": "49fc5f4d682681a8f29727d4912ccf26f2d55f18",
-  "endingSha": "PENDING_COMMITS",
+  "endingSha": "77ec8b2082f63ba102af4e0ed854060e7621fb74",
   "branch": "cursor/p0-integrity-hardening-20260716-2229",
   "backupBranch": "backup/p0-integrity-hardening-20260716-2229",
   "concurrency": "UNIT_HELPERS_PASS; INTEGRATION_REQUIRES_CI_MONGODB",

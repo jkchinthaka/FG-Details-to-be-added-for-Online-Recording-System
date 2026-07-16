@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Starting SHA | `49fc5f4d682681a8f29727d4912ccf26f2d55f18` |
-| Ending SHA | *(set after commits)* |
+| Ending SHA | `77ec8b2082f63ba102af4e0ed854060e7621fb74` |
 | Branch | `cursor/p0-integrity-hardening-20260716-2229` |
 | Backup | `backup/p0-integrity-hardening-20260716-2229` |
 | Technical decision | `P0_TECHNICAL_CONDITIONAL_PASS` |
