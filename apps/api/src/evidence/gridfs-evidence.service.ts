@@ -184,6 +184,12 @@ export class GridFsEvidenceService implements OnModuleDestroy {
     return this.bucket.openDownloadStream(new ObjectId(gridFsFileId));
   }
 
+  async delete(gridFsFileId: string): Promise<void> {
+    await this.ensureConnected();
+    if (!this.bucket || !ObjectId.isValid(gridFsFileId)) return;
+    await this.bucket.delete(new ObjectId(gridFsFileId));
+  }
+
   async findFileMetadata(gridFsFileId: string) {
     await this.ensureConnected();
     if (!this.db || !ObjectId.isValid(gridFsFileId)) {
