@@ -28,6 +28,9 @@ import {
   saveDraftResponsesSchema,
   submitInspectionRecordSchema,
   validateChecklistResponses,
+  buildDraftDeduplicationKey,
+  shouldRetainDraftDeduplicationKey,
+  workflowCycleFromVersion,
   type ChecklistItemDefinition,
   type ChecklistItemResponse,
   type ChecklistResponseMap,
@@ -71,11 +74,13 @@ import {
   RecordLockedException,
   RecordNotFoundException,
   RecordValidationException,
+  StaleStateException,
   VehicleNotFoundException,
   WorkflowCommentRequiredException,
   WorkflowPermissionForbiddenException,
   WorkflowSegregationOfDutyException,
 } from "./inspection-records.errors";
+import { assertSingleClaim } from "../common/assert-single-claim";
 import type { WorkflowCommentDto } from "./dto/workflow-comment.dto";
 import {
   RECORD_HEADER_INCLUDE,
@@ -148,12 +153,24 @@ export class InspectionRecordsService {
 
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
 
+    const deduplicationKey = buildDraftDeduplicationKey({
+      documentCode: DOCUMENT_CODES.DAILY_CLEANING,
+      recordDateIso: recordDateAtMidnight.toISOString(),
+      shiftCode,
+      areaLabel,
+    });
+
     const existing = await this.prisma.inspectionRecord.findFirst({
       where: {
-        documentCode: DOCUMENT_CODES.DAILY_CLEANING,
-        recordDate: recordDateAtMidnight,
-        shiftId: shift?.id ?? null,
-        areaLabel,
+        OR: [
+          { deduplicationKey },
+          {
+            documentCode: DOCUMENT_CODES.DAILY_CLEANING,
+            recordDate: recordDateAtMidnight,
+            shiftId: shift?.id ?? null,
+            areaLabel,
+          },
+        ],
       },
       orderBy: { createdAt: "desc" },
     });
@@ -181,18 +198,46 @@ export class InspectionRecordsService {
       const templateVersion = await this.findPublishedTemplateVersion(
         DOCUMENT_CODES.DAILY_CLEANING,
       );
-      record = await this.prisma.inspectionRecord.create({
-        data: {
-          templateVersionId: templateVersion.id,
-          documentCode: DOCUMENT_CODES.DAILY_CLEANING,
-          status: RecordStatus.DRAFT,
-          recordDate: recordDateAtMidnight,
-          shiftId: shift?.id,
-          areaLabel,
-          createdById: user.id,
-        },
-        include: RECORD_HEADER_INCLUDE,
-      });
+      try {
+        record = await this.prisma.inspectionRecord.create({
+          data: {
+            templateVersionId: templateVersion.id,
+            documentCode: DOCUMENT_CODES.DAILY_CLEANING,
+            status: RecordStatus.DRAFT,
+            recordDate: recordDateAtMidnight,
+            shiftId: shift?.id,
+            areaLabel,
+            createdById: user.id,
+            deduplicationKey,
+            workflowVersion: 0,
+          },
+          include: RECORD_HEADER_INCLUDE,
+        });
+      } catch (error) {
+        const raced = await this.prisma.inspectionRecord.findFirst({
+          where: { deduplicationKey },
+          include: RECORD_HEADER_INCLUDE,
+        });
+        if (raced) {
+          const again = resolveDraftDuplicate(
+            {
+              id: raced.id,
+              status: raced.status as SharedRecordStatus,
+              createdById: raced.createdById,
+            },
+            user.id,
+          );
+          if (again.outcome === "resume") {
+            record = raced;
+          } else if (again.outcome === "conflict") {
+            throw new DuplicateRecordException(again.reason);
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
     if (parsed.data.taskAssignmentId) {
@@ -224,12 +269,25 @@ export class InspectionRecordsService {
 
     const resolvedVehicle = await this.resolveVehicleForTruckDraft(user, parsed.data);
 
+    const deduplicationKey = buildDraftDeduplicationKey({
+      documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+      recordDateIso: recordDateAtMidnight.toISOString(),
+      shiftCode,
+      areaLabel,
+      vehicleNumber: resolvedVehicle.vehicleNumber,
+    });
+
     const existing = await this.prisma.inspectionRecord.findFirst({
       where: {
-        documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
-        recordDate: recordDateAtMidnight,
-        shiftId: shift?.id ?? null,
-        truckDetail: { vehicleNumber: resolvedVehicle.vehicleNumber },
+        OR: [
+          { deduplicationKey },
+          {
+            documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+            recordDate: recordDateAtMidnight,
+            shiftId: shift?.id ?? null,
+            truckDetail: { vehicleNumber: resolvedVehicle.vehicleNumber },
+          },
+        ],
       },
       orderBy: { createdAt: "desc" },
     });
@@ -261,31 +319,60 @@ export class InspectionRecordsService {
         parsed.data.reinspectionOfRecordId,
       );
 
-      record = await this.prisma.inspectionRecord.create({
-        data: {
-          templateVersionId: templateVersion.id,
-          documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
-          status: RecordStatus.DRAFT,
-          recordDate: recordDateAtMidnight,
-          shiftId: shift?.id,
-          areaLabel,
-          createdById: user.id,
-          reinspectionOfId,
-          truckDetail: {
-            create: {
-              vehicleId: resolvedVehicle.vehicleId,
-              driverId: parsed.data.driverId,
-              transporterId: parsed.data.transporterId ?? resolvedVehicle.transporterId,
-              freezerTruckNumber: resolvedVehicle.freezerTruckNumber,
-              vehicleNumber: resolvedVehicle.vehicleNumber,
-              inspectionTime: colomboTimeHm(),
-              loadingReference: parsed.data.loadingReference,
-              productCategory: parsed.data.productCategory,
+      try {
+        record = await this.prisma.inspectionRecord.create({
+          data: {
+            templateVersionId: templateVersion.id,
+            documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+            status: RecordStatus.DRAFT,
+            recordDate: recordDateAtMidnight,
+            shiftId: shift?.id,
+            areaLabel,
+            createdById: user.id,
+            reinspectionOfId,
+            deduplicationKey,
+            workflowVersion: 0,
+            truckDetail: {
+              create: {
+                vehicleId: resolvedVehicle.vehicleId,
+                driverId: parsed.data.driverId,
+                transporterId: parsed.data.transporterId ?? resolvedVehicle.transporterId,
+                freezerTruckNumber: resolvedVehicle.freezerTruckNumber,
+                vehicleNumber: resolvedVehicle.vehicleNumber,
+                inspectionTime: colomboTimeHm(),
+                loadingReference: parsed.data.loadingReference,
+                productCategory: parsed.data.productCategory,
+                workflowVersion: 0,
+              },
             },
           },
-        },
-        include: RECORD_HEADER_INCLUDE,
-      });
+          include: RECORD_HEADER_INCLUDE,
+        });
+      } catch (error) {
+        const raced = await this.prisma.inspectionRecord.findFirst({
+          where: { deduplicationKey },
+          include: RECORD_HEADER_INCLUDE,
+        });
+        if (raced) {
+          const again = resolveDraftDuplicate(
+            {
+              id: raced.id,
+              status: raced.status as SharedRecordStatus,
+              createdById: raced.createdById,
+            },
+            user.id,
+          );
+          if (again.outcome === "resume") {
+            record = raced;
+          } else if (again.outcome === "conflict") {
+            throw new DuplicateRecordException(again.reason);
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
     if (parsed.data.taskAssignmentId) {
@@ -398,6 +485,7 @@ export class InspectionRecordsService {
         const claimed = await tx.inspectionRecord.updateMany({
           where: {
             id: record.id,
+            workflowVersion: record.workflowVersion ?? 0,
             status: {
               in: [
                 RecordStatus.DRAFT,
@@ -406,10 +494,17 @@ export class InspectionRecordsService {
               ],
             },
           },
-          data: { status: RecordStatus.PENDING_CHECK, submittedAt },
+          data: {
+            status: RecordStatus.PENDING_CHECK,
+            submittedAt,
+            workflowVersion: { increment: 1 },
+            deduplicationKey: null,
+          },
         });
         if (claimed.count !== 1) {
-          throw new RecordLockedException();
+          throw new StaleStateException(
+            "This record was already submitted or changed. Refresh and try again.",
+          );
         }
 
         const correctiveActionsCreated = await this.createCorrectiveActionsForFailures(
@@ -487,7 +582,7 @@ export class InspectionRecordsService {
       id,
       "CHECK",
       dto?.comment,
-      async (tx, record, toStatus) => {
+      async (tx, record, toStatus, workflowCycle) => {
         const sod = assertCheckSegregationOfDuty(
           DEFAULT_WORKFLOW_POLICY,
           user.id,
@@ -495,24 +590,12 @@ export class InspectionRecordsService {
         );
         if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
 
-        const prior = await tx.approvalRecord.findFirst({
-          where: { recordId: record.id, approvalType: "CHECK", decision: "APPROVED" },
-        });
-        if (prior) throw new DuplicateWorkflowApprovalException("CHECK");
-
-        const decidedAt = new Date();
-        await tx.inspectionRecord.update({
-          where: { id: record.id },
-          data: {
-            status: toStatus as RecordStatus,
-            checkedById: user.id,
-            checkedAt: decidedAt,
-          },
-        });
+        const decidedAt = record.checkedAt ?? new Date();
         await tx.approvalRecord.create({
           data: {
             recordId: record.id,
             approvalType: "CHECK",
+            workflowCycle,
             decision: "APPROVED",
             decidedById: user.id,
             decidedAt,
@@ -522,6 +605,7 @@ export class InspectionRecordsService {
         await this.writeWorkflowAudit(tx, user, record.id, "RECORD_CHECKED", {
           toStatus,
           roles: user.roles,
+          workflowCycle,
         });
         await this.notifyUser(
           tx,
@@ -540,6 +624,10 @@ export class InspectionRecordsService {
           record.id,
         );
       },
+      (actor, decidedAt) => ({
+        checkedById: actor.id,
+        checkedAt: decidedAt,
+      }),
     );
   }
 
@@ -554,7 +642,7 @@ export class InspectionRecordsService {
       id,
       "VERIFY",
       dto?.comment,
-      async (tx, record, toStatus) => {
+      async (tx, record, toStatus, workflowCycle) => {
         const sod = assertVerifySegregationOfDuty(
           DEFAULT_WORKFLOW_POLICY,
           user.id,
@@ -563,24 +651,12 @@ export class InspectionRecordsService {
         );
         if (!sod.ok) throw new WorkflowSegregationOfDutyException(sod.reason);
 
-        const prior = await tx.approvalRecord.findFirst({
-          where: { recordId: record.id, approvalType: "VERIFY", decision: "APPROVED" },
-        });
-        if (prior) throw new DuplicateWorkflowApprovalException("VERIFY");
-
-        const decidedAt = new Date();
-        await tx.inspectionRecord.update({
-          where: { id: record.id },
-          data: {
-            status: toStatus as RecordStatus,
-            verifiedById: user.id,
-            verifiedAt: decidedAt,
-          },
-        });
+        const decidedAt = record.verifiedAt ?? new Date();
         await tx.approvalRecord.create({
           data: {
             recordId: record.id,
             approvalType: "VERIFY",
+            workflowCycle,
             decision: "APPROVED",
             decidedById: user.id,
             decidedAt,
@@ -594,6 +670,7 @@ export class InspectionRecordsService {
         await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VERIFIED", {
           toStatus,
           roles: user.roles,
+          workflowCycle,
         });
         await this.notifyUser(
           tx,
@@ -604,6 +681,10 @@ export class InspectionRecordsService {
           record.id,
         );
       },
+      (actor, decidedAt) => ({
+        verifiedById: actor.id,
+        verifiedAt: decidedAt,
+      }),
     );
   }
 
@@ -620,16 +701,13 @@ export class InspectionRecordsService {
       id,
       "RETURN",
       comment,
-      async (tx, record, toStatus) => {
+      async (tx, record, toStatus, workflowCycle) => {
         const decidedAt = new Date();
-        await tx.inspectionRecord.update({
-          where: { id: record.id },
-          data: { status: toStatus as RecordStatus },
-        });
         await tx.approvalRecord.create({
           data: {
             recordId: record.id,
             approvalType: "RETURN",
+            workflowCycle,
             decision: "REJECTED",
             decidedById: user.id,
             decidedAt,
@@ -644,6 +722,7 @@ export class InspectionRecordsService {
           toStatus,
           roles: user.roles,
           comment,
+          workflowCycle,
         });
         await this.notifyUser(
           tx,
@@ -670,16 +749,13 @@ export class InspectionRecordsService {
       id,
       "REJECT",
       comment,
-      async (tx, record, toStatus) => {
+      async (tx, record, toStatus, workflowCycle) => {
         const decidedAt = new Date();
-        await tx.inspectionRecord.update({
-          where: { id: record.id },
-          data: { status: toStatus as RecordStatus },
-        });
         await tx.approvalRecord.create({
           data: {
             recordId: record.id,
             approvalType: "REJECT",
+            workflowCycle,
             decision: "REJECTED",
             decidedById: user.id,
             decidedAt,
@@ -694,6 +770,7 @@ export class InspectionRecordsService {
           toStatus,
           roles: user.roles,
           comment,
+          workflowCycle,
         });
         await this.notifyUser(
           tx,
@@ -715,38 +792,71 @@ export class InspectionRecordsService {
     this.requirePermission(user, "records:void", "void");
     const comment = dto?.comment?.trim();
     if (!comment) throw new WorkflowCommentRequiredException("VOID");
-    return this.applyWorkflow(user, id, "VOID", comment, async (tx, record, toStatus) => {
-      if (
-        !isImmutableVerifiedStatus(record.status as SharedRecordStatus) &&
-        record.status !== "VERIFIED" &&
-        record.status !== "COMPLETED"
-      ) {
-        // applyWorkflow already validates transition; VOID only from VERIFIED/COMPLETED
-      }
-      const decidedAt = new Date();
-      await tx.inspectionRecord.update({
-        where: { id: record.id },
-        data: {
-          status: toStatus as RecordStatus,
-          archivedAt: decidedAt,
-        },
-      });
-      await tx.approvalRecord.create({
-        data: {
-          recordId: record.id,
-          approvalType: "VOID",
-          decision: "REJECTED",
-          decidedById: user.id,
-          decidedAt,
-          comments: comment,
-        },
-      });
-      await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VOIDED", {
-        toStatus,
-        roles: user.roles,
-        comment,
-      });
-    });
+    return this.applyWorkflow(
+      user,
+      id,
+      "VOID",
+      comment,
+      async (tx, record, toStatus, workflowCycle) => {
+        const decidedAt = record.archivedAt ?? new Date();
+        await tx.approvalRecord.create({
+          data: {
+            recordId: record.id,
+            approvalType: "VOID",
+            workflowCycle,
+            decision: "REJECTED",
+            decidedById: user.id,
+            decidedAt,
+            comments: comment,
+          },
+        });
+        await this.writeWorkflowAudit(tx, user, record.id, "RECORD_VOIDED", {
+          toStatus,
+          roles: user.roles,
+          comment,
+          workflowCycle,
+        });
+      },
+      (_actor, decidedAt) => ({ archivedAt: decidedAt }),
+    );
+  }
+
+  /**
+   * VERIFIED → COMPLETED. Permission interim: records:verify.
+   * HUMAN_DECISION_REQUIRED: dedicated records:complete permission (or other
+   * role) is not defined in the permission catalogue yet.
+   */
+  async completeRecord(
+    user: RequestUser,
+    id: string,
+    dto: WorkflowCommentDto,
+  ): Promise<InspectionRecordDetail> {
+    this.requirePermission(user, "records:verify", "complete");
+    return this.applyWorkflow(
+      user,
+      id,
+      "COMPLETE",
+      dto?.comment,
+      async (tx, record, toStatus, workflowCycle) => {
+        const decidedAt = new Date();
+        await tx.approvalRecord.create({
+          data: {
+            recordId: record.id,
+            approvalType: "COMPLETE",
+            workflowCycle,
+            decision: "APPROVED",
+            decidedById: user.id,
+            decidedAt,
+            comments: dto?.comment?.trim() || null,
+          },
+        });
+        await this.writeWorkflowAudit(tx, user, record.id, "RECORD_COMPLETED", {
+          toStatus,
+          roles: user.roles,
+          workflowCycle,
+        });
+      },
+    );
   }
 
   async listApprovalHistory(user: RequestUser, id: string) {
@@ -802,7 +912,9 @@ export class InspectionRecordsService {
       tx: PrismaService,
       record: RecordWithHeaderRelations,
       toStatus: SharedRecordStatus,
+      workflowCycle: number,
     ) => Promise<void>,
+    claimExtra?: (user: RequestUser, decidedAt: Date) => Record<string, unknown>,
   ): Promise<InspectionRecordDetail> {
     if (commentRequiredForAction(action) && !comment?.trim()) {
       throw new WorkflowCommentRequiredException(action);
@@ -817,8 +929,35 @@ export class InspectionRecordsService {
     if (!toStatus) {
       throw new InvalidWorkflowTransitionException(from, action);
     }
+
+    const expectedVersion = record.workflowVersion ?? 0;
+    const decidedAt = new Date();
+    const extra = claimExtra?.(user, decidedAt) ?? {};
+
     await this.prisma.$transaction(async (tx) => {
-      await mutate(tx as unknown as PrismaService, record, toStatus);
+      const claimed = await tx.inspectionRecord.updateMany({
+        where: {
+          id: record.id,
+          status: from as RecordStatus,
+          workflowVersion: expectedVersion,
+        },
+        data: {
+          status: toStatus as RecordStatus,
+          workflowVersion: { increment: 1 },
+          ...(shouldRetainDraftDeduplicationKey(toStatus)
+            ? {}
+            : { deduplicationKey: null }),
+          ...extra,
+        },
+      });
+      assertSingleClaim(claimed);
+
+      const fresh = await tx.inspectionRecord.findUniqueOrThrow({
+        where: { id: record.id },
+        include: RECORD_HEADER_INCLUDE,
+      });
+      const workflowCycle = workflowCycleFromVersion(fresh.workflowVersion);
+      await mutate(tx as unknown as PrismaService, fresh, toStatus, workflowCycle);
     });
     return this.getById(user, id);
   }
@@ -938,41 +1077,53 @@ export class InspectionRecordsService {
 
     const previousDecision = record.truckDetail.loadingDecision as LoadingDecision;
     const decidedAt = new Date();
+    const expectedVersion = record.truckDetail.workflowVersion ?? 0;
+    const workflowCycle = workflowCycleFromVersion(expectedVersion + 1);
 
-    await this.prisma.truckInspectionDetail.update({
-      where: { recordId: record.id },
-      data: {
-        loadingDecision: parsed.data.decision as LoadingDecisionStatus,
-        decidedById: user.id,
-        decidedAt,
-        remarks: parsed.data.remarks ?? record.truckDetail.remarks,
-      },
-    });
-
-    await this.prisma.approvalRecord.create({
-      data: {
-        recordId: record.id,
-        approvalType: "LOADING_DECISION",
-        decision: isApprovedOutcome ? "APPROVED" : "REJECTED",
-        decidedById: user.id,
-        decidedAt,
-        comments: parsed.data.remarks,
-      },
-    });
-
-    await this.prisma.auditLog.create({
-      data: {
-        actorId: user.id,
-        action: "LOADING_DECISION_CHANGED",
-        entityType: "TruckInspectionDetail",
-        entityId: record.truckDetail.id,
-        metadata: {
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.truckInspectionDetail.updateMany({
+        where: {
           recordId: record.id,
-          from: previousDecision,
-          to: parsed.data.decision,
-          remarks: parsed.data.remarks ?? null,
+          workflowVersion: expectedVersion,
+          loadingDecision: previousDecision as LoadingDecisionStatus,
         },
-      },
+        data: {
+          loadingDecision: parsed.data.decision as LoadingDecisionStatus,
+          decidedById: user.id,
+          decidedAt,
+          remarks: parsed.data.remarks ?? record.truckDetail!.remarks,
+          workflowVersion: { increment: 1 },
+        },
+      });
+      assertSingleClaim(claimed);
+
+      await tx.approvalRecord.create({
+        data: {
+          recordId: record.id,
+          approvalType: "LOADING_DECISION",
+          workflowCycle,
+          decision: isApprovedOutcome ? "APPROVED" : "REJECTED",
+          decidedById: user.id,
+          decidedAt,
+          comments: parsed.data.remarks,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: user.id,
+          action: "LOADING_DECISION_CHANGED",
+          entityType: "TruckInspectionDetail",
+          entityId: record.truckDetail!.id,
+          metadata: {
+            recordId: record.id,
+            from: previousDecision,
+            to: parsed.data.decision,
+            remarks: parsed.data.remarks ?? null,
+            workflowCycle,
+          },
+        },
+      });
     });
 
     return this.getById(user, id);

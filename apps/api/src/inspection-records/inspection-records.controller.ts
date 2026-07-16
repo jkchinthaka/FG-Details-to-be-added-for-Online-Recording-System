@@ -197,6 +197,21 @@ export class InspectionRecordsController {
     return this.service.rejectRecord(user, id, dto);
   }
 
+  @Post(":id/complete")
+  @RequirePermissions("records:verify")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      "Complete a verified record (VERIFIED → COMPLETED). Permission interim: records:verify — HUMAN_DECISION_REQUIRED for dedicated complete permission.",
+  })
+  complete(
+    @Param("id") id: string,
+    @Body() dto: WorkflowCommentDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InspectionRecordDetail> {
+    return this.service.completeRecord(user, id, dto);
+  }
+
   @Post(":id/void")
   @RequirePermissions("records:void")
   @HttpCode(HttpStatus.OK)

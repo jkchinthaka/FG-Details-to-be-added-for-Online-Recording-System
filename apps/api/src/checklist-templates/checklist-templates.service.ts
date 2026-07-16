@@ -17,6 +17,7 @@ import type { AddItemDto } from "./dto/add-item.dto";
 import type { AddSectionDto } from "./dto/add-section.dto";
 import type { CreateTemplateDto } from "./dto/create-template.dto";
 import type { UpdateItemDto } from "./dto/update-item.dto";
+import { assertSingleClaim } from "../common/assert-single-claim";
 import {
   EmptyTemplateException,
   InvalidItemRulesException,
@@ -428,21 +429,36 @@ export class ChecklistTemplatesService {
       throw new EmptyTemplateException();
     }
 
-    await this.prisma.$transaction([
-      this.prisma.checklistTemplateVersion.update({
-        where: { id: version.id },
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.checklistTemplateVersion.updateMany({
+        where: {
+          id: version.id,
+          status: TemplateStatus.DRAFT,
+          workflowVersion: version.workflowVersion ?? 0,
+        },
         data: {
           status: TemplateStatus.PUBLISHED,
           publishedAt: new Date(),
           publishedById: userId,
           notes,
+          workflowVersion: { increment: 1 },
         },
-      }),
-      this.prisma.checklistTemplate.update({
+      });
+      assertSingleClaim(claimed);
+      await tx.checklistTemplate.update({
         where: { id: version.templateId },
         data: { currentVersionId: version.id },
-      }),
-    ]);
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: userId,
+          action: "TEMPLATE_PUBLISHED",
+          entityType: "ChecklistTemplateVersion",
+          entityId: version.id,
+          metadata: { code, versionNumber },
+        },
+      });
+    });
 
     return this.getVersionByNumber(code, versionNumber, CAN_VIEW_DRAFTS);
   }
@@ -450,6 +466,7 @@ export class ChecklistTemplatesService {
   async archiveVersion(
     code: string,
     versionNumber: number,
+    userId: string,
   ): Promise<ChecklistTemplateVersionDefinition> {
     const version = await this.findVersionOrThrow(code, versionNumber);
     if (version.status === TemplateStatus.ARCHIVED) {
@@ -460,20 +477,35 @@ export class ChecklistTemplatesService {
       where: { id: version.templateId },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.checklistTemplateVersion.update({
-        where: { id: version.id },
-        data: { status: TemplateStatus.ARCHIVED },
-      }),
-      ...(template.currentVersionId === version.id
-        ? [
-            this.prisma.checklistTemplate.update({
-              where: { id: template.id },
-              data: { currentVersionId: null },
-            }),
-          ]
-        : []),
-    ]);
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.checklistTemplateVersion.updateMany({
+        where: {
+          id: version.id,
+          status: version.status,
+          workflowVersion: version.workflowVersion ?? 0,
+        },
+        data: {
+          status: TemplateStatus.ARCHIVED,
+          workflowVersion: { increment: 1 },
+        },
+      });
+      assertSingleClaim(claimed);
+      if (template.currentVersionId === version.id) {
+        await tx.checklistTemplate.update({
+          where: { id: template.id },
+          data: { currentVersionId: null },
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          actorId: userId,
+          action: "TEMPLATE_ARCHIVED",
+          entityType: "ChecklistTemplateVersion",
+          entityId: version.id,
+          metadata: { code, versionNumber },
+        },
+      });
+    });
 
     return this.getVersionByNumber(code, versionNumber, CAN_VIEW_DRAFTS);
   }
