@@ -3,6 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { HealthController } from "./health.controller";
 import { HealthService } from "./health.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { MetricsService } from "../metrics/metrics.service";
 
 describe("HealthController", () => {
   let controller: HealthController;
@@ -12,6 +13,7 @@ describe("HealthController", () => {
       controllers: [HealthController],
       providers: [
         HealthService,
+        MetricsService,
         {
           provide: PrismaService,
           useValue: {

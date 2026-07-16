@@ -8,6 +8,7 @@ import {
   type ReleaseManifest,
 } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import type { MetricsService } from "../metrics/metrics.service";
 
 export type DbCheckStatus = "up" | "down" | "not_configured";
 export type StorageCheckStatus = "up" | "down" | "not_configured";
@@ -16,6 +17,11 @@ export type HealthChecks = {
   api: "up";
   db: DbCheckStatus;
   storage: StorageCheckStatus;
+};
+
+export type DependencyLatency = {
+  dbPingMs: number | null;
+  storageCheckMs: number | null;
 };
 
 export type HealthResponse = {
@@ -117,6 +123,46 @@ export class HealthService {
       });
     }
     return built.manifest;
+  }
+
+  /** FG-MON-001 — metrics + timed dependency probes (no hostnames/secrets). */
+  async getMetricsSnapshot(metrics: MetricsService): Promise<Record<string, unknown>> {
+    const release = this.tryReleaseManifest();
+    const dependencyLatency = await this.measureDependencyLatency();
+    const base = metrics.snapshot({
+      buildId: release?.shortSha ?? "unknown",
+      commitSha: release?.commitSha ?? "unknown",
+      service: SERVICE_NAME,
+    });
+    return {
+      ...base,
+      dependencyLatency,
+      alerts: {
+        documentation: "docs/operations/MONITORING_ALERTS.md",
+        runbooks: [
+          "docs/operations/MONITORING_ALERTS.md",
+          "docs/database/BACKUP_RESTORE_RUNBOOK.md",
+        ],
+      },
+    };
+  }
+
+  private async measureDependencyLatency(): Promise<DependencyLatency> {
+    let dbPingMs: number | null = null;
+    let storageCheckMs: number | null = null;
+    if (process.env.DATABASE_URL) {
+      const started = Date.now();
+      try {
+        await this.prisma.$runCommandRaw({ ping: 1 });
+        dbPingMs = Date.now() - started;
+      } catch {
+        dbPingMs = Date.now() - started;
+      }
+    }
+    const storageStarted = Date.now();
+    await this.checkStorage();
+    storageCheckMs = Date.now() - storageStarted;
+    return { dbPingMs, storageCheckMs };
   }
 
   private tryReleaseManifest(): ReleaseManifest | null {

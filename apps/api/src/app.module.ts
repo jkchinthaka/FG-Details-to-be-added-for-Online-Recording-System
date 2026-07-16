@@ -14,10 +14,12 @@ import { VehiclesModule } from "./vehicles/vehicles.module";
 import { ReportsModule } from "./reports/reports.module";
 import { CorrectiveActionsModule } from "./corrective-actions/corrective-actions.module";
 import { SecurityModule } from "./common/security.module";
+import { MetricsModule } from "./metrics/metrics.module";
 
 @Module({
   imports: [
     PrismaModule,
+    MetricsModule,
     AuditModule,
     SecurityModule,
     AuthModule,
