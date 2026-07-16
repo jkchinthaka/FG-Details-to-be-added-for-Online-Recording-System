@@ -234,6 +234,7 @@ model User {
   notifications              Notification[]
   auditLogs                  AuditLog[]
   taskAssignments            TaskAssignment[]
+  reportExportJobs           ReportExportJob[]
 
   @@index([status])
   @@map("users")
@@ -989,4 +990,36 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// FG-PERF-001 — background / large report CSV export jobs (append-only lifecycle).
+model ReportExportJob {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// Client-supplied idempotency key (unique per requester).
+  idempotencyKey  String
+  requesterId     String    @db.ObjectId
+  requester       User      @relation(fields: [requesterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  kind            String
+  /// Redacted filter snapshot (no secrets).
+  filtersJson     Json
+  status          String
+  progressPercent Int       @default(0)
+  rowCount        Int?
+  errorCode       String?
+  errorMessage    String?
+  /// CSV payload when COMPLETED (bounded; large exports remain capped).
+  resultCsv       String?
+  filename        String?
+  downloadToken   String?   @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
+  expiresAt       DateTime
+  cancelledAt     DateTime?
+
+  @@unique([requesterId, idempotencyKey])
+  @@index([status, expiresAt])
+  @@index([requesterId, createdAt])
+  @@map("report_export_jobs")
 }

@@ -44,43 +44,113 @@ export const REPORT_KIND_LABELS: Record<ReportKind, string> = {
 /** Maximum inclusive date window for a single report request (calendar days). */
 export const REPORT_MAX_DATE_RANGE_DAYS = 93;
 
-export const reportFiltersSchema = z
-  .object({
-    fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    documentCode: z
-      .enum([DOCUMENT_CODES.DAILY_CLEANING, DOCUMENT_CODES.FREEZER_TRUCK])
-      .optional(),
-    sectionId: z.string().min(1).optional(),
-    shiftCode: z.enum(WORK_SHIFTS).optional(),
-    status: z.enum(RECORD_STATUSES).optional(),
-    userId: z.string().min(1).optional(),
-    vehicleId: z.string().min(1).optional(),
-    failureType: z.enum(["FAIL", "UNACCEPTABLE"]).optional(),
-    correctiveActionOwnerId: z.string().min(1).optional(),
-    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-    page: z.coerce.number().int().min(1).default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).default(25),
-  })
-  .superRefine((value, ctx) => {
-    if (value.fromDate > value.toDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "fromDate must be on or before toDate",
-      });
-    }
-    const from = Date.parse(`${value.fromDate}T00:00:00.000Z`);
-    const to = Date.parse(`${value.toDate}T00:00:00.000Z`);
-    const days = Math.floor((to - from) / (24 * 60 * 60 * 1000)) + 1;
-    if (days > REPORT_MAX_DATE_RANGE_DAYS) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Date range must not exceed ${REPORT_MAX_DATE_RANGE_DAYS} days`,
-      });
-    }
-  });
+/** FG-PERF-001 — hard cap for any single materialization (sync or job). */
+export const REPORT_MAX_EXPORT_ROWS = 5_000;
+
+/**
+ * Sync CSV through the Worker proxy must finish well under ~30s.
+ * Larger exports must use the background job + download-token flow.
+ */
+export const REPORT_SYNC_EXPORT_MAX_ROWS = 500;
+
+/** Background export job TTL (hours). */
+export const REPORT_EXPORT_JOB_TTL_HOURS = 24;
+
+export const REPORT_EXPORT_JOB_STATUSES = [
+  "QUEUED",
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+  "EXPIRED",
+] as const;
+export type ReportExportJobStatus = (typeof REPORT_EXPORT_JOB_STATUSES)[number];
+
+export const reportFilterFieldsSchema = z.object({
+  fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  documentCode: z
+    .enum([DOCUMENT_CODES.DAILY_CLEANING, DOCUMENT_CODES.FREEZER_TRUCK])
+    .optional(),
+  sectionId: z.string().min(1).optional(),
+  shiftCode: z.enum(WORK_SHIFTS).optional(),
+  status: z.enum(RECORD_STATUSES).optional(),
+  userId: z.string().min(1).optional(),
+  vehicleId: z.string().min(1).optional(),
+  failureType: z.enum(["FAIL", "UNACCEPTABLE"]).optional(),
+  correctiveActionOwnerId: z.string().min(1).optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export const reportFiltersSchema = reportFilterFieldsSchema.superRefine((value, ctx) => {
+  if (value.fromDate > value.toDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "fromDate must be on or before toDate",
+    });
+  }
+  const from = Date.parse(`${value.fromDate}T00:00:00.000Z`);
+  const to = Date.parse(`${value.toDate}T00:00:00.000Z`);
+  const days = Math.floor((to - from) / (24 * 60 * 60 * 1000)) + 1;
+  if (days > REPORT_MAX_DATE_RANGE_DAYS) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Date range must not exceed ${REPORT_MAX_DATE_RANGE_DAYS} days`,
+    });
+  }
+});
 
 export type ReportFilters = z.infer<typeof reportFiltersSchema>;
+
+export const reportExportJobCreateSchema = z.object({
+  kind: z.enum(REPORT_KINDS),
+  filters: reportFilterFieldsSchema
+    .omit({ page: true, pageSize: true })
+    .superRefine((value, ctx) => {
+      if (value.fromDate > value.toDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "fromDate must be on or before toDate",
+        });
+      }
+      const from = Date.parse(`${value.fromDate}T00:00:00.000Z`);
+      const to = Date.parse(`${value.toDate}T00:00:00.000Z`);
+      const days = Math.floor((to - from) / (24 * 60 * 60 * 1000)) + 1;
+      if (days > REPORT_MAX_DATE_RANGE_DAYS) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Date range must not exceed ${REPORT_MAX_DATE_RANGE_DAYS} days`,
+        });
+      }
+    }),
+  idempotencyKey: z
+    .string()
+    .min(8)
+    .max(128)
+    .regex(/^[A-Za-z0-9._:-]+$/, "Invalid idempotency key"),
+});
+
+export type ReportExportJobCreateInput = z.infer<typeof reportExportJobCreateSchema>;
+
+export type ReportExportJobSummary = {
+  id: string;
+  kind: ReportKind;
+  status: ReportExportJobStatus;
+  progressPercent: number;
+  rowCount: number | null;
+  filename: string | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  completedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  /** Present only while COMPLETED and not expired — opaque download token. */
+  downloadToken: string | null;
+  generatedAt: string;
+};
 
 export type ReportRow = Record<string, string | number | null>;
 
