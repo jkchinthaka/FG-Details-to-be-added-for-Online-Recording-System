@@ -1,0 +1,36 @@
+{
+  "technicalDecision": "HCI_TECHNICAL_CONDITIONAL_PASS",
+  "humanApproval": "HUMAN_APPROVAL_REQUIRED",
+  "startingSha": "49fc5f4d682681a8f29727d4912ccf26f2d55f18",
+  "endingSha": "f4a7598fb7f5f35d49c55216ea892af7d277d267",
+  "branch": "cursor/hci-ui-ux-modernization-20260716-2004",
+  "backupBranch": "backup/hci-ui-ux-modernization-20260716-2004",
+  "routesAudited": 31,
+  "tests": {
+    "shared": "124 passed",
+    "ui": "31 passed",
+    "webTypecheck": "passed",
+    "web": "121 passed",
+    "e2e": "SKIPPED_WITHOUT_RUN_E2E",
+    "axe": "CONDITIONAL_NO_FULL_CRAWL",
+    "responsiveScreenshots": "PENDING",
+    "opennextBuild": "passed"
+  },
+  "passwordFlow": "CODE_FIXED_UNIT_TESTED",
+  "redirectLoop": "UNIT_PASS",
+  "deployment": {
+    "result": "DEPLOYED",
+    "url": "https://fgdetails.chinthakajayaweera1.workers.dev",
+    "versionId": "8fca8df8-cdef-413d-89e0-bae0771c4463",
+    "frontendLogin": 200,
+    "proxyLive": 200,
+    "proxyReady": 200
+  },
+  "blockers": [
+    "Full axe crawl with zero Critical/Serious on UAT",
+    "Responsive screenshot evidence pack",
+    "RUN_E2E=1 password-gate E2E on local/UAT",
+    "HUMAN_APPROVAL_REQUIRED for formal usability sign-off",
+    "Branch not merged to main until remaining automated HCI gates complete"
+  ]
+}
