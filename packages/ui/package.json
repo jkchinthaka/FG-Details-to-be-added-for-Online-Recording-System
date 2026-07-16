@@ -15,7 +15,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest run --passWithNoTests"
+    "test": "node --require ./vitest-preload.cjs ./node_modules/vitest/vitest.mjs run --passWithNoTests"
   },
   "peerDependencies": {
     "react": "^19.0.0",
