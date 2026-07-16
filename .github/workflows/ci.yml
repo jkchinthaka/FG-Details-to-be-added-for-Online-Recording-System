@@ -22,6 +22,15 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Generate release manifest from Git SHA
+        run: |
+          export GIT_COMMIT_SHA="${GITHUB_SHA}"
+          export APP_BUILD_ID="${GITHUB_SHA}"
+          node scripts/release/generate-release-manifest.js --service=nelna-fg-monorepo --environment=test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest
+          path: reports/release/release-manifest.json
       - run: pnpm --filter @nelna/shared build
       - run: pnpm --filter @nelna/ui build
       - run: pnpm --filter @nelna/api prisma:generate
@@ -35,6 +44,8 @@ jobs:
         run: pnpm exec prisma validate
         env:
           DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
+          GIT_COMMIT_SHA: ${{ github.sha }}
+          APP_BUILD_ID: ${{ github.sha }}
 
   mongodb-integration:
     name: MongoDB integration

@@ -33,6 +33,37 @@ describe("HealthController", () => {
     expect(result.checks.storage).toBeDefined();
     expect(result.version).toBeTruthy();
     expect(result.timestamp).toBeTruthy();
+    expect(result).toHaveProperty("buildId");
+    expect(result).toHaveProperty("commitSha");
+  });
+
+  it("exposes a safe release manifest when GIT_COMMIT_SHA is set", () => {
+    const previous = process.env.GIT_COMMIT_SHA;
+    process.env.GIT_COMMIT_SHA = "abcdef0123456789abcdef0123456789abcdef01";
+    const result = controller.getRelease();
+    expect(result.commitSha).toBe("abcdef0123456789abcdef0123456789abcdef01");
+    expect(result.shortSha).toBe("abcdef012345");
+    expect(result.buildId).toBe(result.shortSha);
+    expect(result.service).toBe("nelna-fg-api");
+    expect(JSON.stringify(result)).not.toMatch(/mongodb|password|secret|DATABASE/i);
+    if (previous) process.env.GIT_COMMIT_SHA = previous;
+    else delete process.env.GIT_COMMIT_SHA;
+  });
+
+  it("rejects release when commit SHA is missing", () => {
+    const previous = process.env.GIT_COMMIT_SHA;
+    const previousBuild = process.env.APP_BUILD_ID;
+    const previousRender = process.env.RENDER_GIT_COMMIT;
+    const previousGithub = process.env.GITHUB_SHA;
+    delete process.env.GIT_COMMIT_SHA;
+    delete process.env.APP_BUILD_ID;
+    delete process.env.RENDER_GIT_COMMIT;
+    delete process.env.GITHUB_SHA;
+    expect(() => controller.getRelease()).toThrow();
+    if (previous) process.env.GIT_COMMIT_SHA = previous;
+    if (previousBuild) process.env.APP_BUILD_ID = previousBuild;
+    if (previousRender) process.env.RENDER_GIT_COMMIT = previousRender;
+    if (previousGithub) process.env.GITHUB_SHA = previousGithub;
   });
 
   it("reports db as not_configured when DATABASE_URL is unset", async () => {

@@ -23,7 +23,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview:web": "pnpm --filter @nelna/shared build && pnpm --filter @nelna/ui build && pnpm --filter @nelna/web preview",
-    "release:verify-alignment": "pnpm --filter @nelna/api exec -- ts-node --transpile-only ../../scripts/release/verify-release-alignment.ts"
+    "release:generate-manifest": "node scripts/release/generate-release-manifest.js",
+    "release:verify-alignment": "pnpm --filter @nelna/api exec -- ts-node --transpile-only ../../scripts/release/verify-release-alignment.ts",
+    "release:smoke": "pnpm release:verify-alignment"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

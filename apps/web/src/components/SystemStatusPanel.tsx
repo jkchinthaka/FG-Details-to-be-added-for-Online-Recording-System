@@ -7,14 +7,29 @@ type HealthResponse = {
   service: string;
   product: string;
   version: string;
+  buildId: string | null;
+  commitSha: string | null;
   environment: string;
   timestamp: string;
   checks: { api: string };
 };
 
+type ReleaseResponse = {
+  shortSha: string;
+  commitSha: string;
+  buildId: string;
+  applicationVersion: string;
+  environment: string;
+  service: string;
+};
+
 type LoadState =
   | { phase: "loading" }
-  | { phase: "ok"; data: HealthResponse }
+  | {
+      phase: "ok";
+      data: HealthResponse;
+      release: ReleaseResponse | null;
+    }
   | { phase: "error"; message: string };
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "/api";
@@ -25,12 +40,19 @@ export function SystemStatusPanel() {
   async function load() {
     setState({ phase: "loading" });
     try {
-      const response = await fetch(`${apiBase}/health`, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`Health check failed (${response.status})`);
+      const [healthRes, releaseRes] = await Promise.all([
+        fetch(`${apiBase}/health`, { cache: "no-store" }),
+        fetch("/release", { cache: "no-store" }).catch(() => null),
+      ]);
+      if (!healthRes.ok) {
+        throw new Error(`Health check failed (${healthRes.status})`);
       }
-      const data = (await response.json()) as HealthResponse;
-      setState({ phase: "ok", data });
+      const data = (await healthRes.json()) as HealthResponse;
+      let release: ReleaseResponse | null = null;
+      if (releaseRes?.ok) {
+        release = (await releaseRes.json()) as ReleaseResponse;
+      }
+      setState({ phase: "ok", data, release });
     } catch (error) {
       setState({
         phase: "error",
@@ -58,7 +80,7 @@ export function SystemStatusPanel() {
             System status
           </h2>
           <p className="mt-1 text-sm text-[var(--nelna-text-muted)]">
-            Development health check against {apiBase}/health
+            Health check and release identity for support
           </p>
         </div>
         <button
@@ -90,6 +112,14 @@ export function SystemStatusPanel() {
           <StatusItem label="Service" value={state.data.service} />
           <StatusItem label="Version" value={state.data.version} />
           <StatusItem label="Environment" value={state.data.environment} />
+          <StatusItem
+            label="Release ID"
+            value={state.data.buildId ?? state.release?.shortSha ?? "not configured"}
+          />
+          <StatusItem
+            label="Frontend release"
+            value={state.release?.shortSha ?? "not configured"}
+          />
           <StatusItem label="API check" value={state.data.checks.api} />
           <StatusItem
             label="Checked at"
@@ -97,6 +127,10 @@ export function SystemStatusPanel() {
           />
           <div className="sm:col-span-2">
             <StatusItem label="Product" value={state.data.product} />
+          </div>
+          <div className="text-xs text-[var(--nelna-text-muted)] sm:col-span-2">
+            Quote the Release ID when contacting support. It identifies the exact Git
+            commit running on this environment.
           </div>
         </dl>
       ) : null}
@@ -117,9 +151,15 @@ function StatusItem({
     <div>
       <dt className="text-[var(--nelna-text-muted)]">{label}</dt>
       <dd
-        className="font-semibold capitalize"
+        className="font-semibold"
         style={{
           color: emphasize ? "var(--nelna-primary)" : "var(--nelna-primary-dark)",
+          textTransform:
+            label === "Release ID" || label === "Frontend release" ? "none" : undefined,
+          fontFamily:
+            label === "Release ID" || label === "Frontend release"
+              ? "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+              : undefined,
         }}
       >
         {value}

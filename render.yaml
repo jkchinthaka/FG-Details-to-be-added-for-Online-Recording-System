@@ -11,7 +11,7 @@ services:
     plan: starter
     region: singapore
     # Monorepo: do NOT set rootDir to apps/api
-    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+    buildCommand: export GIT_COMMIT_SHA="${RENDER_GIT_COMMIT:-$(git rev-parse HEAD)}" && export APP_BUILD_ID="$GIT_COMMIT_SHA" && export RELEASE_BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && pnpm install --frozen-lockfile --prod=false && node scripts/release/generate-release-manifest.js --service=nelna-fg-api --environment=production && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
     startCommand: pnpm --filter @nelna/api start:prod
     healthCheckPath: /health/ready
     envVars:
@@ -41,17 +41,17 @@ services:
         sync: false
       - key: JWT_REFRESH_SECRET
         sync: false
-      - key: APP_BUILD_ID
-        sync: false
       - key: FILE_STORAGE_PATH
         sync: false
+      # GIT_COMMIT_SHA / APP_BUILD_ID come from RENDER_GIT_COMMIT at build+runtime.
+      # Do not set a static APP_BUILD_ID here — the Git SHA is authoritative.
 
   - type: web
     name: nelna-fg-api-uat
     runtime: node
     plan: starter
     region: singapore
-    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+    buildCommand: export GIT_COMMIT_SHA="${RENDER_GIT_COMMIT:-$(git rev-parse HEAD)}" && export APP_BUILD_ID="$GIT_COMMIT_SHA" && export RELEASE_BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && pnpm install --frozen-lockfile --prod=false && node scripts/release/generate-release-manifest.js --service=nelna-fg-api --environment=uat && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
     startCommand: pnpm --filter @nelna/api start:prod
     healthCheckPath: /health/ready
     envVars:
@@ -79,5 +79,4 @@ services:
         sync: false
       - key: JWT_REFRESH_SECRET
         sync: false
-      - key: APP_BUILD_ID
-        sync: false
+      # GIT_COMMIT_SHA / APP_BUILD_ID come from RENDER_GIT_COMMIT — do not hardcode.

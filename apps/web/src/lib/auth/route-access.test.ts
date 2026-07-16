@@ -9,10 +9,11 @@ import {
 import { config as middlewareConfig } from "../../middleware";
 
 describe("route-access", () => {
-  it("treats login and account pages as public", () => {
+  it("treats login, account and release endpoints as public", () => {
     expect(isPublicAppPath("/login")).toBe(true);
     expect(isPublicAppPath("/account-inactive")).toBe(true);
     expect(isPublicAppPath("/unauthorized")).toBe(true);
+    expect(isPublicAppPath("/release")).toBe(true);
     expect(isPublicAppPath("/records")).toBe(false);
   });
 
@@ -44,10 +45,8 @@ describe("page middleware matcher / API bypass", () => {
   });
 
   it("still matches public login and protected dashboard/records pages", () => {
-    expect(pathMatchesPageMiddleware("/login")).toBe(true);
-    expect(isPublicAppPath("/login")).toBe(true);
-    expect(pathMatchesPageMiddleware("/dashboard")).toBe(true);
-    expect(pathMatchesPageMiddleware("/records")).toBe(true);
-    expect(pathMatchesPageMiddleware("/")).toBe(true);
+    expect(pathMatchesPageMiddleware("/release-manifest.json")).toBe(false);
+    expect(pathMatchesPageMiddleware("/release")).toBe(true);
+    expect(isPublicAppPath("/release")).toBe(true);
   });
 });

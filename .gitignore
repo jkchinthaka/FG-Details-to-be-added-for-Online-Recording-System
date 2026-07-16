@@ -49,6 +49,11 @@ apps/web/public/sw.js.map
 
 # Cutover / ops reports (may contain operational metadata)
 reports/
+!reports/release/
+!reports/release/**
+
+# Generated at build time; also written under reports/release/
+apps/web/public/release-manifest.json
 
 apps/e2e/playwright-report/
 apps/e2e/test-results/

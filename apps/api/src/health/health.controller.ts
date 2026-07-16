@@ -35,6 +35,16 @@ export class HealthController {
   }
 
   @Public()
+  @Get("release")
+  @ApiOperation({
+    summary:
+      "Safe release manifest (Git commit SHA). Used to prove Cloudflare and Render share the same authorized build.",
+  })
+  getRelease() {
+    return this.healthService.getReleaseManifest();
+  }
+
+  @Public()
   @Get("database-config")
   @ApiOperation({
     summary:

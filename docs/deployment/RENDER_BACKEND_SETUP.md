@@ -34,9 +34,11 @@ Blueprint file: `render.yaml` (no secret values).
 | `COOKIE_SECURE` | `true` |
 | `COOKIE_DOMAIN` | `.nelna.lk` |
 | `APP_VERSION` | semver label |
-| `APP_BUILD_ID` | git SHA / CI id |
+| `APP_BUILD_ID` | **Do not hardcode.** Render injects `RENDER_GIT_COMMIT`; build command exports `GIT_COMMIT_SHA` / `APP_BUILD_ID` from it (see `render.yaml`). |
 
 UAT service uses `NELNA_DEPLOY_TIER=uat`, DB **`fg_online_uat`**, and a non-production CORS origin.
+
+Release alignment: `GET /health/release` must return the same `commitSha` as the Cloudflare Worker `GET /release`. See `docs/deployment/RELEASE_ALIGNMENT.md`.
 
 ## Networking
 

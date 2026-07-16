@@ -1,7 +1,12 @@
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
-import { NELNA_BRAND } from "@nelna/shared";
+import {
+  NELNA_BRAND,
+  buildReleaseManifest,
+  resolveCommitShaFromEnv,
+  type ReleaseManifest,
+} from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 
 export type DbCheckStatus = "up" | "down" | "not_configured";
@@ -19,25 +24,26 @@ export type HealthResponse = {
   product: string;
   /** Semver or release label — never includes secrets or hostnames */
   version: string;
-  /** Safe build identifier (commit SHA short / CI build number) if provided */
+  /** Safe shortened commit SHA (12 chars) — never a random framework build id */
   buildId: string | null;
+  /** Full Git commit SHA when available */
+  commitSha: string | null;
   environment: string;
   timestamp: string;
   checks: HealthChecks;
 };
 
+const SERVICE_NAME = "nelna-fg-api";
+const PROCESS_STARTED_AT = new Date().toISOString();
+
 function appVersion(): string {
   return process.env.APP_VERSION?.trim() || "1.0.0";
 }
 
-function buildId(): string | null {
-  const raw =
-    process.env.APP_BUILD_ID?.trim() ||
-    (process.env.RENDER === "true" ? process.env.RENDER_GIT_COMMIT?.trim() : "") ||
-    process.env.GIT_COMMIT_SHA?.trim();
-  if (!raw) return null;
-  // Keep public health payload free of long infra paths — truncate to 12 chars.
-  return raw.slice(0, 12);
+function resolveEnvironmentLabel(): string {
+  return (
+    process.env.NELNA_DEPLOY_TIER?.trim() || process.env.NODE_ENV?.trim() || "development"
+  );
 }
 
 @Injectable()
@@ -46,7 +52,7 @@ export class HealthService {
 
   /** Liveness: process is up. Does not depend on database. */
   getLiveness(): { status: "ok"; service: string } {
-    return { status: "ok", service: "nelna-fg-api" };
+    return { status: "ok", service: SERVICE_NAME };
   }
 
   /**
@@ -70,16 +76,55 @@ export class HealthService {
   async getHealth(): Promise<HealthResponse> {
     const checks = await this.collectChecks();
     const degraded = checks.db === "down" || checks.storage === "down";
+    const release = this.tryReleaseManifest();
     return {
       status: degraded ? "degraded" : "healthy",
-      service: "nelna-fg-api",
+      service: SERVICE_NAME,
       product: NELNA_BRAND.productName,
       version: appVersion(),
-      buildId: buildId(),
-      environment: process.env.NODE_ENV ?? "development",
+      buildId: release?.shortSha ?? null,
+      commitSha: release?.commitSha ?? null,
+      environment: resolveEnvironmentLabel(),
       timestamp: new Date().toISOString(),
       checks,
     };
+  }
+
+  /**
+   * FG-DEP-001 — Safe release manifest for cross-service alignment checks.
+   * Never includes secrets, hostnames or database detail.
+   */
+  getReleaseManifest(): ReleaseManifest {
+    const commitSha = resolveCommitShaFromEnv();
+    if (!commitSha) {
+      throw new ServiceUnavailableException({
+        code: "MISSING_SHA",
+        message: "Release commit SHA is not configured for this process",
+      });
+    }
+    const built = buildReleaseManifest({
+      commitSha,
+      applicationVersion: appVersion(),
+      environment: resolveEnvironmentLabel(),
+      service: SERVICE_NAME,
+      deployedAt: PROCESS_STARTED_AT,
+      builtAt: process.env.RELEASE_BUILT_AT?.trim() || PROCESS_STARTED_AT,
+    });
+    if (!built.ok) {
+      throw new ServiceUnavailableException({
+        code: built.code,
+        message: built.message,
+      });
+    }
+    return built.manifest;
+  }
+
+  private tryReleaseManifest(): ReleaseManifest | null {
+    try {
+      return this.getReleaseManifest();
+    } catch {
+      return null;
+    }
   }
 
   private async collectChecks(): Promise<HealthChecks> {
@@ -95,7 +140,6 @@ export class HealthService {
       return "not_configured";
     }
     try {
-      // MongoDB-compatible ping (replaces PostgreSQL `SELECT 1`).
       await this.prisma.$runCommandRaw({ ping: 1 });
       return "up";
     } catch {
@@ -114,7 +158,6 @@ export class HealthService {
         return "down";
       }
     }
-    // GridFS lives in MongoDB — treat DB ping as storage when no file path configured.
     if (!process.env.DATABASE_URL) {
       return "not_configured";
     }
