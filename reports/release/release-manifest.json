@@ -1,0 +1,10 @@
+{
+  "commitSha": "5b7eb92c83f21e96ae2b7cf19b65ee5fe439f012",
+  "shortSha": "5b7eb92c83f2",
+  "buildId": "5b7eb92c83f2",
+  "applicationVersion": "1.0.0",
+  "environment": "development",
+  "builtAt": "2026-07-16T18:25:00.433Z",
+  "deployedAt": null,
+  "service": "fgdetails"
+}
