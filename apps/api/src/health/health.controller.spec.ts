@@ -80,9 +80,14 @@ describe("HealthController", () => {
 
   it("safe database-config diagnostic hides credentials and host", () => {
     const previous = process.env.DATABASE_URL;
+    const previousNode = process.env.NODE_ENV;
+    process.env.NODE_ENV = "test";
     process.env.DATABASE_URL =
       "mongodb+srv://user:secret@cluster0.example.mongodb.net/fg_online?retryWrites=true";
-    const result = controller.getDatabaseConfig();
+    const result = controller.getDatabaseConfig({
+      id: "admin-1",
+      permissions: ["users:manage"],
+    } as never);
     expect(result).toEqual({
       provider: "MongoDB",
       databaseConnected: true,
@@ -93,6 +98,21 @@ describe("HealthController", () => {
     expect(JSON.stringify(result)).not.toMatch(/secret|cluster0\.example/);
     if (previous) process.env.DATABASE_URL = previous;
     else delete process.env.DATABASE_URL;
+    if (previousNode) process.env.NODE_ENV = previousNode;
+    else delete process.env.NODE_ENV;
+  });
+
+  it("blocks database-config in production without admin permission", () => {
+    const previousNode = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    expect(() =>
+      controller.getDatabaseConfig({
+        id: "op-1",
+        permissions: ["records:read"],
+      } as never),
+    ).toThrow();
+    if (previousNode) process.env.NODE_ENV = previousNode;
+    else delete process.env.NODE_ENV;
   });
 
   it("readiness is available in non-production when db is not_configured", async () => {

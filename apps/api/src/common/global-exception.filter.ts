@@ -46,18 +46,38 @@ function mapCode(status: number, body: ExceptionBody): string {
 }
 
 function safeMessage(status: number, body: ExceptionBody): string {
-  if (typeof body.message === "string" && body.message.trim()) {
-    return body.message.trim();
+  if (status === 429) return "Too many requests. Please try again later.";
+  if (status === 401) return "Sign in to continue.";
+  if (status === 403) {
+    if (typeof body.message === "string" && body.message.trim()) {
+      return body.message.trim();
+    }
+    return "You do not have permission to perform this action.";
+  }
+  if (status === 404) return "Resource not found.";
+  if (status === 409) {
+    if (typeof body.message === "string" && body.message.trim()) {
+      return body.message.trim();
+    }
+    return "Conflict with the current state.";
+  }
+  if (status >= 500) {
+    // Prefer explicit safe codes from our stack; never leak framework internals.
+    if (
+      typeof body.message === "string" &&
+      body.message.trim() &&
+      !/exception|stack|econnrefused|prisma|mongodb/i.test(body.message)
+    ) {
+      return body.message.trim();
+    }
+    return "An unexpected error occurred.";
   }
   if (Array.isArray(body.message) && body.message.length > 0) {
     return "Validation failed.";
   }
-  if (status === 429) return "Too many requests. Please try again later.";
-  if (status === 401) return "Sign in to continue.";
-  if (status === 403) return "You do not have permission to perform this action.";
-  if (status === 404) return "Resource not found.";
-  if (status === 409) return "Conflict with the current state.";
-  if (status >= 500) return "An unexpected error occurred.";
+  if (typeof body.message === "string" && body.message.trim()) {
+    return body.message.trim();
+  }
   return "Request failed.";
 }
 

@@ -1,10 +1,14 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Req, ForbiddenException } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import { Public } from "../auth/decorators/public.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import type { RequestUser } from "../auth/auth.types";
 import { getSafeDatabaseConfigDiagnostic } from "../config/validate-production-env";
 import { HealthService, type HealthResponse } from "./health.service";
 
 @ApiTags("health")
+@SkipThrottle()
 @Controller("health")
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
@@ -44,13 +48,26 @@ export class HealthController {
     return this.healthService.getReleaseManifest();
   }
 
-  @Public()
+  /**
+   * FG-SEC-002 — database-config is authenticated in production.
+   * Public only outside production for local diagnostics.
+   */
   @Get("database-config")
   @ApiOperation({
     summary:
       "Safe database configuration diagnostic (provider/name only). Never returns host or credentials.",
   })
-  getDatabaseConfig() {
+  getDatabaseConfig(@CurrentUser() user: RequestUser) {
+    if (process.env.NODE_ENV === "production") {
+      const perms = new Set(user.permissions ?? []);
+      if (!perms.has("users:manage") && !perms.has("audit:read")) {
+        throw new ForbiddenException({
+          code: "FORBIDDEN",
+          message: "Diagnostics require an administrator permission.",
+        });
+      }
+    }
+
     const configured = getSafeDatabaseConfigDiagnostic();
     return {
       provider: configured.provider,

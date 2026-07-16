@@ -8,6 +8,7 @@ import { assertProductionEnv } from "./config/validate-production-env";
 import { buildCorsOptions } from "./config/cors-origin";
 import { requestIdMiddleware } from "./common/request-id.middleware";
 import { structuredRequestLogger } from "./common/structured-logger.middleware";
+import { isPublicApiDocsEnabled } from "./common/production-surfaces";
 
 async function bootstrap() {
   // Fail closed in production before the HTTP listener binds.
@@ -45,7 +46,7 @@ async function bootstrap() {
   );
 
   // FG-SEC-002 — Swagger is development/UAT only.
-  if (!isProduction) {
+  if (isPublicApiDocsEnabled()) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle("Nelna FG Digital Recording System API")
       .setDescription(

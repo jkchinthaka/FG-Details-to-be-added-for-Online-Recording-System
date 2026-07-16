@@ -1,8 +1,17 @@
-import { ForbiddenException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { MutationProtectionGuard } from "./mutation-protection.guard";
 import { GlobalExceptionFilter } from "./global-exception.filter";
 import { StaleStateException } from "./stale-state.exception";
 import { requestIdMiddleware } from "./request-id.middleware";
+import {
+  isDevUiSurfaceEnabled,
+  isPublicApiDocsEnabled,
+} from "./production-surfaces";
 import type { Request, Response } from "express";
 
 function mockHttpContext(req: Partial<Request>, res: Partial<Response> = {}) {
@@ -69,6 +78,71 @@ describe("FG-ERR-001 GlobalExceptionFilter", () => {
     expect(body.code).toBe("INTERNAL_ERROR");
     expect(body.message).toBe("An unexpected error occurred.");
     expect(JSON.stringify(body)).not.toMatch(/ECONNREFUSED|27017|secret|stack/i);
+  });
+
+  it("maps service unavailable as retryable", () => {
+    const ctx = mockHttpContext({});
+    filter.catch(
+      new ServiceUnavailableException({
+        code: "SERVICE_UNAVAILABLE",
+        message: "Upstream unavailable",
+      }),
+      ctx.host as never,
+    );
+    expect(ctx.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 503,
+        code: "SERVICE_UNAVAILABLE",
+        retryable: true,
+        requestId: "req-test-001",
+      }),
+    );
+  });
+
+  it("maps gateway timeout as retryable", () => {
+    const ctx = mockHttpContext({});
+    filter.catch(
+      new HttpException(
+        { code: "UPSTREAM_TIMEOUT", message: "Upstream timeout" },
+        HttpStatus.GATEWAY_TIMEOUT,
+      ),
+      ctx.host as never,
+    );
+    expect(ctx.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 504,
+        code: "UPSTREAM_TIMEOUT",
+        retryable: true,
+      }),
+    );
+  });
+
+  it("maps rate limit to safe 429 envelope", () => {
+    const ctx = mockHttpContext({});
+    filter.catch(
+      new HttpException(
+        { message: "ThrottlerException: Too Many Requests" },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+      ctx.host as never,
+    );
+    const body = ctx.json.mock.calls[0][0];
+    expect(body.statusCode).toBe(429);
+    expect(body.code).toBe("RATE_LIMITED");
+    expect(body.retryable).toBe(true);
+    expect(JSON.stringify(body)).not.toMatch(/stack|ThrottlerException/i);
+  });
+});
+
+describe("FG-SEC-002 production surfaces", () => {
+  it("blocks public Swagger in production", () => {
+    expect(isPublicApiDocsEnabled("production")).toBe(false);
+    expect(isPublicApiDocsEnabled("development")).toBe(true);
+  });
+
+  it("blocks developer UI surfaces in production", () => {
+    expect(isDevUiSurfaceEnabled("production")).toBe(false);
+    expect(isDevUiSurfaceEnabled("test")).toBe(true);
   });
 });
 
