@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { InspectionRecordDetail } from "@nelna/shared";
 import { RECORD_STATUS_LABELS } from "@nelna/shared";
-import { Button, EmptyState, LoadingState, Textarea } from "@nelna/ui";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  Textarea,
+} from "@nelna/ui";
 import {
   checkInspectionRecord,
   fetchInspectionApprovals,
@@ -15,21 +22,13 @@ import {
   verifyInspectionRecord,
   InspectionRecordApiError,
 } from "@/lib/inspection-records/api";
+import {
+  buildApprovalViews,
+  buildFailedItemViews,
+  type ReviewApprovalView,
+} from "./review-queue-labels";
 
 type QueueMode = "check" | "verify";
-
-function failedItems(detail: InspectionRecordDetail) {
-  return Object.entries(detail.responses).filter(([, response]) => {
-    if (
-      !response?.value ||
-      typeof response.value !== "object" ||
-      !("value" in response.value)
-    )
-      return false;
-    const v = (response.value as { value?: string }).value;
-    return v === "FAIL" || v === "UNACCEPTABLE";
-  });
-}
 
 export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
   const [items, setItems] = useState<InspectionRecordDetail[]>([]);
@@ -37,7 +36,7 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<unknown[]>([]);
+  const [history, setHistory] = useState<ReviewApprovalView[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -65,6 +64,10 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
   }, [load]);
 
   const selected = items.find((i) => i.header.id === selectedId) ?? null;
+  const failed = useMemo(
+    () => (selected ? buildFailedItemViews(selected) : []),
+    [selected],
+  );
 
   useEffect(() => {
     if (!selectedId) {
@@ -72,7 +75,19 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
       return;
     }
     void fetchInspectionApprovals(selectedId)
-      .then(setHistory)
+      .then((rows) =>
+        setHistory(
+          buildApprovalViews(
+            rows as Array<{
+              id?: string;
+              approvalType: string;
+              decision: string;
+              comments?: string | null;
+              decidedAt?: string | null;
+            }>,
+          ),
+        ),
+      )
       .catch(() => setHistory([]));
   }, [selectedId]);
 
@@ -103,17 +118,16 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
   if (loading) return <LoadingState message="Loading review queue…" />;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:flex-row md:items-start">
-      <section className="w-full md:w-80 md:shrink-0">
-        <h1 className="font-display text-xl text-[var(--color-brand-primary)]">
-          {mode === "check" ? "Pending check" : "Pending verification"}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Exception-first review — failed items shown first. Passed items remain on the
-          record.
-        </p>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:flex-row md:items-start">
+      <section className="w-full md:w-80 md:shrink-0" aria-label="Review queue list">
+        <PageHeader
+          title={mode === "check" ? "Pending check" : "Pending verification"}
+          description="Exception-first review — failed items shown first. Passed items remain on the record."
+        />
         {error ? (
-          <p className="mt-2 text-sm text-[var(--color-danger)]">{error}</p>
+          <p className="mt-2 text-sm" style={{ color: "var(--nelna-danger)" }} role="alert">
+            {error}
+          </p>
         ) : null}
         <ul className="mt-4 space-y-2">
           {items.length === 0 ? (
@@ -126,15 +140,23 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
               <li key={item.header.id}>
                 <button
                   type="button"
-                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm ${
-                    selectedId === item.header.id
-                      ? "border-[var(--color-brand-primary)] bg-[var(--color-brand-cream)]"
-                      : "border-[var(--color-border)]"
-                  }`}
+                  className="nelna-focusable w-full rounded-[var(--nelna-radius)] border px-3 py-2 text-left text-sm"
+                  style={{
+                    minHeight: "var(--nelna-touch-min)",
+                    borderColor:
+                      selectedId === item.header.id
+                        ? "var(--nelna-primary)"
+                        : "var(--nelna-border)",
+                    background:
+                      selectedId === item.header.id
+                        ? "var(--nelna-surface-muted)"
+                        : "var(--nelna-surface)",
+                  }}
+                  aria-current={selectedId === item.header.id ? "true" : undefined}
                   onClick={() => setSelectedId(item.header.id)}
                 >
                   <div className="font-medium">{item.header.documentCode}</div>
-                  <div className="text-[var(--color-text-muted)]">
+                  <div style={{ color: "var(--nelna-text-secondary)" }}>
                     {RECORD_STATUS_LABELS[item.header.status]} ·{" "}
                     {item.header.areaLabel ?? "—"}
                   </div>
@@ -145,7 +167,14 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
         </ul>
       </section>
 
-      <section className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+      <section
+        className="min-w-0 flex-1 rounded-[var(--nelna-radius-lg)] border bg-white p-4"
+        style={{
+          borderColor: "var(--nelna-border)",
+          boxShadow: "var(--nelna-shadow-sm)",
+        }}
+        aria-label="Selected record review"
+      >
         {!selected ? (
           <EmptyState
             title="Select a record"
@@ -153,10 +182,12 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
           />
         ) : (
           <>
-            <header className="flex flex-wrap items-start justify-between gap-2 border-b border-[var(--color-border)] pb-3">
+            <header className="flex flex-wrap items-start justify-between gap-2 border-b pb-3"
+              style={{ borderColor: "var(--nelna-border)" }}
+            >
               <div>
                 <h2 className="text-lg font-semibold">{selected.version.title}</h2>
-                <p className="text-sm text-[var(--color-text-muted)]">
+                <p className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
                   {selected.header.recordNumber ?? selected.header.id} ·{" "}
                   {RECORD_STATUS_LABELS[selected.header.status]}
                 </p>
@@ -165,30 +196,50 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
                 </p>
               </div>
               <Link
-                className="text-sm text-[var(--color-brand-primary)] underline"
-                href={`/records`}
+                className="nelna-focusable text-sm underline"
+                style={{ color: "var(--nelna-primary)", minHeight: "var(--nelna-touch-min)" }}
+                href="/records"
               >
                 Records list
               </Link>
             </header>
 
             <div className="mt-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+              <h3
+                className="text-sm font-semibold uppercase tracking-wide"
+                style={{ color: "var(--nelna-text-secondary)" }}
+              >
                 Failed / unacceptable items
               </h3>
               <ul className="mt-2 space-y-2">
-                {failedItems(selected).length === 0 ? (
-                  <li className="text-sm text-[var(--color-text-muted)]">
+                {failed.length === 0 ? (
+                  <li className="text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
                     No failed items on this record.
                   </li>
                 ) : (
-                  failedItems(selected).map(([itemId, response]) => (
+                  failed.map((item) => (
                     <li
-                      key={itemId}
-                      className="rounded-md bg-[var(--color-danger-soft,#fde8e8)] px-3 py-2 text-sm"
+                      key={item.itemId}
+                      className="rounded-[var(--nelna-radius-sm)] px-3 py-2 text-sm"
+                      style={{ background: "var(--nelna-danger-bg)" }}
                     >
-                      <div className="font-medium">{itemId}</div>
-                      {response.remark ? <div>Remark: {response.remark}</div> : null}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{item.label}</span>
+                        <Badge
+                          tone={item.criticality === "Critical" ? "danger" : "neutral"}
+                        >
+                          {item.criticality}
+                        </Badge>
+                        <Badge
+                          tone={item.evidenceState === "Missing" ? "warning" : "information"}
+                        >
+                          Evidence: {item.evidenceState}
+                        </Badge>
+                      </div>
+                      <div style={{ color: "var(--nelna-text-secondary)" }}>
+                        Section: {item.sectionName}
+                      </div>
+                      {item.remark ? <div>Remark: {item.remark}</div> : null}
                     </li>
                   ))
                 )}
@@ -196,24 +247,29 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
             </div>
 
             <div className="mt-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                Approval history
+              <h3
+                className="text-sm font-semibold uppercase tracking-wide"
+                style={{ color: "var(--nelna-text-secondary)" }}
+              >
+                Review chronology
               </h3>
-              <ol className="mt-2 space-y-1 text-sm">
+              <ol className="mt-2 space-y-2 text-sm">
                 {history.length === 0 ? (
-                  <li className="text-[var(--color-text-muted)]">No approvals yet.</li>
+                  <li style={{ color: "var(--nelna-text-secondary)" }}>No approvals yet.</li>
                 ) : (
-                  (
-                    history as Array<{
-                      approvalType: string;
-                      decision: string;
-                      comments?: string | null;
-                      decidedAt?: string | null;
-                    }>
-                  ).map((row, idx) => (
-                    <li key={idx}>
-                      {row.approvalType} · {row.decision}
-                      {row.comments ? ` — ${row.comments}` : ""}
+                  history.map((row) => (
+                    <li
+                      key={row.key}
+                      className="rounded-[var(--nelna-radius-sm)] border px-3 py-2"
+                      style={{ borderColor: "var(--nelna-border)" }}
+                    >
+                      <div className="font-medium">
+                        {row.actionLabel} — {row.decisionLabel}
+                      </div>
+                      <div style={{ color: "var(--nelna-text-secondary)" }}>
+                        {row.decidedAtLabel}
+                      </div>
+                      {row.comments ? <div>Reason: {row.comments}</div> : null}
                     </li>
                   ))
                 )}
@@ -227,10 +283,14 @@ export function ReviewQueueWorkspace({ mode }: { mode: QueueMode }) {
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Required for return / reject"
                 rows={3}
+                hint="Explain the decision so operators understand what to correct."
               />
             </div>
 
-            <div className="sticky bottom-0 mt-4 flex flex-wrap gap-2 border-t border-[var(--color-border)] bg-white py-3">
+            <div
+              className="sticky bottom-0 mt-4 flex flex-wrap gap-2 border-t bg-white py-3"
+              style={{ borderColor: "var(--nelna-border)" }}
+            >
               {mode === "check" ? (
                 <Button
                   type="button"
