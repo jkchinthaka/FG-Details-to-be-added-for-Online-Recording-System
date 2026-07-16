@@ -21,6 +21,7 @@ healthCheckPath:
 ```
 
 Do **not** put seed, `prisma db push`, bootstrap, or cutover in Start Command.
+Production index maintenance uses `db:indexes:sync` (controlled MongoDB scripts only).
 
 ## One-time sequence (operator-run, explicit)
 
@@ -43,11 +44,30 @@ pnpm --filter @nelna/api db:diagnose
 
 ### 2. Schema / index sync (explicit; not on restart)
 
+**Production / shared environments:** use controlled MongoDB index scripts only.
+Do **not** run `prisma db push` against production — Prisma cannot express the
+required partial unique indexes and will conflict with
+`checklist_templates_currentVersionId_key` (`IndexKeySpecsConflict`) and can
+replace a correct partial index with an incompatible normal unique index.
+
 ```bash
 pnpm --filter @nelna/api db:indexes:sync
 ```
 
-This runs `prisma db push` then `scripts/database/ensure-username-index.js` (partial unique username index).
+This runs **only**:
+
+1. `scripts/database/ensure-sparse-current-version-index.js` — idempotent partial unique on `currentVersionId` (leaves a correct index unchanged)
+2. `scripts/database/ensure-username-index.js` — idempotent partial unique on `username`; safely replaces Prisma `users_username_key` only after duplicate checks
+
+Requires `DATABASE_URL` targeting exactly `fg_online`. Never logs credentials.
+
+**Local / development only** (new empty DB or intentional schema drift):
+
+```bash
+pnpm --filter @nelna/api prisma:push
+```
+
+`prisma:push` runs `prisma db push` then re-applies the currentVersionId partial index. It is **not** used by Render Start Command and is **not** part of `db:indexes:sync`.
 
 ### 3. Production reference-data seed
 

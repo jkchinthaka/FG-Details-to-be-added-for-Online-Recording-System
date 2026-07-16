@@ -5,6 +5,9 @@
  * This allows documents that have not yet been cut over (missing username) while
  * still enforcing uniqueness for all populated usernames.
  *
+ * Also detects and safely replaces Prisma's non-partial `users_username_key`
+ * when the desired `users_username_unique_partial` can be applied.
+ *
  * DATABASE_URL must target fg_online. Never prints credentials.
  *
  * Usage:
@@ -14,26 +17,17 @@ const path = require("path");
 const { createRequire } = require("module");
 const requireFromApi = createRequire(path.join(__dirname, "../../apps/api/package.json"));
 const { MongoClient } = requireFromApi("mongodb");
-
-const INDEX_NAME = "users_username_unique_partial";
-const REQUIRED_DB = "fg_online";
-
-function extractDbName(url) {
-  const withoutProtocol = url.replace(/^mongodb(\+srv)?:\/\//i, "");
-  const afterAuth = withoutProtocol.includes("@")
-    ? withoutProtocol.slice(withoutProtocol.lastIndexOf("@") + 1)
-    : withoutProtocol;
-  const pathAndQuery = afterAuth.includes("/")
-    ? afterAuth.slice(afterAuth.indexOf("/") + 1)
-    : "";
-  return (pathAndQuery.split("?")[0] || "").trim() || null;
-}
-
-function redact(message) {
-  return String(message)
-    .replace(/mongodb(\+srv)?:\/\/[^\s'"]+/gi, "mongodb://[redacted]")
-    .replace(/[a-z0-9._%+-]+:[^@\s]+@/gi, "[redacted-userinfo]@");
-}
+const {
+  USERNAME_PARTIAL_INDEX_NAME,
+  USERNAME_PARTIAL,
+  extractDbName,
+  redactCredentials,
+  assertProductionDatabaseName,
+  assertNoDuplicateUsernameGroups,
+  isCorrectUsernamePartialIndex,
+  findIncompatibleUsernameIndexes,
+  planUsernameIndexAction,
+} = require("./mongo-index-ensure-rules");
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -43,15 +37,18 @@ async function main() {
   }
 
   const dbName = extractDbName(url);
-  if (dbName !== REQUIRED_DB) {
-    console.error(`Refuse: database must be ${REQUIRED_DB} (got ${dbName ?? "none"})`);
-    process.exit(1);
-  }
+  assertProductionDatabaseName(dbName);
 
   const client = new MongoClient(url);
   try {
     await client.connect();
     const db = client.db();
+    if (db.databaseName !== dbName) {
+      throw new Error(
+        `Refuse: connected database ${db.databaseName} does not match URL database ${dbName}`,
+      );
+    }
+
     const col = db.collection("users");
 
     const duplicates = await col
@@ -67,42 +64,71 @@ async function main() {
       ])
       .toArray();
 
-    if (duplicates.length > 0) {
-      console.error(
-        `Refuse: ${duplicates.length} duplicate username group(s) — resolve before indexing`,
-      );
+    try {
+      assertNoDuplicateUsernameGroups(duplicates);
+    } catch (err) {
+      console.error(redactCredentials(err instanceof Error ? err.message : String(err)));
       process.exit(1);
     }
 
     const existing = await col.indexes();
-    const prior = existing.find((i) => i.name === INDEX_NAME);
-    if (prior) {
-      console.log(`Index ${INDEX_NAME} already present on ${db.databaseName}.users`);
-    } else {
-      await col.createIndex(
-        { username: 1 },
-        {
-          unique: true,
-          name: INDEX_NAME,
-          partialFilterExpression: {
-            username: { $exists: true, $type: "string" },
-          },
-        },
-      );
+    const action = planUsernameIndexAction(existing);
+    const incompatible = findIncompatibleUsernameIndexes(existing);
+
+    if (action === "unchanged") {
       console.log(
-        `Created partial unique index ${INDEX_NAME} on ${db.databaseName}.users`,
+        `Index ${USERNAME_PARTIAL_INDEX_NAME} already correct on ${db.databaseName}.users — unchanged`,
       );
+    } else {
+      // Drop incompatible indexes only after duplicate check passed (safe to replace).
+      for (const index of incompatible) {
+        await col.dropIndex(index.name);
+        console.log(
+          `Dropped incompatible username index ${index.name} (safe after duplicate check)`,
+        );
+      }
+
+      // If desired name existed but was incorrect, it is included in incompatible.
+      // If it was correct but leftovers existed, it remains; skip create.
+      const afterDrop = await col.indexes();
+      const stillDesired = afterDrop.find((i) => i.name === USERNAME_PARTIAL_INDEX_NAME);
+      if (stillDesired && isCorrectUsernamePartialIndex(stillDesired)) {
+        console.log(
+          `Retained correct partial index ${USERNAME_PARTIAL_INDEX_NAME}; removed leftover incompatible indexes`,
+        );
+      } else {
+        if (stillDesired) {
+          await col.dropIndex(USERNAME_PARTIAL_INDEX_NAME);
+        }
+        await col.createIndex(
+          { username: 1 },
+          {
+            unique: true,
+            name: USERNAME_PARTIAL_INDEX_NAME,
+            partialFilterExpression: USERNAME_PARTIAL,
+          },
+        );
+        console.log(
+          `Created partial unique index ${USERNAME_PARTIAL_INDEX_NAME} on ${db.databaseName}.users`,
+        );
+      }
     }
 
     const after = await col.indexes();
-    const created = after.find((i) => i.name === INDEX_NAME);
-    if (!created || !created.unique) {
+    const created = after.find((i) => i.name === USERNAME_PARTIAL_INDEX_NAME);
+    if (!isCorrectUsernamePartialIndex(created)) {
       throw new Error("Username index verification failed");
     }
+    const leftover = findIncompatibleUsernameIndexes(after);
+    if (leftover.length > 0) {
+      throw new Error(
+        `Username index verification failed: leftover incompatible indexes ${leftover
+          .map((i) => i.name)
+          .join(", ")}`,
+      );
+    }
     console.log(
-      `Verified ${INDEX_NAME}: unique=${Boolean(created.unique)} partial=${Boolean(
-        created.partialFilterExpression,
-      )}`,
+      `Verified ${USERNAME_PARTIAL_INDEX_NAME}: unique=true partialFilterExpression=ok`,
     );
   } finally {
     await client.close();
@@ -110,6 +136,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(redact(err instanceof Error ? err.message : String(err)));
+  console.error(redactCredentials(err instanceof Error ? err.message : String(err)));
   process.exit(1);
 });

@@ -1,18 +1,32 @@
 /**
- * Prisma's @unique on optional MongoDB fields creates a non-sparse unique
- * index that rejects multiple documents with missing/null currentVersionId.
- * PostgreSQL unique constraints allow multiple NULLs; restore that semantics
- * with a partial unique index after every `prisma db push`.
+ * Ensure partial unique index on checklist_templates.currentVersionId.
  *
- * Usage (DATABASE_URL required):
+ * Prisma `@unique` on optional MongoDB fields creates a non-sparse unique index
+ * that rejects multiple documents with missing/null currentVersionId.
+ * This script keeps the required partial unique index (same Prisma name) and
+ * never weakens it.
+ *
+ * Production index sync must use this script — not `prisma db push` — because
+ * Prisma cannot express the partial filter and will conflict (IndexKeySpecsConflict).
+ *
+ * DATABASE_URL must target fg_online. Never prints credentials.
+ *
+ * Usage:
  *   node scripts/database/ensure-sparse-current-version-index.js
  */
 const path = require("path");
 const { createRequire } = require("module");
 const requireFromApi = createRequire(path.join(__dirname, "../../apps/api/package.json"));
 const { MongoClient } = requireFromApi("mongodb");
-
-const INDEX_NAME = "checklist_templates_currentVersionId_key";
+const {
+  CURRENT_VERSION_INDEX_NAME,
+  CURRENT_VERSION_PARTIAL,
+  extractDbName,
+  redactCredentials,
+  assertProductionDatabaseName,
+  isCorrectCurrentVersionPartialIndex,
+  planCurrentVersionIndexAction,
+} = require("./mongo-index-ensure-rules");
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -21,31 +35,56 @@ async function main() {
     process.exit(1);
   }
 
+  const dbName = extractDbName(url);
+  assertProductionDatabaseName(dbName);
+
   const client = new MongoClient(url);
   try {
     await client.connect();
     const db = client.db();
-    const col = db.collection("checklist_templates");
-
-    const existing = await col.indexes();
-    const prior = existing.find((i) => i.name === INDEX_NAME);
-    if (prior) {
-      await col.dropIndex(INDEX_NAME);
-      console.log(`Dropped non-partial index ${INDEX_NAME}`);
+    if (db.databaseName !== dbName) {
+      throw new Error(
+        `Refuse: connected database ${db.databaseName} does not match URL database ${dbName}`,
+      );
     }
 
-    await col.createIndex(
-      { currentVersionId: 1 },
-      {
-        unique: true,
-        name: INDEX_NAME,
-        partialFilterExpression: {
-          currentVersionId: { $exists: true, $type: "objectId" },
+    const col = db.collection("checklist_templates");
+    const existing = await col.indexes();
+    const action = planCurrentVersionIndexAction(existing);
+    const prior = existing.find((i) => i.name === CURRENT_VERSION_INDEX_NAME);
+
+    if (action === "unchanged") {
+      console.log(
+        `Index ${CURRENT_VERSION_INDEX_NAME} already correct (unique partial) on ${db.databaseName}.checklist_templates — unchanged`,
+      );
+    } else {
+      if (prior) {
+        await col.dropIndex(CURRENT_VERSION_INDEX_NAME);
+        console.log(
+          `Dropped incorrect index ${CURRENT_VERSION_INDEX_NAME} (will recreate as partial unique)`,
+        );
+      }
+
+      await col.createIndex(
+        { currentVersionId: 1 },
+        {
+          unique: true,
+          name: CURRENT_VERSION_INDEX_NAME,
+          partialFilterExpression: CURRENT_VERSION_PARTIAL,
         },
-      },
-    );
+      );
+      console.log(
+        `Ensured partial unique index ${CURRENT_VERSION_INDEX_NAME} on ${db.databaseName}.checklist_templates`,
+      );
+    }
+
+    const after = await col.indexes();
+    const verified = after.find((i) => i.name === CURRENT_VERSION_INDEX_NAME);
+    if (!isCorrectCurrentVersionPartialIndex(verified)) {
+      throw new Error("currentVersionId index verification failed");
+    }
     console.log(
-      `Ensured sparse/partial unique index ${INDEX_NAME} on ${db.databaseName}.checklist_templates`,
+      `Verified ${CURRENT_VERSION_INDEX_NAME}: unique=true partialFilterExpression=ok`,
     );
   } finally {
     await client.close();
@@ -53,6 +92,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(redactCredentials(err instanceof Error ? err.message : String(err)));
   process.exit(1);
 });

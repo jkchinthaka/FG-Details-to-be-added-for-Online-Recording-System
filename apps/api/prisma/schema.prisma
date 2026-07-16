@@ -376,7 +376,9 @@ model ChecklistTemplate {
   description      String?
   isActive         Boolean                   @default(true)
   // @unique required for Prisma 1-1; MongoDB non-sparse unique rejects multiple
-  // nulls — after every db push run ensure-sparse-current-version-index.js.
+  // nulls. Production must NOT use prisma db push for this — use
+  // db:indexes:sync / ensure-sparse-current-version-index.js (partial unique).
+  // Local/dev only: prisma:push then ensure-sparse-current-version-index.js.
   currentVersionId String?                   @unique @db.ObjectId
   currentVersion   ChecklistTemplateVersion? @relation("TemplateCurrentVersion", fields: [currentVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdById      String?                   @db.ObjectId
