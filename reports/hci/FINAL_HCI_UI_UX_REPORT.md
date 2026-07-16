@@ -7,7 +7,7 @@
 | Working branch | `cursor/hci-ui-ux-modernization-20260716-2004` |
 | Backup branch | `backup/hci-ui-ux-modernization-20260716-2004` |
 | Starting SHA | `49fc5f4d682681a8f29727d4912ccf26f2d55f18` |
-| Ending SHA | `a65a406416a92aec1d2518c0a9df88156a019c82` |
+| Ending SHA | `e2d36c6c7124809403c07aed375a96f665603d2e` |
 | Technical decision | `HCI_TECHNICAL_CONDITIONAL_PASS` |
 | Human approval | `HUMAN_APPROVAL_REQUIRED` |
 
