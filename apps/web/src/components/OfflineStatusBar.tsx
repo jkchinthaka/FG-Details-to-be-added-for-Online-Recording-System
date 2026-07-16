@@ -52,10 +52,22 @@ export function OfflineStatusBar() {
   }
 
   return (
-    <div className="mb-3 rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-[var(--nelna-surface-muted)] px-3 py-2 text-sm">
+    <div
+      role="status"
+      aria-live="polite"
+      className="mb-3 rounded-[var(--nelna-radius)] border border-[var(--nelna-border)] bg-[var(--nelna-surface-muted)] px-3 py-2 text-sm"
+      style={
+        online
+          ? undefined
+          : {
+              borderColor: "var(--nelna-warning)",
+              background: "var(--nelna-warning-bg, var(--nelna-surface-muted))",
+            }
+      }
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <strong>{online ? "Online" : "Offline"}</strong>
+          <strong>{online ? "Network status: Online" : "You are offline"}</strong>
           {lastSyncAt ? (
             <span className="ml-2 text-[var(--nelna-text-secondary)]">
               Last sync {new Date(lastSyncAt).toLocaleString()}
