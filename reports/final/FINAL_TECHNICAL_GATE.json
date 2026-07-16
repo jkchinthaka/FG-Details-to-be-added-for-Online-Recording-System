@@ -2,7 +2,7 @@
   "phase": "final-remediation",
   "branch": "cursor/full-remediation-20260716-2241",
   "startingSha": "2c316b091aa1ad969ae385a5c37f8f7783d52846",
-  "endingSha": "54a06b0f681f58ea9598bb081de61577db641776",
+  "endingSha": "8c6104940a3c5f8acaf6b7b3c39ab5bdc453ce85",
   "technicalDecision": "TECHNICAL_CONDITIONAL_PASS",
   "formalDecision": "NO_GO",
   "mainUpdated": false,
