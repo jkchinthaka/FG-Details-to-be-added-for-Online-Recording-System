@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { REPORT_KIND_LABELS, type ReportKind, type ReportResult } from "@nelna/shared";
 import { Button, Card, EmptyState, Input, LoadingState, Select } from "@nelna/ui";
-import { AppShell } from "@/components/AppShell";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
@@ -22,11 +21,7 @@ async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function ReportsPage() {
-  return (
-    <AppShell>
-      <ReportsWorkspace />
-    </AppShell>
-  );
+  return <ReportsWorkspace />;
 }
 
 function ReportsWorkspace() {
