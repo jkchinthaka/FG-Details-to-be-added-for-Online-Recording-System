@@ -16,6 +16,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
 import { AuthService } from "./auth.service";
@@ -28,10 +29,15 @@ import type { RequestUser } from "./auth.types";
 import { getAuthConfig } from "./auth.config";
 import { clearAuthCookies, setAuthCookies } from "./lib/cookies";
 
-function requestMeta(req: Request): { ip?: string; userAgent?: string } {
+function requestMeta(req: Request): {
+  ip?: string;
+  userAgent?: string;
+  requestId?: string;
+} {
   return {
     ip: req.ip,
     userAgent: req.get("user-agent") ?? undefined,
+    requestId: req.nelnaRequestId,
   };
 }
 
@@ -41,6 +47,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ auth: { limit: 10, ttl: 60_000 }, global: { limit: 10, ttl: 60_000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -60,6 +67,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ auth: { limit: 30, ttl: 60_000 }, global: { limit: 30, ttl: 60_000 } })
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Rotate the refresh token and issue a new access token" })
@@ -71,7 +79,8 @@ export class AuthController {
   ): Promise<CurrentUserDto> {
     const config = getAuthConfig();
     const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as
-      string | undefined;
+      | string
+      | undefined;
 
     try {
       const { user, tokens } = await this.authService.refresh(
@@ -98,7 +107,7 @@ export class AuthController {
     const config = getAuthConfig();
     const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as
       string | undefined;
-    await this.authService.logout(refreshTokenRaw);
+    await this.authService.logout(refreshTokenRaw, requestMeta(req));
     clearAuthCookies(res, config);
     return { success: true };
   }

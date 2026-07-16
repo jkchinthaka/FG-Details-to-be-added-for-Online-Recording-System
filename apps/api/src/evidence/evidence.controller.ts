@@ -15,6 +15,7 @@ import {
   UnsupportedMediaTypeException,
 } from "@nestjs/common";
 import { ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import Busboy from "busboy";
 import type { Request, Response } from "express";
 import {
@@ -71,6 +72,7 @@ export class EvidenceController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Throttle({ upload: { limit: 20, ttl: 60_000 }, global: { limit: 20, ttl: 60_000 } })
   @Post("upload")
   @RequirePermissions("records:create")
   @ApiConsumes("multipart/form-data")
@@ -98,6 +100,7 @@ export class EvidenceController {
     return { attachments: created.map(summarize) };
   }
 
+  @Throttle({ upload: { limit: 20, ttl: 60_000 }, global: { limit: 20, ttl: 60_000 } })
   @Post(":attachmentId/replace")
   @RequirePermissions("records:create")
   @ApiConsumes("multipart/form-data")

@@ -1,5 +1,6 @@
 import { Controller, Get, Header, Param, Query, Res } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
@@ -18,6 +19,7 @@ export class ReportsController {
     return this.reportsService.listKinds(user);
   }
 
+  @Throttle({ export: { limit: 15, ttl: 60_000 }, global: { limit: 15, ttl: 60_000 } })
   @Get("record-pdf/:id")
   @RequirePermissions("records:read", "reports:read")
   @ApiOperation({
@@ -35,6 +37,7 @@ export class ReportsController {
     res.send(buffer);
   }
 
+  @Throttle({ export: { limit: 15, ttl: 60_000 }, global: { limit: 15, ttl: 60_000 } })
   @Get("run/:kind/csv")
   @RequirePermissions("reports:read", "audit:read", "records:check", "records:verify")
   @ApiOperation({ summary: "Export report rows as CSV (formula-injection safe)" })
