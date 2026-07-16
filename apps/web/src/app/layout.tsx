@@ -37,7 +37,7 @@ export const viewport: Viewport = {
   themeColor: "#27743A",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // FG-ACC-001 — allow browser zoom / pinch-zoom for accessibility (200%+).
   viewportFit: "cover",
 };
 
