@@ -1,0 +1,30 @@
+{
+  "automatedTechnicalDecision": "TECHNICAL_CONDITIONAL_PASS",
+  "formalGoLiveDecision": "NO_GO",
+  "startingMainSha": "b39d8436e4e29ec8dbfe76227b3ff87436440a29",
+  "endingMainSha": "061d719a8d5ad42998aedce8b98ccb1e5e4285b5",
+  "workingBranch": "cursor/full-production-hardening-20260716-1941",
+  "backupBranch": "backup/full-production-hardening-20260716-1941",
+  "mainUpdated": true,
+  "tests": {
+    "api": "278 passed / 10 skipped",
+    "web": "120 passed"
+  },
+  "builds": {
+    "api": "PASS",
+    "opennext": "PASS"
+  },
+  "cloudflareDeployed": true,
+  "renderDeployed": "UNKNOWN_AUTODEPLOY_PENDING",
+  "directHealth": "PASS",
+  "proxyHealth": "PASS",
+  "authenticationLive": "NOT_EXECUTED",
+  "passwordLoopLive": "NOT_EXECUTED_CODE_FIXED",
+  "blockers": [
+    "BLOCKED_EXTERNAL_RENDER_AUTH",
+    "build alignment FAIL until Render redeploys 061d719",
+    "HUMAN_APPROVAL_REQUIRED (IT/QA/Food Safety/Business/Legal/Pilot)",
+    "BLOCKED_EXTERNAL_RESTORE_TARGET",
+    "admin verify / password smoke NOT_EXECUTED"
+  ]
+}
