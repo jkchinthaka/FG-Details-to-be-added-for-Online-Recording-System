@@ -8,8 +8,10 @@ import type {
 import type {
   CorrectiveAction,
   CorrectiveActionStatus as PrismaCaStatus,
+  Prisma,
 } from "../../generated/prisma-client";
 import { PrismaService } from "../prisma/prisma.service";
+import { assertSingleClaim } from "../common/assert-single-claim";
 
 const ASSIGNABLE: CorrectiveActionStatus[] = ["OPEN", "REOPENED", "REJECTED", "ASSIGNED"];
 const STARTABLE: CorrectiveActionStatus[] = ["OPEN", "ASSIGNED", "REOPENED"];
@@ -98,28 +100,21 @@ export class CorrectiveActionsService {
     if (!assignee || assignee.status !== "ACTIVE") {
       throw new BadRequestException("Assignee must be an active user");
     }
-    const updated = await this.prisma.correctiveAction.update({
-      where: { id },
-      data: {
-        assignedToId: assigneeId,
-        dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : row.dueDate,
-        status: "ASSIGNED",
-      },
+    await this.claimTransition(row, ASSIGNABLE, "ASSIGNED", {
+      assignedToId: assigneeId,
+      dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : row.dueDate,
     });
     await this.audit(actorId, id, "CA_ASSIGNED", {
       assigneeId,
       dueDate: dueDate ?? null,
     });
-    return this.getById(updated.id);
+    return this.getById(id);
   }
 
   async start(id: string, actorId: string): Promise<CorrectiveActionDetail> {
     const row = await this.require(id);
     this.assertTransition(row.status, STARTABLE, "start");
-    await this.prisma.correctiveAction.update({
-      where: { id },
-      data: { status: "IN_PROGRESS" },
-    });
+    await this.claimTransition(row, STARTABLE, "IN_PROGRESS", {});
     await this.audit(actorId, id, "CA_STARTED", {});
     return this.getById(id);
   }
@@ -134,13 +129,9 @@ export class CorrectiveActionsService {
     if (!completionComment.trim()) {
       throw new BadRequestException("completionComment is required");
     }
-    await this.prisma.correctiveAction.update({
-      where: { id },
-      data: {
-        status: "PENDING_VERIFICATION",
-        completionComment: completionComment.trim(),
-        completedAt: new Date(),
-      },
+    await this.claimTransition(row, COMPLETABLE, "PENDING_VERIFICATION", {
+      completionComment: completionComment.trim(),
+      completedAt: new Date(),
     });
     await this.audit(actorId, id, "CA_COMPLETED", {});
     return this.getById(id);
@@ -160,16 +151,12 @@ export class CorrectiveActionsService {
       throw new BadRequestException("Assignee cannot verify their own corrective action");
     }
     const now = new Date();
-    await this.prisma.correctiveAction.update({
-      where: { id },
-      data: {
-        status: "CLOSED",
-        verificationComment: verificationComment.trim(),
-        verifiedById: actorId,
-        verifiedAt: now,
-        closedById: actorId,
-        closedAt: now,
-      },
+    await this.claimTransition(row, VERIFYABLE, "CLOSED", {
+      verificationComment: verificationComment.trim(),
+      verifiedById: actorId,
+      verifiedAt: now,
+      closedById: actorId,
+      closedAt: now,
     });
     await this.audit(actorId, id, "CA_VERIFIED_CLOSED", {});
     return this.getById(id);
@@ -185,13 +172,9 @@ export class CorrectiveActionsService {
     if (!rejectionReason.trim()) {
       throw new BadRequestException("rejectionReason is required");
     }
-    await this.prisma.correctiveAction.update({
-      where: { id },
-      data: {
-        status: "REJECTED",
-        rejectionReason: rejectionReason.trim(),
-        verifiedById: actorId,
-      },
+    await this.claimTransition(row, REJECTABLE, "REJECTED", {
+      rejectionReason: rejectionReason.trim(),
+      verifiedById: actorId,
     });
     await this.audit(actorId, id, "CA_REJECTED", {});
     return this.getById(id);
@@ -200,14 +183,10 @@ export class CorrectiveActionsService {
   async reopen(id: string, actorId: string): Promise<CorrectiveActionDetail> {
     const row = await this.require(id);
     this.assertTransition(row.status, REOPENABLE, "reopen");
-    await this.prisma.correctiveAction.update({
-      where: { id },
-      data: {
-        status: "REOPENED",
-        reopenedAt: new Date(),
-        closedAt: null,
-        closedById: null,
-      },
+    await this.claimTransition(row, REOPENABLE, "REOPENED", {
+      reopenedAt: new Date(),
+      closedAt: null,
+      closedById: null,
     });
     await this.audit(actorId, id, "CA_REOPENED", {});
     return this.getById(id);
@@ -223,17 +202,34 @@ export class CorrectiveActionsService {
     if (!cancelReason.trim()) {
       throw new BadRequestException("cancelReason is required");
     }
-    await this.prisma.correctiveAction.update({
-      where: { id },
-      data: {
-        status: "CANCELLED_WITH_REASON",
-        cancelReason: cancelReason.trim(),
-        closedAt: new Date(),
-        closedById: actorId,
-      },
+    await this.claimTransition(row, CANCELABLE, "CANCELLED_WITH_REASON", {
+      cancelReason: cancelReason.trim(),
+      closedAt: new Date(),
+      closedById: actorId,
     });
     await this.audit(actorId, id, "CA_CANCELLED", {});
     return this.getById(id);
+  }
+
+  private async claimTransition(
+    row: CorrectiveAction,
+    fromStatuses: CorrectiveActionStatus[],
+    toStatus: CorrectiveActionStatus,
+    data: Prisma.CorrectiveActionUncheckedUpdateManyInput,
+  ): Promise<void> {
+    const claimed = await this.prisma.correctiveAction.updateMany({
+      where: {
+        id: row.id,
+        status: { in: fromStatuses as PrismaCaStatus[] },
+        workflowVersion: row.workflowVersion ?? 0,
+      },
+      data: {
+        ...data,
+        status: toStatus as PrismaCaStatus,
+        workflowVersion: { increment: 1 },
+      },
+    });
+    assertSingleClaim(claimed);
   }
 
   private async require(id: string) {

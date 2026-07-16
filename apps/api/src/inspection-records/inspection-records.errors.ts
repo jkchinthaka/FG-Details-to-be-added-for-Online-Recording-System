@@ -23,7 +23,7 @@ export class PublishedTemplateNotFoundException extends NotFoundException {
  *  draft owned by another operator. */
 export class DuplicateRecordException extends ConflictException {
   constructor(reason: string) {
-    super(reason);
+    super({ code: "DUPLICATE_RECORD", message: reason });
   }
 }
 
@@ -137,3 +137,5 @@ export class WorkflowPermissionForbiddenException extends ForbiddenException {
     super(`You do not have permission to ${action} this record`);
   }
 }
+
+export { StaleStateException } from "../common/stale-state.exception";

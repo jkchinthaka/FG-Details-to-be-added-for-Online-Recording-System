@@ -8,6 +8,7 @@ import {
   RecordLockedException,
   RecordNotFoundException,
   RecordValidationException,
+  StaleStateException,
   VehicleNotFoundException,
 } from "./inspection-records.errors";
 import type { PrismaService } from "../prisma/prisma.service";
@@ -83,6 +84,8 @@ function makeRecord(overrides: Record<string, unknown> = {}) {
     templateVersionId: "version-1",
     documentCode: "NMS/PPU/CL/24",
     status: "DRAFT",
+    workflowVersion: 0,
+    deduplicationKey: null,
     recordDate: new Date("2026-07-14T00:00:00.000Z"),
     shiftId: "shift-morning",
     shift: { id: "shift-morning", name: "Morning", code: "MORNING" },
@@ -139,6 +142,7 @@ function makeTruckDetail(overrides: Record<string, unknown> = {}) {
     temperatureAcceptable: null,
     recommendedDecision: null,
     loadingDecision: "PENDING",
+    workflowVersion: 0,
     decidedById: null,
     decidedBy: null,
     decidedAt: null,
@@ -235,8 +239,13 @@ function buildPrismaMock() {
     },
     truckInspectionDetail: {
       update: jest.fn().mockResolvedValue(undefined),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     approvalRecord: {
+      create: jest.fn().mockResolvedValue(undefined),
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
+    notification: {
       create: jest.fn().mockResolvedValue(undefined),
     },
     auditLog: {
@@ -562,9 +571,14 @@ describe("InspectionRecordsService", () => {
         expect.objectContaining({
           where: {
             id: "record-1",
+            workflowVersion: 0,
             status: { in: ["DRAFT", "REJECTED", "RETURNED_FOR_CORRECTION"] },
           },
-          data: expect.objectContaining({ status: "PENDING_CHECK" }),
+          data: expect.objectContaining({
+            status: "PENDING_CHECK",
+            workflowVersion: { increment: 1 },
+            deduplicationKey: null,
+          }),
         }),
       );
       expect(prismaMock.taskAssignment.updateMany).toHaveBeenCalledWith(
@@ -689,7 +703,7 @@ describe("InspectionRecordsService", () => {
       const service = buildService(prismaMock);
 
       await expect(service.submit(buildUser(), "record-1", {})).rejects.toBeInstanceOf(
-        RecordLockedException,
+        StaleStateException,
       );
 
       expect(prismaMock.correctiveAction.create).not.toHaveBeenCalled();
@@ -1162,7 +1176,7 @@ describe("InspectionRecordsService", () => {
         },
       );
 
-      expect(prismaMock.truckInspectionDetail.update).toHaveBeenCalledWith(
+      expect(prismaMock.truckInspectionDetail.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ loadingDecision: "REJECTED" }),
         }),
@@ -1190,7 +1204,7 @@ describe("InspectionRecordsService", () => {
         remarks: "Reviewed on-site, safe to load",
       });
 
-      expect(prismaMock.truckInspectionDetail.update).toHaveBeenCalledWith(
+      expect(prismaMock.truckInspectionDetail.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             loadingDecision: "APPROVED_FOR_LOADING",
