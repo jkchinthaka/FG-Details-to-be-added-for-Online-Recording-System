@@ -58,7 +58,12 @@ export function UsersAdmin() {
   const [rolesSelection, setRolesSelection] = useState<UserRole[]>([]);
   const [savingRoles, setSavingRoles] = useState(false);
   const [editTarget, setEditTarget] = useState<AdminUserSummary | null>(null);
-  const [editForm, setEditForm] = useState({ fullName: "", username: "", email: "" });
+  const [editForm, setEditForm] = useState({
+    employeeCode: "",
+    fullName: "",
+    username: "",
+    email: "",
+  });
   const [savingEdit, setSavingEdit] = useState(false);
 
   const reload = useCallback(() => {
@@ -145,6 +150,7 @@ export function UsersAdmin() {
   function openEditModal(target: AdminUserSummary) {
     setEditTarget(target);
     setEditForm({
+      employeeCode: target.employeeCode,
       fullName: target.fullName,
       username: target.username ?? "",
       email: target.email ?? "",
@@ -157,6 +163,7 @@ export function UsersAdmin() {
     setActionError(null);
     try {
       await updateUser(editTarget.id, {
+        employeeCode: editForm.employeeCode.trim(),
         fullName: editForm.fullName.trim(),
         username: editForm.username.trim() || undefined,
         email: editForm.email.trim() || undefined,
@@ -477,6 +484,11 @@ export function UsersAdmin() {
         }
       >
         <div style={{ display: "grid", gap: "0.75rem" }}>
+          <Input
+            label="Employee code"
+            value={editForm.employeeCode}
+            onChange={(e) => setEditForm((f) => ({ ...f, employeeCode: e.target.value }))}
+          />
           <Input
             label="Full name"
             value={editForm.fullName}

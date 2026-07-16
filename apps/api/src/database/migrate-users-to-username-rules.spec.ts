@@ -56,17 +56,14 @@ describe("planLegacyUserMigration", () => {
     taskAssignments: 0,
   };
 
-  it("preserves referenced users instead of hard-deleting", () => {
+  it("never marks users for hard deletion", () => {
     const plan = planLegacyUserMigration({
       userId: "u1",
       employeeCode: "EMP-OPERATOR-001",
       username: null,
       replacementAdminEmployeeCode: "EMP-ADMIN-NEW",
       replacementAdminUsername: "sys.admin",
-      relationCounts: { ...emptyRelations, createdRecords: 2 },
-      isConfirmedSample: true,
     });
-    expect(plan.mayHardDelete).toBe(false);
     expect(plan.archivedUsername).toBe(
       archivedUsernameForEmployeeCode("EMP-OPERATOR-001"),
     );
@@ -79,8 +76,6 @@ describe("planLegacyUserMigration", () => {
       username: "sys.admin",
       replacementAdminEmployeeCode: "EMP-ADMIN-NEW",
       replacementAdminUsername: "sys.admin",
-      relationCounts: emptyRelations,
-      isConfirmedSample: false,
     });
     expect(plan.isReplacementAdmin).toBe(true);
   });

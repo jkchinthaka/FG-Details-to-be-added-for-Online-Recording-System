@@ -10,7 +10,6 @@ import {
 } from "@nelna/shared";
 import {
   assertDatabaseIsFgOnline,
-  isConfirmedSampleUser,
   parseCleanupMode,
 } from "./sample-data-rules";
 import {
@@ -124,7 +123,6 @@ export type LegacyUserMigrationPlan = {
   employeeCode: string;
   archivedUsername: string;
   isReplacementAdmin: boolean;
-  mayHardDelete: boolean;
 };
 
 export type UserRelationCounts = {
@@ -156,8 +154,6 @@ export function planLegacyUserMigration(args: {
   username: string | null;
   replacementAdminEmployeeCode: string;
   replacementAdminUsername: string;
-  relationCounts: UserRelationCounts;
-  isConfirmedSample: boolean;
 }): LegacyUserMigrationPlan {
   const isReplacementAdmin =
     args.employeeCode === args.replacementAdminEmployeeCode ||
@@ -165,16 +161,11 @@ export function planLegacyUserMigration(args: {
       normalizeUsername(args.username) === normalizeUsername(args.replacementAdminUsername));
 
   const archivedUsername = args.username ?? archivedUsernameForEmployeeCode(args.employeeCode);
-  const hasRelations = userHasHistoricalRelations(args.relationCounts);
-  const mayHardDelete = args.isConfirmedSample && !hasRelations && !isReplacementAdmin;
 
   return {
     userId: args.userId,
     employeeCode: args.employeeCode,
     archivedUsername,
     isReplacementAdmin,
-    mayHardDelete,
   };
 }
-
-export { isConfirmedSampleUser };

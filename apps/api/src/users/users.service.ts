@@ -132,6 +132,9 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto): Promise<AdminUserSummary> {
     await this.findUserOrThrow(id);
+    if (dto.employeeCode) {
+      await this.assertEmployeeCodeAvailable(dto.employeeCode, id);
+    }
     if (dto.email) {
       await this.assertEmailAvailable(dto.email, id);
     }
@@ -142,6 +145,7 @@ export class UsersService {
     const user = await this.prisma.user.update({
       where: { id },
       data: {
+        employeeCode: dto.employeeCode,
         fullName: dto.fullName,
         email: dto.email,
         username: dto.username ? normalizeUsername(dto.username) : undefined,
@@ -319,9 +323,14 @@ export class UsersService {
     }
   }
 
-  private async assertEmployeeCodeAvailable(employeeCode: string): Promise<void> {
+  private async assertEmployeeCodeAvailable(
+    employeeCode: string,
+    excludeUserId?: string,
+  ): Promise<void> {
     const existing = await this.prisma.user.findUnique({ where: { employeeCode } });
-    if (existing) throw new EmployeeCodeConflictException(employeeCode);
+    if (existing && existing.id !== excludeUserId) {
+      throw new EmployeeCodeConflictException(employeeCode);
+    }
   }
 
   private async assertUsernameAvailable(

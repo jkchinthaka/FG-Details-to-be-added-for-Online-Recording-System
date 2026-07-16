@@ -11,6 +11,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(64)
+  employeeCode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
   @MaxLength(200)
   fullName?: string;
 

@@ -120,7 +120,7 @@ export function createUser(body: {
 
 export function updateUser(
   id: string,
-  body: { fullName?: string; username?: string; email?: string },
+  body: { employeeCode?: string; fullName?: string; username?: string; email?: string },
 ): Promise<AdminUserSummary> {
   return patch(`/admin/users/${id}`, body);
 }
