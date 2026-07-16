@@ -19,22 +19,31 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22.16.0"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @nelna/shared build
       - run: pnpm --filter @nelna/ui build
       - run: pnpm --filter @nelna/api prisma:generate
+      - run: pnpm --filter @nelna/api prisma:validate
+        env:
+          DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
-      - name: Prisma validate
-        working-directory: apps/api
-        run: pnpm exec prisma validate
+      - run: pnpm --filter @nelna/api build
+      - run: pnpm --filter @nelna/web typecheck
+      - run: pnpm --filter @nelna/web test
+      - name: OpenNext Cloudflare build
+        run: pnpm --filter @nelna/web exec opennextjs-cloudflare build
+      - name: Write release manifest
+        run: node scripts/release/write-release-manifest.js reports/p0/release-manifest.json
         env:
-          DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
+          GIT_COMMIT_SHA: ${{ github.sha }}
+          APP_BUILD_ID: ${{ github.sha }}
+          APP_VERSION: "1.0.0"
+          APP_ENVIRONMENT: ci
 
   mongodb-integration:
     name: MongoDB integration
@@ -73,7 +82,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22.16.0"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @nelna/shared build
@@ -83,10 +92,11 @@ jobs:
         run: |
           pnpm exec prisma db push
           node ../../scripts/database/ensure-sparse-current-version-index.js
+          node ../../scripts/database/ensure-draft-dedup-index.js
           pnpm exec prisma db seed
-      - name: Integration tests
+      - name: Integration and concurrency tests
         working-directory: apps/api
-        run: pnpm test -- --runInBand --testPathPattern="db-integration|db-constraints"
+        run: pnpm test -- --runInBand --testPathPattern="db-integration|db-constraints|p0-concurrency|assert-single-claim|evidence-upload"
 
   e2e:
     name: Playwright E2E
@@ -116,7 +126,6 @@ jobs:
       SEED_QA_EMAIL: qa@test.nelna.local
       SEED_QA_PASSWORD: TestOnly!Qa12345
       SEED_QA_EMPLOYEE_CODE: TST-QA
-      # Keep E2E_OPERATOR_EMAIL for backwards compatibility in docs only — unused by tests.
     steps:
       - uses: actions/checkout@v4
       - name: Start MongoDB replica set (fg_online_test only)
@@ -133,7 +142,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22.16.0"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @nelna/shared build
@@ -144,6 +153,7 @@ jobs:
         run: |
           pnpm exec prisma db push
           node ../../scripts/database/ensure-sparse-current-version-index.js
+          node ../../scripts/database/ensure-draft-dedup-index.js
           pnpm exec prisma db seed
       - run: pnpm --filter @nelna/api build
       - run: pnpm --filter @nelna/web build
@@ -167,4 +177,3 @@ jobs:
       - name: Run E2E
         working-directory: apps/e2e
         run: pnpm test
-        continue-on-error: true
