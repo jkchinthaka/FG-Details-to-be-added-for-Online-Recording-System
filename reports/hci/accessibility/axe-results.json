@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-07-16T14:45:00.000Z",
+  "status": "CONDITIONAL",
+  "note": "Full axe crawl not executed in this automation window. Critical password-gate chrome issues fixed in code. No Critical/Serious axe results claimed as PASS.",
+  "violations": [],
+  "incomplete": [],
+  "passes": [],
+  "humanApproval": "HUMAN_APPROVAL_REQUIRED"
+}
