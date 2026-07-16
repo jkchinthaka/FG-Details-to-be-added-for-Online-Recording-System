@@ -12,9 +12,11 @@ function cookieSet(names: string[]) {
 const activeUser: CurrentUser = {
   id: "u1",
   employeeCode: "E1",
+  username: "fg.operator01",
   fullName: "Op",
   email: "op@example.com",
   status: "ACTIVE",
+  mustChangePassword: false,
   roles: ["FG_OPERATOR"],
   permissions: ["records:create", "records:read"],
   lastLoginAt: null,
@@ -92,6 +94,27 @@ describe("decideVerifiedMiddlewareAction", () => {
       action: "redirect",
       url: "/account-inactive",
     });
+  });
+
+  it("redirects users who must change password away from app pages", () => {
+    expect(
+      decideVerifiedMiddlewareAction("/tasks", {
+        status: "ok",
+        user: { ...activeUser, mustChangePassword: true },
+      }),
+    ).toEqual({
+      action: "redirect",
+      url: "/change-password",
+    });
+  });
+
+  it("allows change-password page when password change is required", () => {
+    expect(
+      decideVerifiedMiddlewareAction("/change-password", {
+        status: "ok",
+        user: { ...activeUser, mustChangePassword: true },
+      }),
+    ).toEqual({ action: "allow" });
   });
 
   it("allows an operator on records", () => {

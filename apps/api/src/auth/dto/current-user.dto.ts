@@ -12,6 +12,9 @@ export class CurrentUserDto implements CurrentUser {
   @ApiProperty()
   employeeCode!: string;
 
+  @ApiProperty({ nullable: true, type: String })
+  username!: string | null;
+
   @ApiProperty()
   fullName!: string;
 
@@ -20,6 +23,9 @@ export class CurrentUserDto implements CurrentUser {
 
   @ApiProperty({ enum: ["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_ACTIVATION"] })
   status!: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_ACTIVATION";
+
+  @ApiProperty()
+  mustChangePassword!: boolean;
 
   @ApiProperty({ type: [String] })
   roles!: UserRole[];

@@ -6,9 +6,16 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from "class-validator";
+import {
+  PASSWORD_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  USERNAME_PATTERN,
+} from "@nelna/shared";
 
 export class CreateUserDto {
   @ApiProperty({ example: "EMP-1001" })
@@ -16,6 +23,16 @@ export class CreateUserDto {
   @MinLength(1)
   @MaxLength(64)
   employeeCode!: string;
+
+  @ApiProperty({ example: "fg.operator01" })
+  @IsString()
+  @MinLength(USERNAME_MIN_LENGTH)
+  @MaxLength(USERNAME_MAX_LENGTH)
+  @Matches(/^[a-zA-Z0-9._-]+$/, {
+    message:
+      "Username must be 4–40 characters: letters, numbers, dot, underscore or hyphen only",
+  })
+  username!: string;
 
   @ApiProperty({ example: "Nimal Perera" })
   @IsString()
@@ -28,11 +45,11 @@ export class CreateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ description: "Initial password (min 8 characters)" })
+  @ApiProperty({ description: `Temporary password (min ${PASSWORD_MIN_LENGTH} characters)` })
   @IsString()
-  @MinLength(8)
+  @MinLength(PASSWORD_MIN_LENGTH)
   @MaxLength(200)
-  password!: string;
+  temporaryPassword!: string;
 
   @ApiPropertyOptional()
   @IsOptional()

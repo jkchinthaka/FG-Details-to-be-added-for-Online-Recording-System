@@ -18,6 +18,8 @@
     "prisma:seed:demo": "node ./prisma/run-demo-seed.cjs",
     "prisma:studio": "prisma studio",
     "bootstrap:admin": "ts-node --transpile-only scripts/bootstrap-admin.ts",
+    "users:migrate:dry-run": "ts-node --transpile-only scripts/migrate-users-to-username.ts --dry-run",
+    "users:migrate:execute": "ts-node --transpile-only scripts/migrate-users-to-username.ts --execute",
     "prisma:migrate:legacy": "prisma migrate dev",
     "prisma:migrate:deploy:legacy": "prisma migrate deploy"
   },

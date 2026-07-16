@@ -1,10 +1,19 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@nelna/shared";
 
 export class LoginDto {
-  @ApiProperty({ example: "operator@example.local" })
-  @IsEmail({}, { message: "Enter a valid email address" })
-  email!: string;
+  @ApiProperty({ example: "fg.operator01" })
+  @IsString()
+  @MinLength(USERNAME_MIN_LENGTH, {
+    message: "Enter your username",
+  })
+  @MaxLength(USERNAME_MAX_LENGTH)
+  @Matches(/^[a-zA-Z0-9._-]+$/, {
+    message:
+      "Username must be 4–40 characters: letters, numbers, dot, underscore or hyphen only",
+  })
+  username!: string;
 
   @ApiProperty({ example: "••••••••", description: "Account password" })
   @IsString()

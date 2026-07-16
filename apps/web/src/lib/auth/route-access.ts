@@ -69,7 +69,13 @@ export const ROUTE_ACCESS_RULES: RouteAccessRule[] = [
   },
 ];
 
-const PUBLIC_PATH_PREFIXES = ["/login", "/unauthorized", "/account-inactive", "/offline"];
+const PUBLIC_PATH_PREFIXES = [
+  "/login",
+  "/change-password",
+  "/unauthorized",
+  "/account-inactive",
+  "/offline",
+];
 
 /** Same-origin NestJS proxy paths — page middleware must never rewrite these. */
 export function isApiProxyPath(pathname: string): boolean {

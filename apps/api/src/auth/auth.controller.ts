@@ -19,6 +19,7 @@ import type { Request, Response } from "express";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { CurrentUserDto } from "./dto/current-user.dto";
 import { Public } from "./decorators/public.decorator";
 import { CurrentUser } from "./decorators/current-user.decorator";
@@ -42,10 +43,10 @@ export class AuthController {
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Authenticate with email + password, receiving httpOnly session cookies",
+    summary: "Authenticate with username + password, receiving httpOnly session cookies",
   })
   @ApiOkResponse({ description: "Signed in", type: CurrentUserDto })
-  @ApiUnauthorizedResponse({ description: "Invalid email or password" })
+  @ApiUnauthorizedResponse({ description: "Invalid username or password" })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
@@ -99,6 +100,26 @@ export class AuthController {
     await this.authService.logout(refreshTokenRaw);
     clearAuthCookies(res, config);
     return { success: true };
+  }
+
+  @Post("change-password")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Change password (required on first login when flagged)" })
+  @ApiOkResponse({ description: "Password changed", type: CurrentUserDto })
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @CurrentUser() currentUser: RequestUser,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CurrentUserDto> {
+    const config = getAuthConfig();
+    const { user, tokens } = await this.authService.changePassword(
+      currentUser.id,
+      dto,
+      requestMeta(req),
+    );
+    setAuthCookies(res, config, tokens);
+    return user;
   }
 
   @Get("me")

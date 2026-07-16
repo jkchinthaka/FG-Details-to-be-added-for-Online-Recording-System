@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import type { UserRole } from "@nelna/shared";
+import { normalizeUsername } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma, type UserStatus } from "../../generated/prisma-client";
 import type { AssignDepartmentDto } from "./dto/assign-department.dto";
@@ -14,6 +15,7 @@ import {
   EmployeeCodeConflictException,
   LastActiveAdminProtectionException,
   UnknownRoleException,
+  UsernameConflictException,
   UserNotFoundException,
 } from "./users.errors";
 import {
@@ -28,7 +30,7 @@ import type {
   AdminUserSummary,
 } from "./users.types";
 
-const BCRYPT_ROUNDS = 10;
+const BCRYPT_ROUNDS = 12;
 const SYSTEM_ADMIN_ROLE: UserRole = "SYSTEM_ADMINISTRATOR";
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -63,6 +65,7 @@ export class UsersService {
             OR: [
               { fullName: { contains: query.search, mode: "insensitive" } },
               { employeeCode: { contains: query.search, mode: "insensitive" } },
+              { username: { contains: query.search, mode: "insensitive" } },
               { email: { contains: query.search, mode: "insensitive" } },
             ],
           }
@@ -94,19 +97,23 @@ export class UsersService {
 
   async create(dto: CreateUserDto, actorId: string): Promise<AdminUserSummary> {
     await this.assertEmployeeCodeAvailable(dto.employeeCode);
+    const username = normalizeUsername(dto.username);
+    await this.assertUsernameAvailable(username);
     if (dto.email) {
       await this.assertEmailAvailable(dto.email);
     }
 
     const roleIds = dto.roleNames ? await this.resolveRoleIds(dto.roleNames) : [];
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const passwordHash = await bcrypt.hash(dto.temporaryPassword, BCRYPT_ROUNDS);
 
     const user = await this.prisma.user.create({
       data: {
         employeeCode: dto.employeeCode,
+        username,
         fullName: dto.fullName,
         email: dto.email ?? null,
         passwordHash,
+        mustChangePassword: true,
         departmentId: dto.departmentId,
         sectionId: dto.sectionId,
         userRoles:
@@ -128,10 +135,17 @@ export class UsersService {
     if (dto.email) {
       await this.assertEmailAvailable(dto.email, id);
     }
+    if (dto.username) {
+      await this.assertUsernameAvailable(normalizeUsername(dto.username), id);
+    }
 
     const user = await this.prisma.user.update({
       where: { id },
-      data: { fullName: dto.fullName, email: dto.email },
+      data: {
+        fullName: dto.fullName,
+        email: dto.email,
+        username: dto.username ? normalizeUsername(dto.username) : undefined,
+      },
       include: USER_WITH_RELATIONS_INCLUDE,
     });
     return toAdminUserSummary(user);
@@ -141,7 +155,7 @@ export class UsersService {
     await this.findUserOrThrow(id);
     const user = await this.prisma.user.update({
       where: { id },
-      data: { status: "ACTIVE" },
+      data: { status: "ACTIVE", deactivatedAt: null },
       include: USER_WITH_RELATIONS_INCLUDE,
     });
     await this.recordAudit(actorId, "USER_ACTIVATED", id, {});
@@ -156,7 +170,7 @@ export class UsersService {
 
     const user = await this.prisma.user.update({
       where: { id },
-      data: { status: "INACTIVE" },
+      data: { status: "INACTIVE", deactivatedAt: new Date() },
       include: USER_WITH_RELATIONS_INCLUDE,
     });
     await this.recordAudit(actorId, "USER_DEACTIVATED", id, {});
@@ -256,7 +270,17 @@ export class UsersService {
 
     await this.prisma.user.update({
       where: { id },
-      data: { passwordHash, failedLoginAttempts: 0, lockedUntil: null },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
 
     await this.recordAudit(actorId, "USER_PASSWORD_RESET", id, {});
@@ -298,6 +322,16 @@ export class UsersService {
   private async assertEmployeeCodeAvailable(employeeCode: string): Promise<void> {
     const existing = await this.prisma.user.findUnique({ where: { employeeCode } });
     if (existing) throw new EmployeeCodeConflictException(employeeCode);
+  }
+
+  private async assertUsernameAvailable(
+    username: string,
+    excludeUserId?: string,
+  ): Promise<void> {
+    const existing = await this.prisma.user.findUnique({ where: { username } });
+    if (existing && existing.id !== excludeUserId) {
+      throw new UsernameConflictException(username);
+    }
   }
 
   private async assertEmailAvailable(
@@ -343,8 +377,7 @@ function clampPageSize(pageSize: number | undefined): number {
   return Math.min(Math.trunc(pageSize), MAX_PAGE_SIZE);
 }
 
-/** URL-safe random temporary password — always at least 12 characters, no
- *  ambiguous separators — returned once in the response body only. */
+/** URL-safe random temporary password — always at least 12 characters. */
 function generateTemporaryPassword(): string {
-  return randomBytes(9).toString("base64").replace(/[+/=]/g, "x");
+  return randomBytes(12).toString("base64").replace(/[+/=]/g, "x");
 }

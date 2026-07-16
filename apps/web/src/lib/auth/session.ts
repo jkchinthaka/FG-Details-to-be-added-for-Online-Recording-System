@@ -71,7 +71,6 @@ export function resolvePostLoginPath(nextParam: string | null | undefined): stri
   if (trimmed.includes("://") || trimmed.includes("\\") || trimmed.includes("@")) {
     return DEFAULT_POST_LOGIN_PATH;
   }
-  // Block control characters and encoded path tricks
   if (/[\u0000-\u001F\u007F]/.test(trimmed)) return DEFAULT_POST_LOGIN_PATH;
   try {
     const decoded = decodeURIComponent(trimmed);
@@ -85,6 +84,9 @@ export function resolvePostLoginPath(nextParam: string | null | undefined): stri
     DISALLOWED_NEXT_PREFIXES.some((p) => trimmed === p || trimmed.startsWith(`${p}/`))
   ) {
     return DEFAULT_POST_LOGIN_PATH;
+  }
+  if (trimmed === "/change-password" || trimmed.startsWith("/change-password/")) {
+    return "/change-password";
   }
   return trimmed;
 }

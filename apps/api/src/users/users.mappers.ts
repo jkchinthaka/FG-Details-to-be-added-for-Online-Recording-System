@@ -18,9 +18,11 @@ export function toAdminUserSummary(user: UserWithRelations): AdminUserSummary {
   return {
     id: user.id,
     employeeCode: user.employeeCode,
+    username: user.username,
     fullName: user.fullName,
     email: user.email,
     status: user.status,
+    mustChangePassword: user.mustChangePassword,
     department: user.department
       ? { id: user.department.id, name: user.department.name, code: user.department.code }
       : null,
@@ -31,6 +33,7 @@ export function toAdminUserSummary(user: UserWithRelations): AdminUserSummary {
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
     failedLoginAttempts: user.failedLoginAttempts,
     lockedUntil: user.lockedUntil ? user.lockedUntil.toISOString() : null,
+    deactivatedAt: user.deactivatedAt ? user.deactivatedAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

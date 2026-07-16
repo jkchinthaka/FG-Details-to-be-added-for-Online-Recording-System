@@ -10,8 +10,10 @@ function makeUser(overrides: Record<string, unknown> = {}) {
   return {
     id: "user-1",
     employeeCode: "EMP-1001",
+    username: "nimal.perera",
     fullName: "Nimal Perera",
     email: "nimal@example.local",
+    mustChangePassword: true,
     passwordHash: "hashed",
     status: "ACTIVE",
     failedLoginAttempts: 0,
@@ -56,6 +58,7 @@ function buildPrismaMock() {
     },
     refreshToken: {
       findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     auditLog: {
       create: jest.fn().mockResolvedValue(undefined),
@@ -106,7 +109,12 @@ describe("UsersService", () => {
 
       await expect(
         service.create(
-          { employeeCode: "EMP-1001", fullName: "Dup", password: "password123" },
+          {
+            employeeCode: "EMP-1001",
+            username: "dup.user",
+            fullName: "Dup",
+            temporaryPassword: "temporary-password-12",
+          },
           "actor-1",
         ),
       ).rejects.toBeInstanceOf(EmployeeCodeConflictException);
@@ -119,13 +127,20 @@ describe("UsersService", () => {
       const service = buildService(prismaMock);
 
       const result = await service.create(
-        { employeeCode: "EMP-2002", fullName: "New User", password: "password123" },
+        {
+          employeeCode: "EMP-2002",
+          username: "new.user",
+          fullName: "New User",
+          temporaryPassword: "temporary-password-12",
+        },
         "actor-1",
       );
 
       expect(result).not.toHaveProperty("passwordHash");
       const createCall = prismaMock.user.create.mock.calls[0]![0];
-      expect(createCall.data.passwordHash).not.toBe("password123");
+      expect(createCall.data.passwordHash).not.toBe("temporary-password-12");
+      expect(createCall.data.mustChangePassword).toBe(true);
+      expect(createCall.data.username).toBe("new.user");
       expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ action: "USER_CREATED" }),
@@ -235,9 +250,14 @@ describe("UsersService", () => {
       expect(prismaMock.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "user-1" },
-          data: expect.objectContaining({ failedLoginAttempts: 0, lockedUntil: null }),
+          data: expect.objectContaining({
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+            mustChangePassword: true,
+          }),
         }),
       );
+      expect(prismaMock.refreshToken.updateMany).toHaveBeenCalled();
       expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ action: "USER_PASSWORD_RESET" }),

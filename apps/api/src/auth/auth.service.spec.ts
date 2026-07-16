@@ -6,7 +6,9 @@ import {
   AccountInactiveException,
   AccountLockedException,
   InvalidCredentialsException,
+  InvalidCurrentPasswordException,
   NotAuthenticatedException,
+  PasswordReuseException,
   SessionExpiredException,
 } from "./auth.errors";
 import { hashToken } from "./lib/token-hash";
@@ -18,9 +20,11 @@ function buildUser(overrides: Record<string, unknown> = {}) {
   return {
     id: "user-1",
     employeeCode: "EMP-OPERATOR-001",
+    username: "fg.operator01",
     fullName: "Test Operator",
     email: "operator@example.local",
     passwordHash: bcrypt.hashSync(PLAINTEXT_PASSWORD, 4),
+    mustChangePassword: false,
     status: "ACTIVE",
     failedLoginAttempts: 0,
     lockedUntil: null,
@@ -79,7 +83,7 @@ describe("AuthService", () => {
   });
 
   const loginDto: LoginDto = {
-    email: "operator@example.local",
+    username: "fg.operator01",
     password: PLAINTEXT_PASSWORD,
   };
 
@@ -140,7 +144,7 @@ describe("AuthService", () => {
   });
 
   describe("login — failure", () => {
-    it("rejects an unknown email with the generic InvalidCredentialsException", async () => {
+    it("rejects an unknown username with the generic InvalidCredentialsException", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.user.findUnique.mockResolvedValue(null);
       const { service } = buildService(prismaMock);
@@ -150,30 +154,43 @@ describe("AuthService", () => {
       );
     });
 
-    it("rejects a wrong password with the exact same exception as an unknown email", async () => {
+    it("rejects a wrong password with the exact same exception as an unknown username", async () => {
       const prismaMock = buildPrismaMock();
       prismaMock.user.findUnique.mockResolvedValue(buildUser());
       const { service } = buildService(prismaMock);
 
-      let unknownEmailError: unknown;
+      let unknownUsernameError: unknown;
       let wrongPasswordError: unknown;
 
       try {
-        await service.login({ email: "nobody@example.local", password: "whatever" });
+        await service.login({ username: "nobody.here", password: "whatever" });
       } catch (error) {
-        unknownEmailError = error;
+        unknownUsernameError = error;
       }
       try {
-        await service.login({ email: loginDto.email, password: "wrong-password" });
+        await service.login({ username: loginDto.username, password: "wrong-password" });
       } catch (error) {
         wrongPasswordError = error;
       }
 
-      expect(unknownEmailError).toBeInstanceOf(InvalidCredentialsException);
+      expect(unknownUsernameError).toBeInstanceOf(InvalidCredentialsException);
       expect(wrongPasswordError).toBeInstanceOf(InvalidCredentialsException);
-      expect((unknownEmailError as { getResponse(): unknown }).getResponse()).toEqual(
+      expect((unknownUsernameError as { getResponse(): unknown }).getResponse()).toEqual(
         (wrongPasswordError as { getResponse(): unknown }).getResponse(),
       );
+    });
+
+    it("normalizes username to lowercase before lookup", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.user.findUnique.mockResolvedValue(buildUser());
+      const { service } = buildService(prismaMock);
+
+      await service.login({ username: "FG.Operator01", password: PLAINTEXT_PASSWORD });
+
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { username: "fg.operator01" },
+        include: expect.any(Object),
+      });
     });
 
     it("increments the failed-attempt counter on a wrong password", async () => {
@@ -182,7 +199,7 @@ describe("AuthService", () => {
       const { service } = buildService(prismaMock);
 
       await expect(
-        service.login({ email: loginDto.email, password: "wrong-password" }),
+        service.login({ username: loginDto.username, password: "wrong-password" }),
       ).rejects.toBeInstanceOf(InvalidCredentialsException);
 
       expect(prismaMock.user.update).toHaveBeenCalledWith({
@@ -198,7 +215,7 @@ describe("AuthService", () => {
       const { service } = buildService(prismaMock);
 
       await expect(
-        service.login({ email: loginDto.email, password: "wrong-password" }),
+        service.login({ username: loginDto.username, password: "wrong-password" }),
       ).rejects.toBeInstanceOf(InvalidCredentialsException);
 
       const call = prismaMock.user.update.mock.calls[0]![0] as {
@@ -263,7 +280,7 @@ describe("AuthService", () => {
       const { service } = buildService(prismaMock);
 
       await expect(
-        service.login({ email: loginDto.email, password: `${PLAINTEXT_PASSWORD}!` }),
+        service.login({ username: loginDto.username, password: `${PLAINTEXT_PASSWORD}!` }),
       ).rejects.toBeInstanceOf(InvalidCredentialsException);
     });
   });
@@ -407,6 +424,52 @@ describe("AuthService", () => {
         where: { id: "rt-old" },
         data: { revokedAt: expect.any(Date) },
       });
+    });
+  });
+
+  describe("changePassword", () => {
+    it("rejects an incorrect current password", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.user.findUnique.mockResolvedValue(buildUser());
+      const { service } = buildService(prismaMock);
+
+      await expect(
+        service.changePassword("user-1", {
+          currentPassword: "wrong",
+          newPassword: "new-secure-password-12",
+        }),
+      ).rejects.toBeInstanceOf(InvalidCurrentPasswordException);
+    });
+
+    it("rejects reusing the current password", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.user.findUnique.mockResolvedValue(buildUser());
+      const { service } = buildService(prismaMock);
+
+      await expect(
+        service.changePassword("user-1", {
+          currentPassword: PLAINTEXT_PASSWORD,
+          newPassword: PLAINTEXT_PASSWORD,
+        }),
+      ).rejects.toBeInstanceOf(PasswordReuseException);
+    });
+
+    it("updates password, clears mustChangePassword and revokes sessions", async () => {
+      const prismaMock = buildPrismaMock();
+      prismaMock.user.findUnique.mockResolvedValue(
+        buildUser({ mustChangePassword: true }),
+      );
+      prismaMock.refreshToken.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      const { service } = buildService(prismaMock);
+
+      const result = await service.changePassword("user-1", {
+        currentPassword: PLAINTEXT_PASSWORD,
+        newPassword: "brand-new-password-12",
+      });
+
+      expect(result.user.mustChangePassword).toBe(false);
+      expect(result.user).not.toHaveProperty("passwordHash");
+      expect(prismaMock.refreshToken.updateMany).toHaveBeenCalled();
     });
   });
 

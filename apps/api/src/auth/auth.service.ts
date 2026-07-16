@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import type { CurrentUser, PermissionKey, UserRole } from "@nelna/shared";
+import { normalizeUsername } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma } from "../../generated/prisma-client";
 import { getAuthConfig, type AuthConfig } from "./auth.config";
@@ -10,10 +11,13 @@ import {
   AccountInactiveException,
   AccountLockedException,
   InvalidCredentialsException,
+  InvalidCurrentPasswordException,
   NotAuthenticatedException,
+  PasswordReuseException,
   SessionExpiredException,
 } from "./auth.errors";
 import type { LoginDto } from "./dto/login.dto";
+import type { ChangePasswordDto } from "./dto/change-password.dto";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./auth.types";
 import { hashToken } from "./lib/token-hash";
 
@@ -48,15 +52,17 @@ export type AuthResult = {
 
 /**
  * `bcrypt.compare` against a fixed, never-matching hash — used on the
- * unknown-email path so login() does roughly the same amount of work whether
- * or not the email exists, narrowing (not eliminating) the timing side
- * channel that would otherwise let an attacker enumerate valid emails.
+ * unknown-username path so login() does roughly the same amount of work whether
+ * or not the username exists, narrowing (not eliminating) the timing side
+ * channel that would otherwise let an attacker enumerate valid usernames.
  */
 const TIMING_SAFE_DUMMY_HASH = bcrypt.hashSync("nelna-fg-timing-safety-placeholder", 10);
 
 function msToSeconds(ms: number): number {
   return Math.max(1, Math.floor(ms / 1000));
 }
+
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class AuthService {
@@ -67,10 +73,10 @@ export class AuthService {
 
   async login(dto: LoginDto, meta: RequestMeta = {}): Promise<AuthResult> {
     const config = getAuthConfig();
-    const email = dto.email.trim().toLowerCase();
+    const username = normalizeUsername(dto.username);
 
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { username },
       include: userWithRolesInclude,
     });
 
@@ -192,6 +198,74 @@ export class AuthService {
       .catch(() => undefined);
   }
 
+  /** Revokes all refresh tokens for the user — used on password change/reset. */
+  async revokeAllSessions(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    meta: RequestMeta = {},
+  ): Promise<AuthResult> {
+    const config = getAuthConfig();
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: userWithRolesInclude,
+    });
+
+    if (!user) {
+      throw new NotAuthenticatedException();
+    }
+    if (user.status !== "ACTIVE") {
+      throw new AccountInactiveException();
+    }
+
+    const currentMatches = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!currentMatches) {
+      throw new InvalidCurrentPasswordException();
+    }
+
+    const sameAsOld = await bcrypt.compare(dto.newPassword, user.passwordHash);
+    if (sameAsOld) {
+      throw new PasswordReuseException();
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    const passwordChangedAt = new Date();
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        passwordChangedAt,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+
+    await this.revokeAllSessions(userId);
+
+    const updatedUser = { ...user, passwordHash, mustChangePassword: false };
+    const roles = this.rolesOf(updatedUser);
+    const permissions = this.permissionsOf(updatedUser);
+    const tokens = await this.issueTokens(updatedUser, roles, permissions, config, meta);
+
+    return {
+      user: this.toCurrentUser(
+        { ...updatedUser, passwordChangedAt },
+        roles,
+        permissions,
+        user.lastLoginAt,
+      ),
+      tokens,
+    };
+  }
+
   async getCurrentUser(userId: string): Promise<CurrentUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -296,9 +370,11 @@ export class AuthService {
     return {
       id: user.id,
       employeeCode: user.employeeCode,
+      username: user.username,
       fullName: user.fullName,
       email: user.email,
       status: user.status,
+      mustChangePassword: user.mustChangePassword,
       roles,
       permissions,
       lastLoginAt: lastLoginAt ? lastLoginAt.toISOString() : null,

@@ -88,3 +88,13 @@ export function logout(): Promise<void> {
 export function refreshSession(): Promise<CurrentUser> {
   return apiFetch<CurrentUser>("/auth/refresh", { method: "POST" });
 }
+
+export function changePassword(body: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<CurrentUser> {
+  return apiFetch<CurrentUser>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

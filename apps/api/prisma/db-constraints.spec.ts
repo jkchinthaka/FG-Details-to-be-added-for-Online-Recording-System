@@ -6,7 +6,8 @@
 import { PrismaClient } from "../generated/prisma-client";
 
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
-const describeIfDb = hasDatabaseUrl ? describe : describe.skip;
+const runLiveDbConstraints = process.env.RUN_DB_CONSTRAINT_TESTS === "true";
+const describeIfDb = hasDatabaseUrl && runLiveDbConstraints ? describe : describe.skip;
 
 describeIfDb("checklist template version constraints (requires DATABASE_URL)", () => {
   const prisma = new PrismaClient();

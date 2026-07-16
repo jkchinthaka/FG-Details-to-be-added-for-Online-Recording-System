@@ -23,6 +23,7 @@ import {
   deactivateUser,
   fetchUsers,
   resetUserPassword,
+  updateUser,
   type AdminUserSummary,
 } from "@/lib/admin/api";
 
@@ -33,9 +34,10 @@ type ListState =
 
 const EMPTY_CREATE_FORM = {
   employeeCode: "",
+  username: "",
   fullName: "",
   email: "",
-  password: "",
+  temporaryPassword: "",
   roleNames: [] as UserRole[],
 };
 
@@ -44,6 +46,9 @@ export function UsersAdmin() {
   const canManage = Boolean(user?.permissions.includes("users:manage"));
 
   const [listState, setListState] = useState<ListState>({ status: "loading" });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -52,17 +57,24 @@ export function UsersAdmin() {
   const [rolesTarget, setRolesTarget] = useState<AdminUserSummary | null>(null);
   const [rolesSelection, setRolesSelection] = useState<UserRole[]>([]);
   const [savingRoles, setSavingRoles] = useState(false);
+  const [editTarget, setEditTarget] = useState<AdminUserSummary | null>(null);
+  const [editForm, setEditForm] = useState({ fullName: "", username: "", email: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const reload = useCallback(() => {
     setListState({ status: "loading" });
-    fetchUsers()
+    fetchUsers({
+      search: search.trim() || undefined,
+      status: statusFilter || undefined,
+      role: roleFilter || undefined,
+    })
       .then((response) => setListState({ status: "ready", users: response.items }))
       .catch((error: unknown) => {
         const message =
           error instanceof AdminApiError ? error.message : "Failed to load users.";
         setListState({ status: "error", message });
       });
-  }, []);
+  }, [search, statusFilter, roleFilter]);
 
   useEffect(() => {
     if (authStatus !== "authenticated" || !canManage) return;
@@ -76,9 +88,10 @@ export function UsersAdmin() {
     try {
       await createUser({
         employeeCode: createForm.employeeCode.trim(),
+        username: createForm.username.trim(),
         fullName: createForm.fullName.trim(),
         email: createForm.email.trim() || undefined,
-        password: createForm.password,
+        temporaryPassword: createForm.temporaryPassword,
         roleNames: createForm.roleNames,
       });
       setCreateForm(EMPTY_CREATE_FORM);
@@ -129,6 +142,35 @@ export function UsersAdmin() {
     setRolesSelection(target.roles);
   }
 
+  function openEditModal(target: AdminUserSummary) {
+    setEditTarget(target);
+    setEditForm({
+      fullName: target.fullName,
+      username: target.username ?? "",
+      email: target.email ?? "",
+    });
+  }
+
+  async function handleSaveEdit() {
+    if (!editTarget) return;
+    setSavingEdit(true);
+    setActionError(null);
+    try {
+      await updateUser(editTarget.id, {
+        fullName: editForm.fullName.trim(),
+        username: editForm.username.trim() || undefined,
+        email: editForm.email.trim() || undefined,
+      });
+      setActionMessage(`Updated ${editForm.fullName}.`);
+      setEditTarget(null);
+      reload();
+    } catch (error) {
+      setActionError(error instanceof AdminApiError ? error.message : "Update failed.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   async function handleSaveRoles() {
     if (!rolesTarget) return;
     setSavingRoles(true);
@@ -167,7 +209,7 @@ export function UsersAdmin() {
       <PageHeader
         eyebrow="Administration"
         title="Users"
-        description="Create accounts, manage department/role assignments, and reset passwords."
+        description="Create accounts with usernames and temporary passwords, manage roles, and reset access."
       />
 
       {actionMessage ? (
@@ -208,13 +250,20 @@ export function UsersAdmin() {
               }
             />
             <Input
+              label="Username"
+              required
+              placeholder="fg.operator01"
+              value={createForm.username}
+              onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
+            />
+            <Input
               label="Full name"
               required
               value={createForm.fullName}
               onChange={(e) => setCreateForm((f) => ({ ...f, fullName: e.target.value }))}
             />
             <Input
-              label="Email"
+              label="Email (optional)"
               type="email"
               value={createForm.email}
               onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
@@ -223,9 +272,11 @@ export function UsersAdmin() {
               label="Temporary password"
               type="password"
               required
-              minLength={8}
-              value={createForm.password}
-              onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+              minLength={12}
+              value={createForm.temporaryPassword}
+              onChange={(e) =>
+                setCreateForm((f) => ({ ...f, temporaryPassword: e.target.value }))
+              }
             />
           </div>
           <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
@@ -263,6 +314,57 @@ export function UsersAdmin() {
         </form>
       </Card>
 
+      <Card>
+        <div
+          style={{
+            display: "grid",
+            gap: "0.75rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          }}
+        >
+          <Input
+            label="Search"
+            placeholder="Username, employee code or name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <label className="nelna-field">
+            <span className="nelna-field-label">Status</span>
+            <select
+              className="nelna-control nelna-focusable"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="PENDING_ACTIVATION">Pending</option>
+            </select>
+          </label>
+          <label className="nelna-field">
+            <span className="nelna-field-label">Role</span>
+            <select
+              className="nelna-control nelna-focusable"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              {USER_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {USER_ROLE_LABELS[role]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <Button variant="secondary" onClick={reload}>
+              Apply filters
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {listState.status === "loading" ? <LoadingState message="Loading users…" /> : null}
       {listState.status === "error" ? (
         <Alert tone="danger" title="Could not load users">
@@ -271,8 +373,8 @@ export function UsersAdmin() {
       ) : null}
       {listState.status === "ready" && listState.users.length === 0 ? (
         <EmptyState
-          title="No users yet"
-          description="Create the first user account above."
+          title="No users found"
+          description="Adjust filters or create a user above."
         />
       ) : null}
 
@@ -285,10 +387,12 @@ export function UsersAdmin() {
             >
               <thead>
                 <tr>
+                  <th style={{ textAlign: "left", padding: "0.5rem" }}>Username</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Employee</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Name</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Roles</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Status</th>
+                  <th style={{ textAlign: "left", padding: "0.5rem" }}>Password</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Last login</th>
                   <th style={{ textAlign: "left", padding: "0.5rem" }}>Actions</th>
                 </tr>
@@ -296,6 +400,7 @@ export function UsersAdmin() {
               <tbody>
                 {listState.users.map((u) => (
                   <tr key={u.id} style={{ borderTop: "1px solid var(--nelna-border)" }}>
+                    <td style={{ padding: "0.5rem" }}>{u.username ?? "—"}</td>
                     <td style={{ padding: "0.5rem" }}>{u.employeeCode}</td>
                     <td style={{ padding: "0.5rem" }}>{u.fullName}</td>
                     <td style={{ padding: "0.5rem" }}>
@@ -315,6 +420,13 @@ export function UsersAdmin() {
                       </Badge>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
+                      {u.mustChangePassword ? (
+                        <Badge tone="warning">Must change</Badge>
+                      ) : (
+                        <span style={{ color: "var(--nelna-text-muted)" }}>OK</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "0.5rem" }}>
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "Never"}
                     </td>
                     <td
@@ -325,6 +437,9 @@ export function UsersAdmin() {
                         flexWrap: "wrap",
                       }}
                     >
+                      <Button variant="ghost" onClick={() => openEditModal(u)}>
+                        Edit
+                      </Button>
                       <Button variant="secondary" onClick={() => openRolesModal(u)}>
                         Roles
                       </Button>
@@ -345,6 +460,41 @@ export function UsersAdmin() {
           </div>
         </Card>
       ) : null}
+
+      <Modal
+        open={editTarget !== null}
+        onClose={() => setEditTarget(null)}
+        title={`Edit — ${editTarget?.fullName ?? ""}`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} loading={savingEdit}>
+              Save
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: "grid", gap: "0.75rem" }}>
+          <Input
+            label="Full name"
+            value={editForm.fullName}
+            onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
+          />
+          <Input
+            label="Username"
+            value={editForm.username}
+            onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
+          />
+          <Input
+            label="Email (optional)"
+            type="email"
+            value={editForm.email}
+            onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+          />
+        </div>
+      </Modal>
 
       <Modal
         open={rolesTarget !== null}

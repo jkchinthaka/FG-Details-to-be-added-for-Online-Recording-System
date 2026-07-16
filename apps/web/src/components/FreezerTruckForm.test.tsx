@@ -30,9 +30,11 @@ function mockUser(overrides: Partial<CurrentUser> = {}) {
   const user: CurrentUser = {
     id: "u1",
     employeeCode: "EMP-1",
+    username: "fg.operator01",
     fullName: "Jane Operator",
     email: null,
     status: "ACTIVE",
+    mustChangePassword: false,
     roles: ["FG_OPERATOR"],
     permissions: [],
     lastLoginAt: null,

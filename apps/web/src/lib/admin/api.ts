@@ -61,15 +61,18 @@ function patch<T>(path: string, body: unknown): Promise<T> {
 export type AdminUserSummary = {
   id: string;
   employeeCode: string;
+  username: string | null;
   fullName: string;
   email: string | null;
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_ACTIVATION";
+  mustChangePassword: boolean;
   department: { id: string; name: string; code: string } | null;
   section: { id: string; name: string; code: string } | null;
   roles: UserRole[];
   lastLoginAt: string | null;
   failedLoginAttempts: number;
   lockedUntil: string | null;
+  deactivatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -94,23 +97,32 @@ export type AdminUserAccessHistoryResponse = {
 };
 
 export function fetchUsers(
-  params: { search?: string; status?: string } = {},
+  params: { search?: string; status?: string; role?: string } = {},
 ): Promise<AdminUserListResponse> {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.status) qs.set("status", params.status);
+  if (params.role) qs.set("role", params.role);
   const suffix = qs.toString() ? `?${qs}` : "";
   return apiFetch<AdminUserListResponse>(`/admin/users${suffix}`);
 }
 
 export function createUser(body: {
   employeeCode: string;
+  username: string;
   fullName: string;
   email?: string;
-  password: string;
+  temporaryPassword: string;
   roleNames?: UserRole[];
 }): Promise<AdminUserSummary> {
   return post("/admin/users", body);
+}
+
+export function updateUser(
+  id: string,
+  body: { fullName?: string; username?: string; email?: string },
+): Promise<AdminUserSummary> {
+  return patch(`/admin/users/${id}`, body);
 }
 
 export function activateUser(id: string): Promise<AdminUserSummary> {

@@ -59,6 +59,14 @@ export function decideVerifiedMiddlewareAction(
     return { action: "redirect", url: "/account-inactive" };
   }
 
+  if (session.user.mustChangePassword && pathname !== "/change-password") {
+    return { action: "redirect", url: "/change-password" };
+  }
+
+  if (!session.user.mustChangePassword && pathname === "/change-password") {
+    return { action: "redirect", url: "/tasks" };
+  }
+
   if (!canAccessRoute(pathname, session.user.roles, session.user.permissions)) {
     return {
       action: "redirect",

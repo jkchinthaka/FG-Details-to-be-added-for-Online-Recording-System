@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   UnauthorizedException,
+  BadRequestException,
 } from "@nestjs/common";
 import type { AuthErrorCode } from "@nelna/shared";
 
@@ -12,7 +13,7 @@ import type { AuthErrorCode } from "@nelna/shared";
  * message text — messages may be reworded without being a breaking change.
  *
  * Enumeration policy (documented once, here):
- *  - Unknown email and wrong password both return INVALID_CREDENTIALS with
+ *  - Unknown username and wrong password both return INVALID_CREDENTIALS with
  *    the exact same message, so a caller cannot tell which one occurred.
  *  - ACCOUNT_INACTIVE / ACCOUNT_LOCKED are only ever returned once the
  *    supplied password has already matched the stored hash — never for a
@@ -24,7 +25,25 @@ export class InvalidCredentialsException extends UnauthorizedException {
   constructor() {
     super({
       code: "INVALID_CREDENTIALS" satisfies AuthErrorCode,
-      message: "Invalid email or password.",
+      message: "Invalid username or password.",
+    });
+  }
+}
+
+export class InvalidCurrentPasswordException extends UnauthorizedException {
+  constructor() {
+    super({
+      code: "INVALID_CURRENT_PASSWORD" satisfies AuthErrorCode,
+      message: "Current password is incorrect.",
+    });
+  }
+}
+
+export class PasswordReuseException extends BadRequestException {
+  constructor() {
+    super({
+      code: "PASSWORD_REUSE" satisfies AuthErrorCode,
+      message: "New password must be different from your current password.",
     });
   }
 }

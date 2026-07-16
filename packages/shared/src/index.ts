@@ -4,6 +4,7 @@ export * from "./schemas";
 export * from "./brand";
 export * from "./permissions";
 export * from "./auth";
+export * from "./username";
 export * from "./checklist-engine";
 export * from "./dashboard";
 export * from "./inspection-records";

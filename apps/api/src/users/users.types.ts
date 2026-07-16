@@ -7,15 +7,18 @@ import type { UserRole } from "@nelna/shared";
 export type AdminUserSummary = {
   id: string;
   employeeCode: string;
+  username: string | null;
   fullName: string;
   email: string | null;
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_ACTIVATION";
+  mustChangePassword: boolean;
   department: { id: string; name: string; code: string } | null;
   section: { id: string; name: string; code: string } | null;
   roles: UserRole[];
   lastLoginAt: string | null;
   failedLoginAttempts: number;
   lockedUntil: string | null;
+  deactivatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

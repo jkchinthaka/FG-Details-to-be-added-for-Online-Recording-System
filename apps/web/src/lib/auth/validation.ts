@@ -11,7 +11,7 @@ export type LoginFieldErrors = Partial<Record<keyof LoginInput, string>>;
  * is valid — pure and framework-agnostic so it's trivial to unit test.
  */
 export function validateLogin(input: {
-  email: string;
+  username: string;
   password: string;
 }): LoginFieldErrors | null {
   const result = loginSchema.safeParse(input);
@@ -20,7 +20,7 @@ export function validateLogin(input: {
   const errors: LoginFieldErrors = {};
   for (const issue of result.error.issues) {
     const field = issue.path[0];
-    if ((field === "email" || field === "password") && !errors[field]) {
+    if ((field === "username" || field === "password") && !errors[field]) {
       errors[field] = issue.message;
     }
   }

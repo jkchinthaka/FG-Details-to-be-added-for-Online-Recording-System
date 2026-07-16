@@ -16,6 +16,12 @@ export class EmployeeCodeConflictException extends ConflictException {
   }
 }
 
+export class UsernameConflictException extends ConflictException {
+  constructor(username: string) {
+    super(`A user with username "${username}" already exists`);
+  }
+}
+
 export class EmailConflictException extends ConflictException {
   constructor(email: string) {
     super(`A user with email "${email}" already exists`);

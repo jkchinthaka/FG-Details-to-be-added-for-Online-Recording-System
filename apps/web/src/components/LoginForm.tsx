@@ -19,7 +19,7 @@ const BANNER_COPY: Record<
 > = {
   idle: null,
   submitting: null,
-  "invalid-credentials": { tone: "danger", title: "Invalid email or password" },
+  "invalid-credentials": { tone: "danger", title: "Invalid username or password" },
   "account-inactive": { tone: "warning", title: "Account inactive" },
   "account-locked": { tone: "warning", title: "Account temporarily locked" },
   "session-expired": {
@@ -39,7 +39,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const auth = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors | null>(null);
@@ -54,14 +54,18 @@ export function LoginForm() {
 
   useEffect(() => {
     if (auth.status === "authenticated") {
+      if (auth.user?.mustChangePassword) {
+        router.replace("/change-password");
+        return;
+      }
       router.replace(resolvePostLoginPath(searchParams.get("next")));
     }
-  }, [auth.status, router, searchParams]);
+  }, [auth.status, auth.user?.mustChangePassword, router, searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const errors = validateLogin({ email, password });
+    const errors = validateLogin({ username, password });
     setFieldErrors(errors);
     if (errors) {
       setFormState("idle");
@@ -72,7 +76,11 @@ export function LoginForm() {
     setServerMessage(undefined);
 
     try {
-      await auth.login({ email: email.trim(), password });
+      const currentUser = await auth.login({ username: username.trim(), password });
+      if (currentUser.mustChangePassword) {
+        router.replace("/change-password");
+        return;
+      }
       router.replace(resolvePostLoginPath(searchParams.get("next")));
     } catch (error) {
       if (error instanceof ApiError) {
@@ -131,14 +139,13 @@ export function LoginForm() {
             ) : null}
 
             <Input
-              label="Email"
-              type="email"
+              label="Username"
+              type="text"
               autoComplete="username"
-              inputMode="email"
-              placeholder="you@example.local"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              error={fieldErrors?.email}
+              placeholder="fg.operator01"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              error={fieldErrors?.username}
               disabled={isSubmitting}
               autoFocus
             />
