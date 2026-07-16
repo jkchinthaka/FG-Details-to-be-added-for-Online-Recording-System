@@ -53,6 +53,8 @@ reports/
 !reports/release/**
 !reports/hci/
 !reports/hci/**
+!reports/final/
+!reports/final/**
 # CI may write sanitized reports locally; do not commit them
 reports/ci/
 
