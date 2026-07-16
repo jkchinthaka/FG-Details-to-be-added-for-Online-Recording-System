@@ -280,7 +280,10 @@ describe("AuthService", () => {
       const { service } = buildService(prismaMock);
 
       await expect(
-        service.login({ username: loginDto.username, password: `${PLAINTEXT_PASSWORD}!` }),
+        service.login({
+          username: loginDto.username,
+          password: `${PLAINTEXT_PASSWORD}!`,
+        }),
       ).rejects.toBeInstanceOf(InvalidCredentialsException);
     });
   });

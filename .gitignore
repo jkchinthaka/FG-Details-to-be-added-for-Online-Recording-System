@@ -46,3 +46,9 @@ apps/api/generated/
 apps/web/public/workbox-*.js
 apps/web/public/sw.js.map
 # Note: apps/web/public/sw.js is the Prompt 34 service worker and is versioned.
+
+# Cutover / ops reports (may contain operational metadata)
+reports/
+
+apps/e2e/playwright-report/
+apps/e2e/test-results/

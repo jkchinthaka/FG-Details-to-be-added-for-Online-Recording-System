@@ -1,5 +1,4 @@
 /**
- * Backward-compatible wrapper.
- * Use `archive-legacy-users.ts` directly for new runs.
+ * DEPRECATED wrapper — delegates to cutover-users-to-username.ts.
  */
-import "./archive-legacy-users";
+import "./cutover-users-to-username";

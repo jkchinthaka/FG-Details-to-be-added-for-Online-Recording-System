@@ -37,25 +37,6 @@ describe("readUsernameBootstrapAdminInput", () => {
 });
 
 describe("planLegacyUserMigration", () => {
-  const emptyRelations = {
-    createdRecords: 0,
-    checkedRecords: 0,
-    verifiedRecords: 0,
-    uploadedAttachments: 0,
-    decidedApprovals: 0,
-    createdCorrectiveActions: 0,
-    assignedCorrectiveActions: 0,
-    verifiedCorrectiveActions: 0,
-    closedCorrectiveActions: 0,
-    uploadedCorrectiveEvidence: 0,
-    publishedTemplateVersions: 0,
-    createdTemplates: 0,
-    decidedTruckLoadings: 0,
-    notifications: 0,
-    auditLogs: 0,
-    taskAssignments: 0,
-  };
-
   it("never marks users for hard deletion", () => {
     const plan = planLegacyUserMigration({
       userId: "u1",

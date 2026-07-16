@@ -1,11 +1,12 @@
 /**
- * One-time production administrator bootstrap.
+ * One-time production administrator bootstrap (username + password).
  *
  * Required env (never commit real values):
- *   BOOTSTRAP_ADMIN_EMAIL
+ *   BOOTSTRAP_ADMIN_USERNAME
  *   BOOTSTRAP_ADMIN_PASSWORD
  *   BOOTSTRAP_ADMIN_EMPLOYEE_CODE
  *   BOOTSTRAP_ADMIN_FULL_NAME
+ *   BOOTSTRAP_ADMIN_EMAIL (optional)
  *   DATABASE_URL  (must target MongoDB database fg_online)
  *
  * Usage:
@@ -21,6 +22,7 @@ import {
   BOOTSTRAP_BCRYPT_ROUNDS,
   formatBootstrapValidationError,
   readBootstrapAdminInput,
+  redactBootstrapErrorMessage,
 } from "../src/database/bootstrap-admin-rules";
 
 async function main(): Promise<void> {
@@ -36,10 +38,13 @@ async function main(): Promise<void> {
   try {
     const role = await prisma.role.findUnique({
       where: { name: BOOTSTRAP_ADMIN_ROLE },
+      include: {
+        rolePermissions: { include: { permission: true } },
+      },
     });
     if (!role) {
       throw new Error(
-        `Role ${BOOTSTRAP_ADMIN_ROLE} not found — run production seed before bootstrap`,
+        `Role ${BOOTSTRAP_ADMIN_ROLE} not found — run production reference-data seed before bootstrap`,
       );
     }
 
@@ -49,19 +54,26 @@ async function main(): Promise<void> {
       where: { employeeCode: input.employeeCode },
       create: {
         employeeCode: input.employeeCode,
-        email: input.email,
+        username: input.username,
+        email: input.email ?? null,
         fullName: input.fullName,
         passwordHash,
         status: UserStatus.ACTIVE,
+        mustChangePassword: true,
+        passwordChangedAt: null,
+        deactivatedAt: null,
         failedLoginAttempts: 0,
         lockedUntil: null,
       },
       update: {
-        employeeCode: input.employeeCode,
-        email: input.email,
+        username: input.username,
+        email: input.email ?? null,
         fullName: input.fullName,
         passwordHash,
         status: UserStatus.ACTIVE,
+        mustChangePassword: true,
+        passwordChangedAt: null,
+        deactivatedAt: null,
         failedLoginAttempts: 0,
         lockedUntil: null,
       },
@@ -81,13 +93,49 @@ async function main(): Promise<void> {
       update: {},
     });
 
-    const revoked = await prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
+    const revoked = await prisma.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
 
-    // Safe success only — never password or hash.
+    const verified = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: { include: { permission: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (
+      !verified ||
+      verified.username !== input.username ||
+      verified.status !== "ACTIVE"
+    ) {
+      throw new Error("Administrator bootstrap post-write verification failed");
+    }
+
+    const hasAdminRole = verified.userRoles.some(
+      (ur) => ur.role.name === BOOTSTRAP_ADMIN_ROLE,
+    );
+    const hasUsersManage = verified.userRoles.some((ur) =>
+      ur.role.rolePermissions.some((rp) => rp.permission.key === "users:manage"),
+    );
+
+    if (!hasAdminRole || !hasUsersManage) {
+      throw new Error(
+        "Administrator bootstrap verification failed: SYSTEM_ADMINISTRATOR / users:manage missing",
+      );
+    }
+
     console.log(
-      `Administrator bootstrap OK: email=${input.email} employeeCode=${input.employeeCode} refreshTokensCleared=${revoked.count}`,
+      `Administrator bootstrap OK: username=${input.username} employeeCode=${input.employeeCode} status=ACTIVE role=${BOOTSTRAP_ADMIN_ROLE} sessionsRevoked=${revoked.count}`,
     );
   } finally {
     await prisma.$disconnect();
@@ -96,10 +144,6 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  // Guard against accidental secret leakage from nested drivers.
-  const safe = message
-    .replace(/mongodb(\+srv)?:\/\/[^\s'"]+/gi, "mongodb://***")
-    .replace(/passwordHash["']?\s*[:=]\s*["'][^"']+["']/gi, "passwordHash:***");
-  console.error(safe);
+  console.error(redactBootstrapErrorMessage(message));
   process.exitCode = 1;
 });

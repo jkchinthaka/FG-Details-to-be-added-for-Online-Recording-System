@@ -1,14 +1,15 @@
 /**
- * Pure validation helpers for the one-time production administrator bootstrap.
+ * Pure validation helpers for the one-time username-based administrator bootstrap.
  * Never log passwords or DATABASE_URL from call sites that use these helpers.
  */
+import { isValidUsername, normalizeUsername, PASSWORD_MIN_LENGTH } from "@nelna/shared";
 import {
   extractMongoDatabaseName,
   isMongoConnectionUrl,
 } from "../config/validate-production-env";
 
 export const BOOTSTRAP_ADMIN_ENV_KEYS = [
-  "BOOTSTRAP_ADMIN_EMAIL",
+  "BOOTSTRAP_ADMIN_USERNAME",
   "BOOTSTRAP_ADMIN_PASSWORD",
   "BOOTSTRAP_ADMIN_EMPLOYEE_CODE",
   "BOOTSTRAP_ADMIN_FULL_NAME",
@@ -16,16 +17,16 @@ export const BOOTSTRAP_ADMIN_ENV_KEYS = [
 
 export const BOOTSTRAP_ADMIN_ROLE = "SYSTEM_ADMINISTRATOR" as const;
 export const BOOTSTRAP_BCRYPT_ROUNDS = 12;
-export const BOOTSTRAP_MIN_PASSWORD_LENGTH = 12;
+export const BOOTSTRAP_MIN_PASSWORD_LENGTH = PASSWORD_MIN_LENGTH;
 
-/** Loose but practical production email check (no delivery probe). */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type BootstrapAdminInput = {
-  email: string;
+  username: string;
   password: string;
   employeeCode: string;
   fullName: string;
+  email?: string;
 };
 
 export type BootstrapAdminValidationIssue = {
@@ -45,28 +46,26 @@ export function readBootstrapAdminInput(env: NodeJS.ProcessEnv = process.env): {
 } {
   const issues: BootstrapAdminValidationIssue[] = [];
 
-  const email = (env.BOOTSTRAP_ADMIN_EMAIL ?? "").trim();
+  const rawUsername = (env.BOOTSTRAP_ADMIN_USERNAME ?? "").trim();
+  const username = rawUsername ? normalizeUsername(rawUsername) : "";
   const password = env.BOOTSTRAP_ADMIN_PASSWORD ?? "";
   const employeeCode = (env.BOOTSTRAP_ADMIN_EMPLOYEE_CODE ?? "").trim();
   const fullName = (env.BOOTSTRAP_ADMIN_FULL_NAME ?? "").trim();
+  const emailRaw = (env.BOOTSTRAP_ADMIN_EMAIL ?? "").trim();
+  const email = emailRaw || undefined;
 
-  if (!email) {
+  if (!username) {
+    issues.push({ field: "BOOTSTRAP_ADMIN_USERNAME", message: "Required" });
+  } else if (!isValidUsername(username)) {
     issues.push({
-      field: "BOOTSTRAP_ADMIN_EMAIL",
-      message: "Required",
-    });
-  } else if (!isValidBootstrapEmail(email)) {
-    issues.push({
-      field: "BOOTSTRAP_ADMIN_EMAIL",
-      message: "Must be a valid email address",
+      field: "BOOTSTRAP_ADMIN_USERNAME",
+      message:
+        "Must be 4–40 characters: letters, numbers, dot, underscore or hyphen only",
     });
   }
 
   if (!password) {
-    issues.push({
-      field: "BOOTSTRAP_ADMIN_PASSWORD",
-      message: "Required",
-    });
+    issues.push({ field: "BOOTSTRAP_ADMIN_PASSWORD", message: "Required" });
   } else if (password.length < BOOTSTRAP_MIN_PASSWORD_LENGTH) {
     issues.push({
       field: "BOOTSTRAP_ADMIN_PASSWORD",
@@ -75,16 +74,17 @@ export function readBootstrapAdminInput(env: NodeJS.ProcessEnv = process.env): {
   }
 
   if (!employeeCode) {
-    issues.push({
-      field: "BOOTSTRAP_ADMIN_EMPLOYEE_CODE",
-      message: "Required",
-    });
+    issues.push({ field: "BOOTSTRAP_ADMIN_EMPLOYEE_CODE", message: "Required" });
   }
 
   if (!fullName) {
+    issues.push({ field: "BOOTSTRAP_ADMIN_FULL_NAME", message: "Required" });
+  }
+
+  if (email && !isValidBootstrapEmail(email)) {
     issues.push({
-      field: "BOOTSTRAP_ADMIN_FULL_NAME",
-      message: "Required",
+      field: "BOOTSTRAP_ADMIN_EMAIL",
+      message: "Must be a valid email address when provided",
     });
   }
 
@@ -94,18 +94,16 @@ export function readBootstrapAdminInput(env: NodeJS.ProcessEnv = process.env): {
 
   return {
     input: {
-      email: email.toLowerCase(),
+      username,
       password,
       employeeCode,
       fullName,
+      email: email ? email.toLowerCase() : undefined,
     },
     issues: [],
   };
 }
 
-/**
- * Ensures DATABASE_URL targets production fg_online. Never return or log the URL.
- */
 export function assertBootstrapDatabaseUrl(databaseUrl: string | undefined): void {
   const trimmed = (databaseUrl ?? "").trim();
   if (!trimmed) {
@@ -127,4 +125,11 @@ export function formatBootstrapValidationError(
 ): string {
   const detail = issues.map((i) => `  - ${i.field}: ${i.message}`).join("\n");
   return `Administrator bootstrap rejected invalid input:\n${detail}`;
+}
+
+export function redactBootstrapErrorMessage(message: string): string {
+  return message
+    .replace(/mongodb(\+srv)?:\/\/[^\s'"]+/gi, "mongodb://[redacted]")
+    .replace(/password[=:]\S+/gi, "password=[redacted]")
+    .replace(/\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}/g, "[redacted-hash]");
 }

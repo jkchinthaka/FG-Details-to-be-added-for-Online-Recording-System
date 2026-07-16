@@ -14,6 +14,13 @@ import {
   totalSeedItemCount,
 } from "./seed-data";
 
+function normalizeExpectedUsername(employeeCode: string): string {
+  return employeeCode
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-");
+}
+
 describe("seed-data", () => {
   describe("isValidSeedPassword", () => {
     it("rejects undefined", () => {
@@ -61,6 +68,7 @@ describe("seed-data", () => {
 
       expect(user).toEqual({
         employeeCode: `SEED-${definition.role}`,
+        username: normalizeExpectedUsername(`SEED-${definition.role}`),
         email: "admin@example.local",
         password: "a-valid-password",
         fullName: definition.defaultFullName,
@@ -77,6 +85,7 @@ describe("seed-data", () => {
       });
 
       expect(user?.employeeCode).toBe("EMP-999");
+      expect(user?.username).toBe("emp-999");
       expect(user?.fullName).toBe("Custom Name");
     });
   });

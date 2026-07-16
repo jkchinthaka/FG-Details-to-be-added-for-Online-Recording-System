@@ -32,7 +32,10 @@ export const usernameSchema = z
 
 /** Builds the archived username assigned to legacy users during migration. */
 export function archivedUsernameForEmployeeCode(employeeCode: string): string {
-  const normalized = employeeCode.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+  const normalized = employeeCode
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-");
   const candidate = `archived-${normalized}`;
   if (isValidUsername(candidate)) return candidate;
   const trimmed = candidate.slice(0, USERNAME_MAX_LENGTH);

@@ -8,10 +8,7 @@ import {
   normalizeUsername,
   PASSWORD_MIN_LENGTH,
 } from "@nelna/shared";
-import {
-  assertDatabaseIsFgOnline,
-  parseCleanupMode,
-} from "./sample-data-rules";
+import { assertDatabaseIsFgOnline, parseCleanupMode } from "./sample-data-rules";
 import {
   extractMongoDatabaseName,
   isMongoConnectionUrl,
@@ -40,9 +37,7 @@ export type UsernameMigrationValidationIssue = {
   message: string;
 };
 
-export function readUsernameBootstrapAdminInput(
-  env: NodeJS.ProcessEnv = process.env,
-): {
+export function readUsernameBootstrapAdminInput(env: NodeJS.ProcessEnv = process.env): {
   input?: UsernameBootstrapAdminInput;
   issues: UsernameMigrationValidationIssue[];
 } {
@@ -95,7 +90,9 @@ export function readUsernameBootstrapAdminInput(
   };
 }
 
-export function assertUsernameMigrationDatabaseUrl(databaseUrl: string | undefined): void {
+export function assertUsernameMigrationDatabaseUrl(
+  databaseUrl: string | undefined,
+): void {
   const trimmed = (databaseUrl ?? "").trim();
   if (!trimmed) {
     throw new Error("DATABASE_URL is required for username migration");
@@ -158,9 +155,11 @@ export function planLegacyUserMigration(args: {
   const isReplacementAdmin =
     args.employeeCode === args.replacementAdminEmployeeCode ||
     (args.username !== null &&
-      normalizeUsername(args.username) === normalizeUsername(args.replacementAdminUsername));
+      normalizeUsername(args.username) ===
+        normalizeUsername(args.replacementAdminUsername));
 
-  const archivedUsername = args.username ?? archivedUsernameForEmployeeCode(args.employeeCode);
+  const archivedUsername =
+    args.username ?? archivedUsernameForEmployeeCode(args.employeeCode);
 
   return {
     userId: args.userId,

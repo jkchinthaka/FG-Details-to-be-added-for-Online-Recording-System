@@ -69,7 +69,10 @@ export function ChangePasswordForm() {
         >
           Set a new password
         </h1>
-        <p className="mb-6 text-center text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
+        <p
+          className="mb-6 text-center text-sm"
+          style={{ color: "var(--nelna-text-secondary)" }}
+        >
           Your administrator issued a temporary password. Choose a new password (minimum{" "}
           {PASSWORD_MIN_LENGTH} characters) before continuing.
         </p>

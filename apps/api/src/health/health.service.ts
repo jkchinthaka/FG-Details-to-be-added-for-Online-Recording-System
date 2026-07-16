@@ -31,7 +31,10 @@ function appVersion(): string {
 }
 
 function buildId(): string | null {
-  const raw = process.env.APP_BUILD_ID?.trim() || process.env.GIT_COMMIT_SHA?.trim();
+  const raw =
+    process.env.APP_BUILD_ID?.trim() ||
+    (process.env.RENDER === "true" ? process.env.RENDER_GIT_COMMIT?.trim() : "") ||
+    process.env.GIT_COMMIT_SHA?.trim();
   if (!raw) return null;
   // Keep public health payload free of long infra paths — truncate to 12 chars.
   return raw.slice(0, 12);

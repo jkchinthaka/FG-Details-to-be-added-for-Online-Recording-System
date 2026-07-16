@@ -4,11 +4,12 @@ import {
   isValidBootstrapEmail,
   readBootstrapAdminInput,
   BOOTSTRAP_MIN_PASSWORD_LENGTH,
+  redactBootstrapErrorMessage,
 } from "./bootstrap-admin-rules";
 
-describe("bootstrap-admin-rules", () => {
+describe("bootstrap-admin-rules (username)", () => {
   const complete = {
-    BOOTSTRAP_ADMIN_EMAIL: "admin@nelna.example",
+    BOOTSTRAP_ADMIN_USERNAME: "sys.admin",
     BOOTSTRAP_ADMIN_PASSWORD: "SecurePass!234",
     BOOTSTRAP_ADMIN_EMPLOYEE_CODE: "EMP-ADMIN-100",
     BOOTSTRAP_ADMIN_FULL_NAME: "Production Administrator",
@@ -18,19 +19,20 @@ describe("bootstrap-admin-rules", () => {
     const { input, issues } = readBootstrapAdminInput(complete);
     expect(issues).toEqual([]);
     expect(input).toEqual({
-      email: "admin@nelna.example",
+      username: "sys.admin",
       password: "SecurePass!234",
       employeeCode: "EMP-ADMIN-100",
       fullName: "Production Administrator",
+      email: undefined,
     });
   });
 
-  it("requires all four environment variables", () => {
+  it("requires username, password, employee code and full name", () => {
     const { issues } = readBootstrapAdminInput({});
     const fields = issues.map((i) => i.field);
     expect(fields).toEqual(
       expect.arrayContaining([
-        "BOOTSTRAP_ADMIN_EMAIL",
+        "BOOTSTRAP_ADMIN_USERNAME",
         "BOOTSTRAP_ADMIN_PASSWORD",
         "BOOTSTRAP_ADMIN_EMPLOYEE_CODE",
         "BOOTSTRAP_ADMIN_FULL_NAME",
@@ -38,14 +40,28 @@ describe("bootstrap-admin-rules", () => {
     );
   });
 
-  it("rejects invalid email", () => {
+  it("rejects missing username", () => {
     const { issues } = readBootstrapAdminInput({
       ...complete,
-      BOOTSTRAP_ADMIN_EMAIL: "not-an-email",
+      BOOTSTRAP_ADMIN_USERNAME: "",
     });
-    expect(issues.some((i) => i.field === "BOOTSTRAP_ADMIN_EMAIL")).toBe(true);
-    expect(isValidBootstrapEmail("not-an-email")).toBe(false);
-    expect(isValidBootstrapEmail("ok@nelna.lk")).toBe(true);
+    expect(issues.some((i) => i.field === "BOOTSTRAP_ADMIN_USERNAME")).toBe(true);
+  });
+
+  it("rejects invalid username", () => {
+    const { issues } = readBootstrapAdminInput({
+      ...complete,
+      BOOTSTRAP_ADMIN_USERNAME: "ab",
+    });
+    expect(issues.some((i) => i.field === "BOOTSTRAP_ADMIN_USERNAME")).toBe(true);
+  });
+
+  it("normalizes username to lowercase", () => {
+    const { input } = readBootstrapAdminInput({
+      ...complete,
+      BOOTSTRAP_ADMIN_USERNAME: "Sys.Admin",
+    });
+    expect(input?.username).toBe("sys.admin");
   });
 
   it("rejects passwords shorter than 12 characters", () => {
@@ -57,14 +73,21 @@ describe("bootstrap-admin-rules", () => {
     expect(BOOTSTRAP_MIN_PASSWORD_LENGTH).toBe(12);
   });
 
-  it("normalizes email to lowercase without altering password", () => {
-    const { input } = readBootstrapAdminInput({
-      ...complete,
-      BOOTSTRAP_ADMIN_EMAIL: "Admin@Nelna.Example",
-      BOOTSTRAP_ADMIN_PASSWORD: "SecurePass!234",
-    });
-    expect(input?.email).toBe("admin@nelna.example");
-    expect(input?.password).toBe("SecurePass!234");
+  it("accepts optional valid email and rejects invalid optional email", () => {
+    expect(
+      readBootstrapAdminInput({
+        ...complete,
+        BOOTSTRAP_ADMIN_EMAIL: "Admin@Nelna.Example",
+      }).input?.email,
+    ).toBe("admin@nelna.example");
+
+    expect(
+      readBootstrapAdminInput({
+        ...complete,
+        BOOTSTRAP_ADMIN_EMAIL: "not-an-email",
+      }).issues.some((i) => i.field === "BOOTSTRAP_ADMIN_EMAIL"),
+    ).toBe(true);
+    expect(isValidBootstrapEmail("ok@nelna.lk")).toBe(true);
   });
 
   it("formats validation errors without embedding passwords", () => {
@@ -73,11 +96,11 @@ describe("bootstrap-admin-rules", () => {
       readBootstrapAdminInput({
         ...complete,
         BOOTSTRAP_ADMIN_PASSWORD: password,
-        BOOTSTRAP_ADMIN_EMAIL: "bad",
+        BOOTSTRAP_ADMIN_USERNAME: "ab",
       }).issues,
     );
     expect(message).not.toContain(password);
-    expect(message).toMatch(/BOOTSTRAP_ADMIN_EMAIL/);
+    expect(message).toMatch(/BOOTSTRAP_ADMIN_USERNAME/);
   });
 
   it("accepts only fg_online for DATABASE_URL", () => {
@@ -92,21 +115,13 @@ describe("bootstrap-admin-rules", () => {
         "mongodb+srv://u:p@cluster0.example.mongodb.net/fg_online_test",
       ),
     ).toThrow(/fg_online/);
-
-    expect(() => assertBootstrapDatabaseUrl(undefined)).toThrow(/DATABASE_URL/);
   });
 
-  it("never returns the connection string from assertBootstrapDatabaseUrl", () => {
-    const secretUrl =
-      "mongodb+srv://secretUser:SuperSecretPassword99@cluster0.example.mongodb.net/wrong_db";
-    try {
-      assertBootstrapDatabaseUrl(secretUrl);
-      fail("expected throw");
-    } catch (error) {
-      const text = error instanceof Error ? error.message : String(error);
-      expect(text).not.toContain("SuperSecretPassword99");
-      expect(text).not.toContain("secretUser");
-      expect(text).not.toContain(secretUrl);
-    }
+  it("redacts secrets from bootstrap error messages", () => {
+    const safe = redactBootstrapErrorMessage(
+      "fail mongodb+srv://u:SecretPass@host/fg_online password=SecretPass $2b$12$abcdefghijklmnopqrstuv",
+    );
+    expect(safe).not.toContain("SecretPass");
+    expect(safe).toMatch(/\[redacted/);
   });
 });

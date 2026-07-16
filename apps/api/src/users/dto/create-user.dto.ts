@@ -14,7 +14,6 @@ import {
   PASSWORD_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
-  USERNAME_PATTERN,
 } from "@nelna/shared";
 
 export class CreateUserDto {
@@ -45,7 +44,9 @@ export class CreateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ description: `Temporary password (min ${PASSWORD_MIN_LENGTH} characters)` })
+  @ApiProperty({
+    description: `Temporary password (min ${PASSWORD_MIN_LENGTH} characters)`,
+  })
   @IsString()
   @MinLength(PASSWORD_MIN_LENGTH)
   @MaxLength(200)

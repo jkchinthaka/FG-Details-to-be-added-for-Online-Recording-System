@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsString, Matches, MaxLength, MinLength } from "class-validator";
-import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@nelna/shared";
+import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@nelna/shared";
 
 export class LoginDto {
   @ApiProperty({ example: "fg.operator01" })

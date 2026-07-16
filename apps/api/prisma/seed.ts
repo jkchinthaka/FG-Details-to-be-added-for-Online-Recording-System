@@ -247,14 +247,21 @@ async function seedSampleUsers() {
       where: { employeeCode: user.employeeCode },
       create: {
         employeeCode: user.employeeCode,
+        username: user.username,
         email: user.email,
         fullName: user.fullName,
         passwordHash,
+        mustChangePassword: false,
+        status: "ACTIVE",
       },
       update: {
+        username: user.username,
         email: user.email,
         fullName: user.fullName,
         passwordHash,
+        mustChangePassword: false,
+        status: "ACTIVE",
+        deactivatedAt: null,
       },
     });
 
@@ -264,7 +271,9 @@ async function seedSampleUsers() {
       update: {},
     });
 
-    console.log(`Seeded sample user ${user.employeeCode} (${user.role})`);
+    console.log(
+      `Seeded sample user ${user.username} / ${user.employeeCode} (${user.role})`,
+    );
   }
 }
 

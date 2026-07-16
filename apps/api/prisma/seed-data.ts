@@ -14,6 +14,7 @@ import {
   USER_ROLES,
   USER_ROLE_LABELS,
   detectWorkShiftForHour,
+  normalizeUsername,
   type ChecklistItemType,
   type PermissionKey,
   type UserRole,
@@ -359,6 +360,7 @@ export const SEED_USER_DEFINITIONS: SeedUserDefinition[] = [
 
 export type ResolvedSeedUser = {
   employeeCode: string;
+  username: string;
   email: string;
   password: string;
   fullName: string;
@@ -395,9 +397,11 @@ export function resolveSeedUser(
 
   const employeeCode =
     env[definition.employeeCodeEnv] ?? defaultEmployeeCode(definition.role);
+  const username = normalizeUsername(employeeCode.replace(/[^a-zA-Z0-9._-]/g, "-"));
 
   return {
     employeeCode,
+    username,
     email,
     password,
     fullName: env[definition.fullNameEnv] ?? definition.defaultFullName,

@@ -3,9 +3,7 @@ import { validateLogin } from "./validation";
 
 describe("validateLogin", () => {
   it("accepts a well-formed username and non-empty password", () => {
-    expect(
-      validateLogin({ username: "fg.operator01", password: "s3cret!" }),
-    ).toBeNull();
+    expect(validateLogin({ username: "fg.operator01", password: "s3cret!" })).toBeNull();
   });
 
   it("rejects an empty username", () => {
