@@ -49,6 +49,10 @@ apps/web/public/sw.js.map
 
 # Cutover / ops reports (may contain operational metadata)
 reports/
+!reports/hci/
+!reports/hci/**
+!reports/p0/
+!reports/p0/**
 
 apps/e2e/playwright-report/
 apps/e2e/test-results/

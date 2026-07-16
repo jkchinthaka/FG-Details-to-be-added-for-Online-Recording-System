@@ -1,0 +1,16 @@
+{
+  "technicalDecision": "P0_TECHNICAL_CONDITIONAL_PASS",
+  "startingSha": "49fc5f4d682681a8f29727d4912ccf26f2d55f18",
+  "endingSha": "PENDING_COMMITS",
+  "branch": "cursor/p0-integrity-hardening-20260716-2229",
+  "backupBranch": "backup/p0-integrity-hardening-20260716-2229",
+  "concurrency": "UNIT_HELPERS_PASS; INTEGRATION_REQUIRES_CI_MONGODB",
+  "deduplication": "CODED_PLUS_INDEX_SCRIPT; 20WAY_IN_P0_CONCURRENCY_SPEC",
+  "evidenceUpload": "MULTIPART_ENDPOINT_ADDED; RULES_UNIT_PASS",
+  "refreshReuse": "FAMILY_REVOCATION_UNIT_PASS",
+  "ci": "NODE_22_16_E2E_BLOCKING; CANARY_NOT_EXECUTED_IN_SESSION",
+  "releaseAlignment": "SCRIPTS_ADDED; LIVE_COMPARE_NOT_RUN",
+  "restore": "BLOCKED_EXTERNAL_RESTORE_TARGET",
+  "humanDecisions": "HUMAN_DECISION_REQUIRED",
+  "deploy": "NOT_PERFORMED"
+}

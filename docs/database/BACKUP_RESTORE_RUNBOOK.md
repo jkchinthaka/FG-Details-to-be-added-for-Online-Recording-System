@@ -1,9 +1,12 @@
 # Backup & Restore Runbook — Nelna FG Digital Recording System
 
+> **Superseded for production MongoDB:** see [`MONGODB_BACKUP_RESTORE.md`](./MONGODB_BACKUP_RESTORE.md).
+> The PostgreSQL/`pg_dump` content below is retained only for historical reference and must not be used against `fg_online`.
+
 **Audience:** IT Manager, DBAs, on-call engineers  
-**Database:** PostgreSQL via Prisma (`DATABASE_URL`)  
-**Last reviewed:** 2026-07-14 (Prompt 39)  
-**Latest dynamic restore evidence:** **NOT EXECUTED** — see `RESTORE_TEST_EVIDENCE.md`
+**Database (current):** MongoDB Atlas + GridFS (`fgEvidence`)  
+**Last reviewed:** 2026-07-16 (P0 integrity hardening)  
+**Latest dynamic restore evidence:** **BLOCKED_EXTERNAL_RESTORE_TARGET** / **NOT EXECUTED** — see `RESTORE_TEST_EVIDENCE.md` and `MONGODB_BACKUP_RESTORE.md`
 
 ---
 
