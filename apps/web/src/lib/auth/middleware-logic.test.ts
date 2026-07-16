@@ -117,17 +117,26 @@ describe("decideVerifiedMiddlewareAction", () => {
     ).toEqual({ action: "allow" });
   });
 
-  it("redirects away from change-password after flag clears (admin lands on /admin)", () => {
+  it("does not redirect-loop: change-password stays allowed while flag is true", () => {
+    const first = decideVerifiedMiddlewareAction("/change-password", {
+      status: "ok",
+      user: { ...activeUser, mustChangePassword: true },
+    });
+    const second = decideVerifiedMiddlewareAction("/tasks", {
+      status: "ok",
+      user: { ...activeUser, mustChangePassword: true },
+    });
+    expect(first).toEqual({ action: "allow" });
+    expect(second).toEqual({ action: "redirect", url: "/change-password" });
+  });
+
+  it("operator landing after password change is /tasks not /admin", () => {
     expect(
       decideVerifiedMiddlewareAction("/change-password", {
         status: "ok",
-        user: {
-          ...activeUser,
-          mustChangePassword: false,
-          roles: ["SYSTEM_ADMINISTRATOR"],
-        },
+        user: { ...activeUser, mustChangePassword: false },
       }),
-    ).toEqual({ action: "redirect", url: "/admin" });
+    ).toEqual({ action: "redirect", url: "/tasks" });
   });
 
   it("allows an operator on records", () => {
