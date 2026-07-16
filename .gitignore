@@ -51,6 +51,8 @@ apps/web/public/sw.js.map
 reports/
 !reports/release/
 !reports/release/**
+!reports/hci/
+!reports/hci/**
 # CI may write sanitized reports locally; do not commit them
 reports/ci/
 
