@@ -25,6 +25,8 @@
     "dr:verify-backup": "node scripts/disaster-recovery/verify-backup.js",
     "dr:restore-dry-run": "node scripts/disaster-recovery/restore-isolated.js",
     "dr:reconcile": "node scripts/disaster-recovery/reconcile-all.js",
+    "db:reconcile-integrity": "node scripts/database/reconcile-integrity.js",
+    "perf:smoke": "node scripts/perf/run-profile.mjs",
     "db:test:up": "docker compose -f docker-compose.test.yml up -d --wait",
     "db:test:down": "docker compose -f docker-compose.test.yml down -v",
     "format": "prettier --write .",
