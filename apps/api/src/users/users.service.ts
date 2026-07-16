@@ -266,8 +266,11 @@ export class UsersService {
       take: 50,
       select: {
         id: true,
+        familyId: true,
+        sessionId: true,
         issuedAt: true,
         expiresAt: true,
+        consumedAt: true,
         revokedAt: true,
         userAgent: true,
         ipAddress: true,
@@ -278,8 +281,11 @@ export class UsersService {
       lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
       sessions: sessions.map((session) => ({
         id: session.id,
+        familyId: session.familyId,
+        sessionId: session.sessionId,
         issuedAt: session.issuedAt.toISOString(),
         expiresAt: session.expiresAt.toISOString(),
+        consumedAt: session.consumedAt ? session.consumedAt.toISOString() : null,
         revokedAt: session.revokedAt ? session.revokedAt.toISOString() : null,
         userAgent: session.userAgent,
         ipAddress: session.ipAddress,

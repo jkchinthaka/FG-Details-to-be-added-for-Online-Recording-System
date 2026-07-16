@@ -297,15 +297,25 @@ model RefreshToken {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
   userId            String    @db.ObjectId
   user              User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  /// Rotation chain identifier — all tokens from one login/refresh lineage share this.
+  familyId          String
+  /// Device/browser session identifier (stable across rotation within a family).
+  sessionId         String
   tokenHash         String    @unique
   issuedAt          DateTime  @default(now())
   expiresAt         DateTime
+  /// Set atomically when the token is consumed during a successful rotation.
+  consumedAt        DateTime?
   revokedAt         DateTime?
   replacedByTokenId String?   @db.ObjectId
+  /// Set when a consumed token is presented again (compromise signal).
+  reuseDetectedAt   DateTime?
   userAgent         String?
   ipAddress         String?
 
   @@index([userId])
+  @@index([familyId])
+  @@index([sessionId])
   @@index([expiresAt])
   @@map("refresh_tokens")
 }

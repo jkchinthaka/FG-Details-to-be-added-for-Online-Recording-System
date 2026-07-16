@@ -32,8 +32,11 @@ export type AdminUserListResponse = {
 
 export type AdminUserAccessHistoryEntry = {
   id: string;
+  familyId: string;
+  sessionId: string;
   issuedAt: string;
   expiresAt: string;
+  consumedAt: string | null;
   revokedAt: string | null;
   userAgent: string | null;
   ipAddress: string | null;

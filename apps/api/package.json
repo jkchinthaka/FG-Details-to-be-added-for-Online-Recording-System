@@ -24,6 +24,8 @@
     "db:indexes:verify-draft-dedup": "node ../../scripts/database/verify-draft-dedup-index.js",
     "evidence:reconcile": "node ../../scripts/database/reconcile-evidence-orphans.js",
     "evidence:reconcile:cleanup": "node ../../scripts/database/reconcile-evidence-orphans.js --cleanup",
+    "auth:tokens:cleanup-expired": "node ../../scripts/database/cleanup-expired-refresh-tokens.js",
+    "auth:tokens:cleanup-expired:execute": "node ../../scripts/database/cleanup-expired-refresh-tokens.js --execute",
     "users:cutover:dry-run": "ts-node --transpile-only scripts/cutover-users-to-username.ts --dry-run",
     "users:cutover:execute": "ts-node --transpile-only scripts/cutover-users-to-username.ts --execute",
     "users:migrate:dry-run": "ts-node --transpile-only scripts/cutover-users-to-username.ts --dry-run",

@@ -3,7 +3,11 @@ import type { AuthErrorCode, CurrentUser, LoginInput } from "@nelna/shared";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 function isSessionExpiredAuthCode(code: AuthErrorCode | "UNKNOWN"): boolean {
-  return code === "SESSION_EXPIRED" || code === "NOT_AUTHENTICATED";
+  return (
+    code === "SESSION_EXPIRED" ||
+    code === "TOKEN_REUSE_DETECTED" ||
+    code === "NOT_AUTHENTICATED"
+  );
 }
 
 export class ApiError extends Error {

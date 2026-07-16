@@ -26,6 +26,7 @@ export function loginFormStateForErrorCode(
     case "ACCOUNT_LOCKED":
       return "account-locked";
     case "SESSION_EXPIRED":
+    case "TOKEN_REUSE_DETECTED":
       return "session-expired";
     default:
       return "unknown-error";
@@ -34,7 +35,11 @@ export function loginFormStateForErrorCode(
 
 /** True for the auth error codes that mean "the session is no longer valid" — as opposed to a login attempt failing. */
 export function isSessionExpiredCode(code: AuthErrorCode | "UNKNOWN"): boolean {
-  return code === "SESSION_EXPIRED" || code === "NOT_AUTHENTICATED";
+  return (
+    code === "SESSION_EXPIRED" ||
+    code === "TOKEN_REUSE_DETECTED" ||
+    code === "NOT_AUTHENTICATED"
+  );
 }
 
 /**

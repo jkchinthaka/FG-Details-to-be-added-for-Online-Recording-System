@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -131,5 +132,40 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: "Not authenticated or session expired" })
   async me(@CurrentUser() currentUser: RequestUser): Promise<CurrentUserDto> {
     return this.authService.getCurrentUser(currentUser.id);
+  }
+
+  @Get("sessions")
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary: "List active and recent sign-in sessions for the current user",
+  })
+  async sessions(@Req() req: Request, @CurrentUser() currentUser: RequestUser) {
+    const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as
+      string | undefined;
+    return this.authService.listSessions(currentUser.id, refreshTokenRaw);
+  }
+
+  @Post("sessions/:familyId/revoke")
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
+  @ApiOperation({ summary: "Revoke a single sign-in session (token family)" })
+  async revokeSession(
+    @Param("familyId") familyId: string,
+    @CurrentUser() currentUser: RequestUser,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ success: true }> {
+    const config = getAuthConfig();
+    const refreshTokenRaw = req.cookies?.[AUTH_COOKIE_NAMES.refreshToken] as
+      string | undefined;
+    const { clearedCurrent } = await this.authService.revokeSession(
+      currentUser.id,
+      familyId,
+      refreshTokenRaw,
+    );
+    if (clearedCurrent) {
+      clearAuthCookies(res, config);
+    }
+    return { success: true };
   }
 }
