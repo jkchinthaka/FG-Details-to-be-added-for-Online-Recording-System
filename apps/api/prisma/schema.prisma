@@ -196,6 +196,8 @@ model User {
   mustChangePassword Boolean  @default(true)
   passwordChangedAt  DateTime?
   deactivatedAt      DateTime?
+  /** Incremented on password/role/security changes; embedded in JWT for immediate invalidation. */
+  authVersion        Int       @default(0)
 
   /**
    * Failed-login protection: an attempt counter with a timed lockout.

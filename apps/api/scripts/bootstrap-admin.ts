@@ -17,6 +17,7 @@
 import * as bcrypt from "bcrypt";
 import { PrismaClient, UserStatus } from "../generated/prisma-client";
 import {
+  assertBootstrapAllowed,
   assertBootstrapDatabaseUrl,
   BOOTSTRAP_ADMIN_ROLE,
   BOOTSTRAP_BCRYPT_ROUNDS,
@@ -26,6 +27,7 @@ import {
 } from "../src/database/bootstrap-admin-rules";
 
 async function main(): Promise<void> {
+  assertBootstrapAllowed(process.env);
   assertBootstrapDatabaseUrl(process.env.DATABASE_URL);
 
   const { input, issues } = readBootstrapAdminInput(process.env);

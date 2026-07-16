@@ -1,4 +1,5 @@
 import {
+  assertBootstrapAllowed,
   assertBootstrapDatabaseUrl,
   formatBootstrapValidationError,
   isValidBootstrapEmail,
@@ -25,6 +26,13 @@ describe("bootstrap-admin-rules (username)", () => {
       fullName: "Production Administrator",
       email: undefined,
     });
+  });
+
+  it("refuses bootstrap without ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES", () => {
+    expect(() => assertBootstrapAllowed({})).toThrow(/ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES/);
+    expect(() =>
+      assertBootstrapAllowed({ ALLOW_PRODUCTION_ADMIN_BOOTSTRAP: "YES" }),
+    ).not.toThrow();
   });
 
   it("requires username, password, employee code and full name", () => {

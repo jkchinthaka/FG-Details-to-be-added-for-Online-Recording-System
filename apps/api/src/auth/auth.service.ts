@@ -167,6 +167,16 @@ export class AuthService {
       throw new AccountInactiveException();
     }
 
+    const dbAuthVersion = user.authVersion ?? 0;
+    const tokenAuthVersion = payload.authVersion ?? 0;
+    if (tokenAuthVersion !== dbAuthVersion) {
+      await this.prisma.refreshToken.update({
+        where: { id: stored.id },
+        data: { revokedAt: new Date() },
+      });
+      throw new SessionExpiredException();
+    }
+
     const roles = this.rolesOf(user);
     const permissions = this.permissionsOf(user);
     const tokens = await this.issueTokens(user, roles, permissions, config, meta);
@@ -245,23 +255,26 @@ export class AuthService {
         passwordChangedAt,
         failedLoginAttempts: 0,
         lockedUntil: null,
+        authVersion: { increment: 1 },
       },
     });
 
     await this.revokeAllSessions(userId);
 
-    const updatedUser = { ...user, passwordHash, mustChangePassword: false };
-    const roles = this.rolesOf(updatedUser);
-    const permissions = this.permissionsOf(updatedUser);
-    const tokens = await this.issueTokens(updatedUser, roles, permissions, config, meta);
+    const reloaded = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: userWithRolesInclude,
+    });
+    if (!reloaded) {
+      throw new NotAuthenticatedException();
+    }
+
+    const roles = this.rolesOf(reloaded);
+    const permissions = this.permissionsOf(reloaded);
+    const tokens = await this.issueTokens(reloaded, roles, permissions, config, meta);
 
     return {
-      user: this.toCurrentUser(
-        { ...updatedUser, passwordChangedAt },
-        roles,
-        permissions,
-        user.lastLoginAt,
-      ),
+      user: this.toCurrentUser(reloaded, roles, permissions, reloaded.lastLoginAt),
       tokens,
     };
   }
@@ -317,6 +330,7 @@ export class AuthService {
       fullName: user.fullName,
       roles,
       permissions,
+      authVersion: user.authVersion ?? 0,
     };
     // expiresIn is passed as whole seconds (a plain number) rather than a
     // duration string — jsonwebtoken's TS types only accept the `ms`
@@ -328,7 +342,11 @@ export class AuthService {
       expiresIn: msToSeconds(config.accessTokenTtlMs),
     });
 
-    const refreshPayload: RefreshTokenPayload = { sub: user.id, jti: randomUUID() };
+    const refreshPayload: RefreshTokenPayload = {
+      sub: user.id,
+      jti: randomUUID(),
+      authVersion: user.authVersion ?? 0,
+    };
     const refreshToken = await this.jwtService.signAsync(refreshPayload, {
       secret: config.refreshTokenSecret,
       expiresIn: msToSeconds(config.refreshTokenTtlMs),

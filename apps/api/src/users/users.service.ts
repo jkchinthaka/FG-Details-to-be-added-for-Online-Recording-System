@@ -159,8 +159,16 @@ export class UsersService {
     await this.findUserOrThrow(id);
     const user = await this.prisma.user.update({
       where: { id },
-      data: { status: "ACTIVE", deactivatedAt: null },
+      data: {
+        status: "ACTIVE",
+        deactivatedAt: null,
+        authVersion: { increment: 1 },
+      },
       include: USER_WITH_RELATIONS_INCLUDE,
+    });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
     await this.recordAudit(actorId, "USER_ACTIVATED", id, {});
     return toAdminUserSummary(user);
@@ -174,8 +182,16 @@ export class UsersService {
 
     const user = await this.prisma.user.update({
       where: { id },
-      data: { status: "INACTIVE", deactivatedAt: new Date() },
+      data: {
+        status: "INACTIVE",
+        deactivatedAt: new Date(),
+        authVersion: { increment: 1 },
+      },
       include: USER_WITH_RELATIONS_INCLUDE,
+    });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
     await this.recordAudit(actorId, "USER_DEACTIVATED", id, {});
     return toAdminUserSummary(user);
@@ -219,6 +235,14 @@ export class UsersService {
       this.prisma.userRole.deleteMany({ where: { userId: id } }),
       this.prisma.userRole.createMany({
         data: roleIds.map((roleId) => ({ userId: id, roleId })),
+      }),
+      this.prisma.user.update({
+        where: { id },
+        data: { authVersion: { increment: 1 } },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
       }),
     ]);
 
@@ -277,8 +301,10 @@ export class UsersService {
       data: {
         passwordHash,
         mustChangePassword: true,
+        passwordChangedAt: null,
         failedLoginAttempts: 0,
         lockedUntil: null,
+        authVersion: { increment: 1 },
       },
     });
 

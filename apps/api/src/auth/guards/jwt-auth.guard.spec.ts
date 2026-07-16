@@ -2,8 +2,13 @@ import { ExecutionContext } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Reflector } from "@nestjs/core";
 import { JwtAuthGuard } from "./jwt-auth.guard";
-import { NotAuthenticatedException, SessionExpiredException } from "../auth.errors";
+import {
+  AccountInactiveException,
+  NotAuthenticatedException,
+  SessionExpiredException,
+} from "../auth.errors";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
+import type { PrismaService } from "../../prisma/prisma.service";
 
 function buildContext(cookies: Record<string, string>): {
   context: ExecutionContext;
@@ -33,13 +38,36 @@ describe("JwtAuthGuard", () => {
     process.env.NODE_ENV = previousNodeEnv;
   });
 
-  function buildGuard(reflectorReturn: boolean | undefined = undefined) {
+  function buildGuard(
+    reflectorReturn: boolean | undefined = undefined,
+    prismaUser: Record<string, unknown> | null = {
+      id: "user-1",
+      employeeCode: "EMP-1",
+      fullName: "Test User",
+      status: "ACTIVE",
+      mustChangePassword: false,
+      authVersion: 0,
+      userRoles: [
+        {
+          role: {
+            name: "FG_OPERATOR",
+            rolePermissions: [{ permission: { key: "records:create" } }],
+          },
+        },
+      ],
+    },
+  ) {
     const jwtService = new JwtService({ secret: "test-access-secret" });
     const reflector = {
       getAllAndOverride: jest.fn().mockReturnValue(reflectorReturn),
     } as unknown as Reflector;
-    const guard = new JwtAuthGuard(jwtService, reflector);
-    return { guard, jwtService };
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue(prismaUser),
+      },
+    } as unknown as PrismaService;
+    const guard = new JwtAuthGuard(jwtService, reflector, prisma);
+    return { guard, jwtService, prisma };
   }
 
   it("allows public routes through without a token", async () => {
@@ -75,6 +103,7 @@ describe("JwtAuthGuard", () => {
         fullName: "Test User",
         roles: [],
         permissions: [],
+        authVersion: 0,
       },
       { secret: "test-access-secret", expiresIn: "0s" },
     );
@@ -85,7 +114,7 @@ describe("JwtAuthGuard", () => {
     );
   });
 
-  it("attaches the decoded user to the request on a valid token", async () => {
+  it("attaches DB-backed user to the request on a valid token", async () => {
     const { guard, jwtService } = buildGuard(false);
     const token = await jwtService.signAsync(
       {
@@ -94,6 +123,7 @@ describe("JwtAuthGuard", () => {
         fullName: "Test User",
         roles: ["FG_OPERATOR"],
         permissions: ["records:create"],
+        authVersion: 0,
       },
       { secret: "test-access-secret", expiresIn: "15m" },
     );
@@ -105,6 +135,62 @@ describe("JwtAuthGuard", () => {
       employeeCode: "EMP-1",
       roles: ["FG_OPERATOR"],
       permissions: ["records:create"],
+      mustChangePassword: false,
+      authVersion: 0,
     });
+  });
+
+  it("rejects when authVersion mismatches database", async () => {
+    const { guard, jwtService } = buildGuard(false, {
+      id: "user-1",
+      employeeCode: "EMP-1",
+      fullName: "Test User",
+      status: "ACTIVE",
+      mustChangePassword: false,
+      authVersion: 2,
+      userRoles: [],
+    });
+    const token = await jwtService.signAsync(
+      {
+        sub: "user-1",
+        employeeCode: "EMP-1",
+        fullName: "Test User",
+        roles: [],
+        permissions: [],
+        authVersion: 0,
+      },
+      { secret: "test-access-secret", expiresIn: "15m" },
+    );
+    const { context } = buildContext({ [AUTH_COOKIE_NAMES.accessToken]: token });
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      SessionExpiredException,
+    );
+  });
+
+  it("rejects inactive users even with a valid token", async () => {
+    const { guard, jwtService } = buildGuard(false, {
+      id: "user-1",
+      employeeCode: "EMP-1",
+      fullName: "Test User",
+      status: "INACTIVE",
+      mustChangePassword: false,
+      authVersion: 0,
+      userRoles: [],
+    });
+    const token = await jwtService.signAsync(
+      {
+        sub: "user-1",
+        employeeCode: "EMP-1",
+        fullName: "Test User",
+        roles: [],
+        permissions: [],
+        authVersion: 0,
+      },
+      { secret: "test-access-secret", expiresIn: "15m" },
+    );
+    const { context } = buildContext({ [AUTH_COOKIE_NAMES.accessToken]: token });
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      AccountInactiveException,
+    );
   });
 });

@@ -459,9 +459,11 @@ describe("AuthService", () => {
 
     it("updates password, clears mustChangePassword and revokes sessions", async () => {
       const prismaMock = buildPrismaMock();
-      prismaMock.user.findUnique.mockResolvedValue(
-        buildUser({ mustChangePassword: true }),
-      );
+      prismaMock.user.findUnique
+        .mockResolvedValueOnce(buildUser({ mustChangePassword: true }))
+        .mockResolvedValueOnce(
+          buildUser({ mustChangePassword: false, authVersion: 1 }),
+        );
       prismaMock.refreshToken.updateMany = jest.fn().mockResolvedValue({ count: 1 });
       const { service } = buildService(prismaMock);
 
@@ -473,6 +475,14 @@ describe("AuthService", () => {
       expect(result.user.mustChangePassword).toBe(false);
       expect(result.user).not.toHaveProperty("passwordHash");
       expect(prismaMock.refreshToken.updateMany).toHaveBeenCalled();
+      expect(prismaMock.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mustChangePassword: false,
+            authVersion: { increment: 1 },
+          }),
+        }),
+      );
     });
   });
 

@@ -7,19 +7,19 @@ export type AccessTokenPayload = {
   fullName: string;
   roles: UserRole[];
   permissions: PermissionKey[];
+  authVersion: number;
 };
 
 /** Claims embedded in the rotating refresh token (kept minimal on purpose). */
 export type RefreshTokenPayload = {
   sub: string;
   jti: string;
+  authVersion: number;
 };
 
 /**
- * Shape attached to `request.user` by JwtAuthGuard. Derived entirely from the
- * verified access token — no per-request database lookup — so role/permission
- * changes made by an admin take effect on the user's next token refresh
- * rather than instantly. See docs/AUTHENTICATION.md for this trade-off.
+ * Shape attached to `request.user` by JwtAuthGuard after cryptographic verify
+ * plus a database reload of current status, authVersion, roles and permissions.
  */
 export type RequestUser = {
   id: string;
@@ -27,6 +27,8 @@ export type RequestUser = {
   fullName: string;
   roles: UserRole[];
   permissions: PermissionKey[];
+  mustChangePassword?: boolean;
+  authVersion?: number;
 };
 
 declare module "express" {

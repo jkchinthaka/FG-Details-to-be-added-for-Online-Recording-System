@@ -104,6 +104,14 @@ export function readBootstrapAdminInput(env: NodeJS.ProcessEnv = process.env): {
   };
 }
 
+export function assertBootstrapAllowed(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.ALLOW_PRODUCTION_ADMIN_BOOTSTRAP !== "YES") {
+    throw new Error(
+      'Administrator bootstrap refused — set ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES for this one-time operation',
+    );
+  }
+}
+
 export function assertBootstrapDatabaseUrl(databaseUrl: string | undefined): void {
   const trimmed = (databaseUrl ?? "").trim();
   if (!trimmed) {
