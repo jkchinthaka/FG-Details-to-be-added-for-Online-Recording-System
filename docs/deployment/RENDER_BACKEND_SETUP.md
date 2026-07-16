@@ -7,17 +7,29 @@
 - **Health check:** `/health/ready`
 - **Root directory:** repository root (not `apps/api`)
 
+## Runtime
+
+- **Node:** `22.16.0` via Render env `NODE_VERSION` and repo `.node-version` (must stay on **22.16.x**)
+- **pnpm:** `9.12.0` from root `packageManager` (Render Blueprint install — do **not** run `corepack enable` on Render’s native Node image; the filesystem is read-only for `/usr/bin/pnpm`)
+
 ## Build / start
 
+Prefer the Blueprint `buildCommand` in `render.yaml`. Equivalent locally (with Corepack):
+
 ```bash
-corepack enable && pnpm install --frozen-lockfile && pnpm --filter @nelna/shared build && pnpm --filter @nelna/api prisma:generate && pnpm --filter @nelna/api build
+corepack enable
+corepack prepare pnpm@9.12.0 --activate
+pnpm install --frozen-lockfile
+pnpm --filter @nelna/shared build
+pnpm --filter @nelna/api prisma:generate
+pnpm --filter @nelna/api build
 ```
 
 ```bash
 pnpm --filter @nelna/api start:prod
 ```
 
-Blueprint file: `render.yaml` (no secret values).
+Blueprint file: `render.yaml` (no secret values). Deploy only after GitHub Actions **CI PASS** (see `docs/ci/BRANCH_PROTECTION.md`).
 
 ## Required production env (set in Render Dashboard)
 

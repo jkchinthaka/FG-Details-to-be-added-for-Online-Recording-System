@@ -11,7 +11,10 @@ import {
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
-import { RequireAllPermissions, RequirePermissions } from "../auth/decorators/permissions.decorator";
+import {
+  RequireAllPermissions,
+  RequirePermissions,
+} from "../auth/decorators/permissions.decorator";
 import type { RequestUser } from "../auth/auth.types";
 import { AssignDepartmentDto } from "./dto/assign-department.dto";
 import { AssignRolesDto } from "./dto/assign-roles.dto";

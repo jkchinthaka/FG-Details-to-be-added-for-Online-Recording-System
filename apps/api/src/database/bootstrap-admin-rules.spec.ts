@@ -29,7 +29,9 @@ describe("bootstrap-admin-rules (username)", () => {
   });
 
   it("refuses bootstrap without ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES", () => {
-    expect(() => assertBootstrapAllowed({})).toThrow(/ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES/);
+    expect(() => assertBootstrapAllowed({})).toThrow(
+      /ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES/,
+    );
     expect(() =>
       assertBootstrapAllowed({ ALLOW_PRODUCTION_ADMIN_BOOTSTRAP: "YES" }),
     ).not.toThrow();

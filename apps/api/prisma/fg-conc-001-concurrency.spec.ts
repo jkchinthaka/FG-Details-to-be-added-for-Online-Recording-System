@@ -107,7 +107,6 @@ describeIntegration("FG-CONC-001 concurrency (fg_online_test)", () => {
       dbOk = true;
     } catch (error) {
       dbOk = false;
-      // eslint-disable-next-line no-console
       console.error("FG-CONC-001 beforeAll failed:", error);
     }
   });

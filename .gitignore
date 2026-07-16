@@ -51,9 +51,12 @@ apps/web/public/sw.js.map
 reports/
 !reports/release/
 !reports/release/**
+# CI may write sanitized reports locally; do not commit them
+reports/ci/
 
 # Generated at build time; also written under reports/release/
 apps/web/public/release-manifest.json
 
 apps/e2e/playwright-report/
 apps/e2e/test-results/
+apps/e2e/junit-e2e.xml

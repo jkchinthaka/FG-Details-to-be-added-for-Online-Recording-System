@@ -107,7 +107,7 @@ export function readBootstrapAdminInput(env: NodeJS.ProcessEnv = process.env): {
 export function assertBootstrapAllowed(env: NodeJS.ProcessEnv = process.env): void {
   if (env.ALLOW_PRODUCTION_ADMIN_BOOTSTRAP !== "YES") {
     throw new Error(
-      'Administrator bootstrap refused — set ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES for this one-time operation',
+      "Administrator bootstrap refused — set ALLOW_PRODUCTION_ADMIN_BOOTSTRAP=YES for this one-time operation",
     );
   }
 }

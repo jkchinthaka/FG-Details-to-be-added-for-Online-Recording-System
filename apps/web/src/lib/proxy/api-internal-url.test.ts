@@ -25,9 +25,9 @@ describe("api-internal-url", () => {
   it("rejects missing API_INTERNAL_URL in production", () => {
     expect(() => assertProductionApiInternalUrl(undefined)).toThrow(ApiInternalUrlError);
     expect(() => assertProductionApiInternalUrl("")).toThrow(/required/i);
-    expect(() => assertProductionWranglerProxyVars({ NEXT_PUBLIC_API_URL: "/api" })).toThrow(
-      /required/i,
-    );
+    expect(() =>
+      assertProductionWranglerProxyVars({ NEXT_PUBLIC_API_URL: "/api" }),
+    ).toThrow(/required/i);
   });
 
   it("rejects localhost in production", () => {
@@ -44,17 +44,23 @@ describe("api-internal-url", () => {
 
   it("rejects private IP hosts in production", () => {
     expect(() => assertProductionApiInternalUrl("https://10.0.0.5")).toThrow(/private/i);
-    expect(() => assertProductionApiInternalUrl("https://192.168.1.10")).toThrow(/private/i);
-    expect(() => assertProductionApiInternalUrl("https://172.16.0.2")).toThrow(/private/i);
-    expect(isPrivateOrLocalHostname("10.1.2.3")).toBe(true);
-    expect(isPrivateOrLocalHostname("fg-details-to-be-added-for-online.onrender.com")).toBe(
-      false,
+    expect(() => assertProductionApiInternalUrl("https://192.168.1.10")).toThrow(
+      /private/i,
     );
+    expect(() => assertProductionApiInternalUrl("https://172.16.0.2")).toThrow(
+      /private/i,
+    );
+    expect(isPrivateOrLocalHostname("10.1.2.3")).toBe(true);
+    expect(
+      isPrivateOrLocalHostname("fg-details-to-be-added-for-online.onrender.com"),
+    ).toBe(false);
   });
 
   it("rejects duplicated /api path on API_INTERNAL_URL", () => {
     expect(() =>
-      normalizeApiInternalUrl("https://fg-details-to-be-added-for-online.onrender.com/api"),
+      normalizeApiInternalUrl(
+        "https://fg-details-to-be-added-for-online.onrender.com/api",
+      ),
     ).toThrow(/must not include \/api/);
     expect(() =>
       assertProductionApiInternalUrl(

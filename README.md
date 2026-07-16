@@ -34,7 +34,8 @@ Daily cleaning verification and freezer truck inspections are still captured on 
 | Backend | NestJS on Render, TypeScript, REST, OpenAPI/Swagger |
 | Database | MongoDB Atlas (`fg_online`), Prisma ORM, GridFS bucket `fgEvidence` |
 | Packages | Shared domain types, UI design system, shared config |
-| Tooling | pnpm workspaces, ESLint, Vitest/Jest |
+| Tooling | Node **22.16.x**, pnpm **9.12.0** (Corepack `packageManager`), ESLint, Vitest/Jest |
+| CI | Mandatory blocking gates — see `docs/ci/CI_GATES.md` |
 
 ## Monorepo structure
 
@@ -52,9 +53,11 @@ scripts/db/     Backup / restore helpers
 
 ## Local setup
 
-Prerequisites: Node.js 20+, pnpm 9+, MongoDB Atlas (or local MongoDB replica set for tests).
+Prerequisites: **Node.js 22.16.x** (`.node-version`), **pnpm 9.12.0** via Corepack (`packageManager`), MongoDB Atlas (or local MongoDB replica set for tests — `fg_online_test` only in CI).
 
 ```bash
+corepack enable
+corepack prepare pnpm@9.12.0 --activate
 pnpm install --frozen-lockfile
 cp apps/api/.env.example apps/api/.env   # set DATABASE_URL → fg_online
 pnpm --filter @nelna/api prisma:generate
@@ -65,7 +68,7 @@ pnpm --filter @nelna/api prisma:seed:production   # roles, permissions, template
 ```
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm --filter @nelna/shared build
 pnpm --filter @nelna/ui build
 

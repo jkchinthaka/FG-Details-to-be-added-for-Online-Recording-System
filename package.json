@@ -6,7 +6,8 @@
   "author": "Chinthaka Jayaweera",
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=22.16.0 <23.0.0"
+    "node": ">=22.16.0 <22.17.0",
+    "pnpm": ">=9.12.0 <10.0.0"
   },
   "scripts": {
     "dev": "pnpm run --parallel --filter @nelna/web --filter @nelna/api dev",
@@ -18,6 +19,8 @@
     "test": "pnpm --filter @nelna/shared test && pnpm --filter @nelna/ui test && pnpm --filter @nelna/api test && pnpm --filter @nelna/web test",
     "test:integration": "pnpm --filter @nelna/api test -- db-integration db-constraints",
     "test:e2e": "pnpm --filter @nelna/e2e test",
+    "ci:secret-scan": "node scripts/ci/secret-scan.js",
+    "ci:audit": "pnpm audit --prod --audit-level=critical",
     "db:test:up": "docker compose -f docker-compose.test.yml up -d --wait",
     "db:test:down": "docker compose -f docker-compose.test.yml down -v",
     "format": "prettier --write .",

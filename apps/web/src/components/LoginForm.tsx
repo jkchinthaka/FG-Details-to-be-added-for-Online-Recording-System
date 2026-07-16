@@ -96,7 +96,7 @@ export function LoginForm() {
   const isSubmitting = formState === "submitting";
 
   return (
-    <div
+    <main
       className="flex min-h-dvh items-center justify-center px-4 py-10"
       style={{ background: "var(--nelna-cream)" }}
     >
@@ -207,6 +207,6 @@ export function LoginForm() {
           Locked out or need access? Contact your System Administrator.
         </p>
       </div>
-    </div>
+    </main>
   );
 }

@@ -68,7 +68,6 @@ import type { SubmitRecordDto } from "./dto/submit-record.dto";
 import {
   CriticalFailureOverrideException,
   DuplicateRecordException,
-  DuplicateWorkflowApprovalException,
   InvalidRecordPayloadException,
   InvalidWorkflowTransitionException,
   LoadingDecisionForbiddenException,

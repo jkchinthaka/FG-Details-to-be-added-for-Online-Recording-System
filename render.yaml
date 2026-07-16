@@ -1,8 +1,9 @@
 # Render Blueprint — Nelna FG Digital Recording System (API)
 # Secrets are configured in the Render Dashboard — never commit real values here.
 # Root directory must remain the monorepo root (workspace packages required).
-# Node is pinned via .node-version / NODE_VERSION (do not run corepack enable —
-# Render's native runtime filesystem is read-only and unlink of /usr/bin/pnpm fails).
+# Node 22.16.x via .node-version / NODE_VERSION=22.16.0 (FG-CI-001).
+# Do not run corepack enable on Render — native runtime FS is read-only
+# (unlink of /usr/bin/pnpm fails). pnpm comes from the Node runtime + lockfile.
 
 services:
   - type: web

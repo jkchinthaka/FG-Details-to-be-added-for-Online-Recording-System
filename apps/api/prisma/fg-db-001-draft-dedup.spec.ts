@@ -44,7 +44,6 @@ describeIntegration("FG-DB-001 draft dedup (fg_online_test)", () => {
       dbOk = true;
     } catch (error) {
       dbOk = false;
-      // eslint-disable-next-line no-console
       console.error("FG-DB-001 beforeAll failed:", error);
     }
   });

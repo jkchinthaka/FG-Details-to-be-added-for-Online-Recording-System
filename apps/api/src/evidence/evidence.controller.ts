@@ -32,11 +32,7 @@ import {
   GridFsEvidenceService,
   type GridFsUploadResult,
 } from "./gridfs-evidence.service";
-import {
-  EvidenceService,
-  type ReplaceableAttachment,
-  type UploadableRecord,
-} from "./evidence.service";
+import { EvidenceService, type UploadableRecord } from "./evidence.service";
 
 type CreatedAttachment = {
   id: string;

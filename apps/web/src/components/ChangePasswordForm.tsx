@@ -21,7 +21,11 @@ export function ChangePasswordForm() {
   useEffect(() => {
     if (auth.status === "unauthenticated") {
       router.replace("/login");
-    } else if (auth.status === "authenticated" && auth.user && !auth.user.mustChangePassword) {
+    } else if (
+      auth.status === "authenticated" &&
+      auth.user &&
+      !auth.user.mustChangePassword
+    ) {
       router.replace(postPasswordChangeLandingPath(auth.user));
     }
   }, [auth.status, auth.user, router]);

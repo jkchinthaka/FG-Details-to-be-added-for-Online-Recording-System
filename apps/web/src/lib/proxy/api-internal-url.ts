@@ -6,13 +6,7 @@
 export const PRODUCTION_RENDER_API_ORIGIN =
   "https://fg-details-to-be-added-for-online.onrender.com";
 
-const LOCAL_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "0.0.0.0",
-  "::1",
-  "[::1]",
-]);
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
 
 export type ApiInternalUrlIssue =
   | "missing"
@@ -44,7 +38,11 @@ export function isPrivateOrLocalHostname(hostname: string): boolean {
   const host = stripBrackets(hostname.trim().toLowerCase());
   if (!host) return true;
   if (LOCAL_HOSTS.has(host)) return true;
-  if (host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
+  if (
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
     return true;
   }
 
@@ -58,7 +56,10 @@ export function isPrivateOrLocalHostname(hostname: string): boolean {
   }
 
   const parts = host.split(".").map((p) => Number(p));
-  if (parts.length === 4 && parts.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
+  if (
+    parts.length === 4 &&
+    parts.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)
+  ) {
     const [a, b] = parts as [number, number, number, number];
     if (a === 10) return true;
     if (a === 127) return true;
@@ -120,9 +121,7 @@ export function normalizeApiInternalUrl(raw: string): string {
  * Production / Cloudflare Worker upstream: HTTPS public origin only.
  * Rejects missing, localhost, private IPs, and `/api` suffix.
  */
-export function assertProductionApiInternalUrl(
-  raw: string | undefined | null,
-): string {
+export function assertProductionApiInternalUrl(raw: string | undefined | null): string {
   if (raw === undefined || raw === null || !String(raw).trim()) {
     throw new ApiInternalUrlError(
       "missing",

@@ -90,7 +90,6 @@ export function normalizeEvidenceFileName(raw: string): string {
     .replace(/\\/g, "/")
     .split("/")
     .pop()!
-    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f]/g, "")
     .replace(/[<>:"/\\|?*]/g, "_")
     .replace(/\s+/g, " ")

@@ -32,14 +32,28 @@ Confirm origin is:
 
 `https://github.com/jkchinthaka/FG-Details-to-be-added-for-Online-Recording-System.git`
 
+## Runtime pins (FG-CI-001)
+
+- Node.js **22.16.x** (`.node-version` / `.nvmrc` = `22.16.0`)
+- pnpm **9.12.0** (`packageManager` + Corepack)
+- CI gates: [`docs/ci/CI_GATES.md`](./ci/CI_GATES.md)
+- Branch protection (external): [`docs/ci/BRANCH_PROTECTION.md`](./ci/BRANCH_PROTECTION.md)
+
+```bash
+corepack enable
+corepack prepare pnpm@9.12.0 --activate
+```
+
 ## Verification before every commit
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm ci:secret-scan
+pnpm ci:audit
 git diff --check
 git status --short
 git diff --stat

@@ -11,10 +11,11 @@ import {
 } from "./api-internal-url";
 
 function stripJsonc(source: string): string {
-  // Remove block comments, then line comments (JSONC). Trailing commas are not used.
+  // Remove block comments, line comments, then trailing commas (Prettier JSONC).
   return source
     .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+    .replace(/(^|[^:])\/\/.*$/gm, "$1")
+    .replace(/,\s*([\]}])/g, "$1");
 }
 
 export function validateCloudflareProxyConfigForProductionBuild(
