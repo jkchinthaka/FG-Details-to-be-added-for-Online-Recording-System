@@ -56,6 +56,9 @@ function buildPrismaMock() {
       update: jest.fn().mockResolvedValue(undefined),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
+    auditLog: {
+      create: jest.fn().mockResolvedValue(undefined),
+    },
   };
 }
 
@@ -347,27 +350,47 @@ describe("AuthService", () => {
       const prismaMock = buildPrismaMock();
       const { service, jwtService } = buildService(prismaMock);
       const token = await jwtService.signAsync(
-        { sub: "user-1", jti: "abc" },
+        {
+          sub: "user-1",
+          jti: "abc",
+          authVersion: 0,
+          familyId: "fam-1",
+          sessionId: "sess-1",
+        },
         { secret: "test-refresh-secret", expiresIn: "7d" },
       );
       prismaMock.refreshToken.findUnique.mockResolvedValue({
         id: "rt-1",
         userId: "user-1",
+        familyId: "fam-1",
+        sessionId: "sess-1",
         tokenHash: hashToken(token),
         revokedAt: new Date(),
+        consumedAt: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
 
       await expect(service.refresh(token)).rejects.toBeInstanceOf(
         SessionExpiredException,
       );
+      expect(prismaMock.refreshToken.updateMany).toHaveBeenCalled();
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { authVersion: { increment: 1 } },
+      });
     });
 
     it("rejects a refresh token unknown to the database", async () => {
       const prismaMock = buildPrismaMock();
       const { service, jwtService } = buildService(prismaMock);
       const token = await jwtService.signAsync(
-        { sub: "user-1", jti: "abc" },
+        {
+          sub: "user-1",
+          jti: "abc",
+          authVersion: 0,
+          familyId: "fam-1",
+          sessionId: "sess-1",
+        },
         { secret: "test-refresh-secret", expiresIn: "7d" },
       );
       prismaMock.refreshToken.findUnique.mockResolvedValue(null);
@@ -381,41 +404,71 @@ describe("AuthService", () => {
       const prismaMock = buildPrismaMock();
       const { service, jwtService } = buildService(prismaMock);
       const token = await jwtService.signAsync(
-        { sub: "user-1", jti: "abc" },
+        {
+          sub: "user-1",
+          jti: "abc",
+          authVersion: 0,
+          familyId: "fam-1",
+          sessionId: "sess-1",
+        },
         { secret: "test-refresh-secret", expiresIn: "7d" },
       );
       prismaMock.refreshToken.findUnique
         .mockResolvedValueOnce({
           id: "rt-old",
           userId: "user-1",
+          familyId: "fam-1",
+          sessionId: "sess-1",
           tokenHash: hashToken(token),
           revokedAt: null,
+          consumedAt: null,
           expiresAt: new Date(Date.now() + 60_000),
         })
         .mockResolvedValueOnce({ id: "rt-new" });
-      prismaMock.user.findUnique.mockResolvedValue(buildUser());
+      prismaMock.user.findUnique.mockResolvedValue(buildUser({ authVersion: 0 }));
 
       const result = await service.refresh(token);
 
       expect(result.tokens.refreshToken).not.toBe(token);
+      expect(prismaMock.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: "rt-old", consumedAt: null, revokedAt: null },
+        data: { consumedAt: expect.any(Date), revokedAt: expect.any(Date) },
+      });
       expect(prismaMock.refreshToken.update).toHaveBeenCalledWith({
         where: { id: "rt-old" },
-        data: { revokedAt: expect.any(Date), replacedByTokenId: "rt-new" },
+        data: { replacedByTokenId: "rt-new" },
       });
+      expect(prismaMock.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            familyId: "fam-1",
+            sessionId: "sess-1",
+          }),
+        }),
+      );
     });
 
     it("revokes the token and rejects when the account became inactive", async () => {
       const prismaMock = buildPrismaMock();
       const { service, jwtService } = buildService(prismaMock);
       const token = await jwtService.signAsync(
-        { sub: "user-1", jti: "abc" },
+        {
+          sub: "user-1",
+          jti: "abc",
+          authVersion: 0,
+          familyId: "fam-1",
+          sessionId: "sess-1",
+        },
         { secret: "test-refresh-secret", expiresIn: "7d" },
       );
       prismaMock.refreshToken.findUnique.mockResolvedValue({
         id: "rt-old",
         userId: "user-1",
+        familyId: "fam-1",
+        sessionId: "sess-1",
         tokenHash: hashToken(token),
         revokedAt: null,
+        consumedAt: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
       prismaMock.user.findUnique.mockResolvedValue(buildUser({ status: "INACTIVE" }));
@@ -423,10 +476,7 @@ describe("AuthService", () => {
       await expect(service.refresh(token)).rejects.toBeInstanceOf(
         AccountInactiveException,
       );
-      expect(prismaMock.refreshToken.update).toHaveBeenCalledWith({
-        where: { id: "rt-old" },
-        data: { revokedAt: expect.any(Date) },
-      });
+      expect(prismaMock.refreshToken.updateMany).toHaveBeenCalled();
     });
   });
 

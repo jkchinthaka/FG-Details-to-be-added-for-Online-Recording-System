@@ -15,6 +15,8 @@ export type RefreshTokenPayload = {
   sub: string;
   jti: string;
   authVersion: number;
+  familyId: string;
+  sessionId: string;
 };
 
 /**

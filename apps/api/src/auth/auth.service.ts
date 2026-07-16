@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import type { CurrentUser, PermissionKey, UserRole } from "@nelna/shared";
@@ -66,6 +66,8 @@ const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -141,12 +143,31 @@ export class AuthService {
     const tokenHash = hashToken(refreshTokenRaw);
     const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
 
-    if (
-      !stored ||
-      stored.userId !== payload.sub ||
-      stored.revokedAt !== null ||
-      stored.expiresAt.getTime() < Date.now()
-    ) {
+    if (!stored || stored.userId !== payload.sub) {
+      throw new SessionExpiredException();
+    }
+
+    // Reuse detection: token already consumed/revoked but presented again.
+    if (stored.consumedAt !== null || stored.revokedAt !== null) {
+      await this.revokeFamilyOnReuse(stored.familyId, stored.userId, "REFRESH_TOKEN_REUSE");
+      throw new SessionExpiredException();
+    }
+
+    if (stored.expiresAt.getTime() < Date.now()) {
+      throw new SessionExpiredException();
+    }
+
+    // Atomic single-use claim — only one concurrent refresh wins.
+    const claimed = await this.prisma.refreshToken.updateMany({
+      where: {
+        id: stored.id,
+        consumedAt: null,
+        revokedAt: null,
+      },
+      data: { consumedAt: new Date(), revokedAt: new Date() },
+    });
+    if (claimed.count !== 1) {
+      await this.revokeFamilyOnReuse(stored.familyId, stored.userId, "REFRESH_TOKEN_RACE");
       throw new SessionExpiredException();
     }
 
@@ -160,26 +181,23 @@ export class AuthService {
     }
 
     if (user.status !== "ACTIVE") {
-      await this.prisma.refreshToken.update({
-        where: { id: stored.id },
-        data: { revokedAt: new Date() },
-      });
+      await this.revokeFamily(stored.familyId);
       throw new AccountInactiveException();
     }
 
     const dbAuthVersion = user.authVersion ?? 0;
     const tokenAuthVersion = payload.authVersion ?? 0;
     if (tokenAuthVersion !== dbAuthVersion) {
-      await this.prisma.refreshToken.update({
-        where: { id: stored.id },
-        data: { revokedAt: new Date() },
-      });
+      await this.revokeFamily(stored.familyId);
       throw new SessionExpiredException();
     }
 
     const roles = this.rolesOf(user);
     const permissions = this.permissionsOf(user);
-    const tokens = await this.issueTokens(user, roles, permissions, config, meta);
+    const tokens = await this.issueTokens(user, roles, permissions, config, meta, {
+      familyId: stored.familyId,
+      sessionId: stored.sessionId,
+    });
 
     const newTokenHash = hashToken(tokens.refreshToken);
     const newRow = await this.prisma.refreshToken.findUnique({
@@ -187,13 +205,50 @@ export class AuthService {
     });
     await this.prisma.refreshToken.update({
       where: { id: stored.id },
-      data: { revokedAt: new Date(), replacedByTokenId: newRow?.id },
+      data: { replacedByTokenId: newRow?.id },
     });
 
     return {
       user: this.toCurrentUser(user, roles, permissions, user.lastLoginAt),
       tokens,
     };
+  }
+
+  /** Revokes an entire refresh-token family and bumps authVersion on compromise. */
+  private async revokeFamilyOnReuse(
+    familyId: string,
+    userId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.revokeFamily(familyId);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { authVersion: { increment: 1 } },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: userId,
+        action: "REFRESH_TOKEN_FAMILY_REVOKED",
+        entityType: "RefreshTokenFamily",
+        entityId: familyId,
+        metadata: { reason },
+      },
+    });
+    this.logger.warn(
+      JSON.stringify({
+        event: "refresh_token_family_revoked",
+        familyId,
+        userId,
+        reason,
+      }),
+    );
+  }
+
+  private async revokeFamily(familyId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   /** Best-effort: revokes the presented refresh token. Never throws — logout always succeeds client-side. */
@@ -323,6 +378,7 @@ export class AuthService {
     permissions: PermissionKey[],
     config: AuthConfig,
     meta: RequestMeta,
+    lineage?: { familyId: string; sessionId: string },
   ): Promise<AuthTokens> {
     const accessPayload: AccessTokenPayload = {
       sub: user.id,
@@ -332,20 +388,19 @@ export class AuthService {
       permissions,
       authVersion: user.authVersion ?? 0,
     };
-    // expiresIn is passed as whole seconds (a plain number) rather than a
-    // duration string — jsonwebtoken's TS types only accept the `ms`
-    // package's strict `StringValue` literal type for string durations,
-    // which our config's plain `string` TTL can't satisfy without an unsafe
-    // cast. Seconds are unambiguous and avoid that entirely.
     const accessToken = await this.jwtService.signAsync(accessPayload, {
       secret: config.accessTokenSecret,
       expiresIn: msToSeconds(config.accessTokenTtlMs),
     });
 
+    const familyId = lineage?.familyId ?? randomUUID();
+    const sessionId = lineage?.sessionId ?? randomUUID();
     const refreshPayload: RefreshTokenPayload = {
       sub: user.id,
       jti: randomUUID(),
       authVersion: user.authVersion ?? 0,
+      familyId,
+      sessionId,
     };
     const refreshToken = await this.jwtService.signAsync(refreshPayload, {
       secret: config.refreshTokenSecret,
@@ -356,6 +411,8 @@ export class AuthService {
       data: {
         userId: user.id,
         tokenHash: hashToken(refreshToken),
+        familyId,
+        sessionId,
         expiresAt: new Date(Date.now() + config.refreshTokenTtlMs),
         userAgent: meta.userAgent,
         ipAddress: meta.ip,
