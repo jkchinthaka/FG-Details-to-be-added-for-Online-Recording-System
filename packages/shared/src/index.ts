@@ -19,3 +19,5 @@ export * from "./corrective-actions";
 export * from "./concurrency";
 export * from "./evidence-upload";
 export * from "./release-manifest";
+export * from "./api-error";
+export * from "./log-redaction";

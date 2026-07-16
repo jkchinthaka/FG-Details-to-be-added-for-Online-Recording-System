@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import {
-  ApiInternalUrlError,
+  REQUEST_ID_HEADER,
+  buildApiErrorEnvelope,
+  isValidRequestId,
+} from "@nelna/shared";
+import {
   PRODUCTION_RENDER_API_ORIGIN,
   assertProductionApiInternalUrl,
   normalizeApiInternalUrl,
@@ -9,8 +14,6 @@ import {
 export const dynamic = "force-dynamic";
 
 const PROXY_TIMEOUT_MS = 30_000;
-/** Larger ceiling for streamed uploads (evidence) so bounded-memory streaming
- *  is not cut short on slower connections. */
 const UPLOAD_PROXY_TIMEOUT_MS = 120_000;
 
 function resolveUpstreamBaseSync(): string {
@@ -44,32 +47,59 @@ function collectSetCookie(headers: Headers): string[] {
   return single ? [single] : [];
 }
 
+function resolveRequestId(req: NextRequest): string {
+  const incoming = req.headers.get(REQUEST_ID_HEADER);
+  return isValidRequestId(incoming) ? incoming!.trim() : randomUUID();
+}
+
+function proxyError(
+  statusCode: number,
+  code: string,
+  message: string,
+  requestId: string,
+): NextResponse {
+  return NextResponse.json(
+    buildApiErrorEnvelope({
+      statusCode,
+      code,
+      message,
+      requestId,
+      retryable: statusCode === 502 || statusCode === 503 || statusCode === 504,
+    }),
+    {
+      status: statusCode,
+      headers: { [REQUEST_ID_HEADER]: requestId },
+    },
+  );
+}
+
 async function proxyRequest(
   req: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ): Promise<NextResponse> {
+  const requestId = resolveRequestId(req);
   try {
     const { path: pathSegments } = await context.params;
     if (!pathSegments?.length) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
+      return proxyError(404, "NOT_FOUND", "Not found", requestId);
     }
 
     let upstreamUrl: string;
     try {
       upstreamUrl = buildUpstreamUrl(req, pathSegments);
-    } catch (error) {
-      return NextResponse.json(
-        {
-          message: "API proxy is misconfigured",
-          code: "PROXY_MISCONFIGURED",
-          detail: error instanceof ApiInternalUrlError ? error.code : "unknown",
-        },
-        { status: 503 },
+    } catch {
+      return proxyError(
+        503,
+        "PROXY_MISCONFIGURED",
+        "API proxy is misconfigured",
+        requestId,
       );
     }
 
     const method = req.method.toUpperCase();
     const headers = new Headers();
+    headers.set(REQUEST_ID_HEADER, requestId);
+    headers.set("x-nelna-edge-proxy", "1");
 
     const cookie = req.headers.get("cookie");
     if (cookie) headers.set("cookie", cookie);
@@ -83,11 +113,15 @@ async function proxyRequest(
     const authorization = req.headers.get("authorization");
     if (authorization) headers.set("authorization", authorization);
 
+    // Forward CSRF / mutation metadata from the browser.
+    for (const name of ["origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest"]) {
+      const value = req.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+
     const hasBody = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
     const isMultipart = (contentType ?? "").toLowerCase().startsWith("multipart/");
 
-    // Stream multipart uploads straight through (bounded memory); buffer small
-    // JSON/urlencoded bodies as before.
     let body: BodyInit | undefined;
     let duplex: "half" | undefined;
     if (hasBody) {
@@ -122,11 +156,14 @@ async function proxyRequest(
         "content-disposition",
         "cache-control",
         "www-authenticate",
-        "x-request-id",
+        REQUEST_ID_HEADER,
       ];
       for (const name of passThrough) {
         const value = upstream.headers.get(name);
         if (value) responseHeaders.set(name, value);
+      }
+      if (!responseHeaders.has(REQUEST_ID_HEADER)) {
+        responseHeaders.set(REQUEST_ID_HEADER, requestId);
       }
 
       if (pathSegments[0] === "auth" || !responseHeaders.has("cache-control")) {
@@ -154,21 +191,17 @@ async function proxyRequest(
       const aborted =
         error instanceof Error &&
         (error.name === "AbortError" || /aborted/i.test(error.message));
-      return NextResponse.json(
-        {
-          message: aborted ? "Upstream timeout" : "Upstream unavailable",
-          code: aborted ? "UPSTREAM_TIMEOUT" : "UPSTREAM_UNAVAILABLE",
-        },
-        { status: aborted ? 504 : 502 },
+      return proxyError(
+        aborted ? 504 : 502,
+        aborted ? "UPSTREAM_TIMEOUT" : "UPSTREAM_UNAVAILABLE",
+        aborted ? "Upstream timeout" : "Upstream unavailable",
+        requestId,
       );
     } finally {
       clearTimeout(timer);
     }
   } catch {
-    return NextResponse.json(
-      { message: "Proxy handler failure", code: "PROXY_HANDLER_FAILURE" },
-      { status: 500 },
-    );
+    return proxyError(500, "PROXY_HANDLER_FAILURE", "Proxy handler failure", requestId);
   }
 }
 
