@@ -47,16 +47,16 @@ apps/web/public/workbox-*.js
 apps/web/public/sw.js.map
 # Note: apps/web/public/sw.js is the Prompt 34 service worker and is versioned.
 
-# Cutover / ops reports (may contain operational metadata)
-reports/
-!reports/release/
-!reports/release/**
-!reports/hci/
-!reports/hci/**
-!reports/final/
-!reports/final/**
+# Cutover / ops reports (may contain operational metadata) — repo-root only
+/reports/
+!/reports/release/
+!/reports/release/**
+!/reports/hci/
+!/reports/hci/**
+!/reports/final/
+!/reports/final/**
 # CI may write sanitized reports locally; do not commit them
-reports/ci/
+/reports/ci/
 
 # Generated at build time; also written under reports/release/
 apps/web/public/release-manifest.json
