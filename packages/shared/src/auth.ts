@@ -20,15 +20,24 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Enter your current password"),
-  newPassword: z
-    .string()
-    .min(
-      PASSWORD_MIN_LENGTH,
-      `New password must be at least ${PASSWORD_MIN_LENGTH} characters`,
-    ),
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: z
+      .string()
+      .min(
+        PASSWORD_MIN_LENGTH,
+        `New password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+      )
+      .regex(/[A-Z]/, "New password must include an uppercase letter")
+      .regex(/[a-z]/, "New password must include a lowercase letter")
+      .regex(/\d/, "New password must include a number")
+      .regex(/[^A-Za-z0-9]/, "New password must include a symbol"),
+  })
+  .refine((value) => value.newPassword !== value.currentPassword, {
+    message: "New password must be different from your temporary password",
+    path: ["newPassword"],
+  });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 

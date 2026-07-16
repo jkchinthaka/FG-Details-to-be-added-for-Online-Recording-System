@@ -16,3 +16,4 @@ export * from "./csv-escape";
 export * from "./reports";
 export * from "./offline-queue";
 export * from "./corrective-actions";
+export * from "./password-strength";

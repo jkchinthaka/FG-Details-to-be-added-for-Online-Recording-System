@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode, type SVGProps } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+  type SVGProps,
+} from "react";
 import { Drawer, IconButton, LoadingState, ToastProvider, useToast } from "@nelna/ui";
 import { USER_ROLE_LABELS } from "@nelna/shared";
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
@@ -42,6 +49,7 @@ function isActive(pathname: string, href: string): boolean {
 const LOGIN_PATH = "/login";
 const CHROMELESS_PATHS = new Set([
   "/login",
+  "/change-password",
   "/unauthorized",
   "/account-inactive",
   "/offline",
@@ -59,11 +67,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+function SkipToContentLink() {
+  return (
+    <a href="#main-content" className="nelna-skip-link">
+      Skip to main content
+    </a>
+  );
+}
+
 function ShellLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   if (CHROMELESS_PATHS.has(pathname)) {
-    return <div className="nelna-app-shell min-h-dvh">{children}</div>;
+    return (
+      <div className="nelna-app-shell min-h-dvh">
+        <SkipToContentLink />
+        <main id="main-content">{children}</main>
+      </div>
+    );
   }
 
   return <AuthenticatedShell pathname={pathname}>{children}</AuthenticatedShell>;
@@ -79,6 +100,7 @@ function AuthenticatedShell({
   const router = useRouter();
   const auth = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (auth.status === "inactive") {
@@ -111,6 +133,26 @@ function AuthenticatedShell({
     );
   }
 
+  // Forced password change: never show application navigation.
+  if (auth.user?.mustChangePassword) {
+    return (
+      <div className="nelna-app-shell flex min-h-dvh flex-col">
+        <SkipToContentLink />
+        <PasswordChangeChrome />
+        <main id="main-content" className="min-w-0 flex-1">
+          {children}
+        </main>
+        <SessionExpiredDialog
+          open={auth.sessionExpiredNotice}
+          onSignIn={() => {
+            auth.clearSessionExpiredNotice();
+            router.replace(buildLoginRedirectUrl(pathname, "session-expired"));
+          }}
+        />
+      </div>
+    );
+  }
+
   const roles = auth.user?.roles ?? [];
   const visibleNavItems = filterNavItemsByRole(NAV_ITEMS, roles);
   const primaryNavItems = visibleNavItems.slice(0, 4);
@@ -118,10 +160,14 @@ function AuthenticatedShell({
 
   return (
     <div className="nelna-app-shell flex min-h-dvh flex-col">
+      <SkipToContentLink />
       <TopHeader />
       <div className="flex flex-1">
         <Sidebar pathname={pathname} items={visibleNavItems} />
-        <main className="min-w-0 flex-1 px-4 pb-28 pt-5 sm:px-6 md:pb-10 lg:px-8">
+        <main
+          id="main-content"
+          className="min-w-0 flex-1 px-4 pb-28 pt-5 sm:px-6 md:pb-10 lg:px-8"
+        >
           <div className="mx-auto w-full max-w-5xl">
             <OfflineStatusBar />
             {children}
@@ -132,11 +178,16 @@ function AuthenticatedShell({
         pathname={pathname}
         items={primaryNavItems}
         hasMore={moreNavItems.length > 0}
+        moreOpen={moreOpen}
+        moreButtonRef={moreButtonRef}
         onMore={() => setMoreOpen(true)}
       />
       <Drawer
         open={moreOpen}
-        onClose={() => setMoreOpen(false)}
+        onClose={() => {
+          setMoreOpen(false);
+          moreButtonRef.current?.focus();
+        }}
         title="More"
         side="bottom"
       >
@@ -164,6 +215,63 @@ function AuthenticatedShell({
         }}
       />
     </div>
+  );
+}
+
+function PasswordChangeChrome() {
+  const router = useRouter();
+  const auth = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await auth.logout();
+    } finally {
+      setSigningOut(false);
+      router.replace(LOGIN_PATH);
+    }
+  }
+
+  return (
+    <header className="nelna-topbar sticky top-0 z-30">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="h-8 w-8 shrink-0 rounded-full"
+            style={{
+              background:
+                "linear-gradient(145deg, var(--nelna-primary-light), var(--nelna-primary-active))",
+              boxShadow: "inset 0 0 0 3px var(--nelna-gold)",
+            }}
+          />
+          <span className="leading-tight">
+            <span className="text-nelna-primary block text-[0.65rem] font-semibold uppercase tracking-[0.14em]">
+              Nelna Farm · FG
+            </span>
+            <span
+              className="text-nelna-primary-dark block text-base"
+              style={{ fontFamily: "var(--nelna-font-display)" }}
+            >
+              Secure your account
+            </span>
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="nelna-focusable rounded-[var(--nelna-radius-sm)] px-3 text-sm font-semibold disabled:opacity-60"
+          style={{
+            color: "var(--nelna-danger)",
+            minHeight: "var(--nelna-touch-comfortable)",
+          }}
+        >
+          {signingOut ? "Signing out…" : "Sign out"}
+        </button>
+      </div>
+    </header>
   );
 }
 
@@ -321,12 +429,16 @@ function BottomNav({
   pathname,
   items,
   hasMore,
+  moreOpen,
   onMore,
+  moreButtonRef,
 }: {
   pathname: string;
   items: NavItem[];
   hasMore: boolean;
+  moreOpen?: boolean;
   onMore: () => void;
+  moreButtonRef?: RefObject<HTMLButtonElement | null>;
 }) {
   return (
     <nav
@@ -363,9 +475,11 @@ function BottomNav({
         {hasMore ? (
           <li>
             <button
+              ref={moreButtonRef}
               type="button"
               onClick={onMore}
               aria-label="More navigation options"
+              aria-expanded={moreOpen ?? false}
               className="nelna-bottom-nav-link nelna-focusable w-full"
             >
               <MoreIcon width={20} height={20} aria-hidden />
