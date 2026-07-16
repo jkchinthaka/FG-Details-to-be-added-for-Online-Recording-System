@@ -538,7 +538,7 @@ describe("AuthService", () => {
       await expect(
         service.changePassword("user-1", {
           currentPassword: "wrong",
-          newPassword: "new-secure-password-12",
+          newPassword: "New-Secure-Pass12!",
         }),
       ).rejects.toBeInstanceOf(InvalidCurrentPasswordException);
     });
@@ -566,7 +566,7 @@ describe("AuthService", () => {
 
       const result = await service.changePassword("user-1", {
         currentPassword: PLAINTEXT_PASSWORD,
-        newPassword: "brand-new-password-12",
+        newPassword: "Brand-New-Pass12!",
       });
 
       expect(result.user.mustChangePassword).toBe(false);
