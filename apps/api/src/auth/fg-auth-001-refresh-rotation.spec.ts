@@ -5,6 +5,7 @@ import { AuthService } from "./auth.service";
 import { SessionExpiredException, TokenReuseDetectedException } from "./auth.errors";
 import { hashToken } from "./lib/token-hash";
 import type { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
 
 function databaseNameFromUrl(url: string | undefined): string | null {
   if (!url) return null;
@@ -38,7 +39,11 @@ describeIntegration("FG-AUTH-001 refresh rotation (integration)", () => {
     process.env.REFRESH_TOKEN_TTL = "7d";
     process.env.NODE_ENV = "test";
 
-    service = new AuthService(prisma as unknown as PrismaService, jwtService);
+    service = new AuthService(
+      prisma as unknown as PrismaService,
+      jwtService,
+      new AuditService(prisma as unknown as PrismaService),
+    );
 
     username = `auth001.${Date.now()}`;
     const passwordHash = await bcrypt.hash(password, 4);

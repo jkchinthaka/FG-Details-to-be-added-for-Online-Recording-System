@@ -14,6 +14,7 @@ import {
 } from "./auth.errors";
 import { hashToken } from "./lib/token-hash";
 import type { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
 
 const PLAINTEXT_PASSWORD = "correct-horse-battery-staple";
 
@@ -105,8 +106,13 @@ function storedRefreshRow(token: string, overrides: Record<string, unknown> = {}
 
 function buildService(prismaMock: ReturnType<typeof buildPrismaMock>) {
   const jwtService = new JwtService();
-  const service = new AuthService(prismaMock as unknown as PrismaService, jwtService);
-  return { service, jwtService };
+  const audit = new AuditService(prismaMock as unknown as PrismaService);
+  const service = new AuthService(
+    prismaMock as unknown as PrismaService,
+    jwtService,
+    audit,
+  );
+  return { service, jwtService, audit };
 }
 
 describe("AuthService", () => {

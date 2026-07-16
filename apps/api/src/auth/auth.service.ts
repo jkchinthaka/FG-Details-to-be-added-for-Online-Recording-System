@@ -5,6 +5,8 @@ import * as bcrypt from "bcrypt";
 import type { CurrentUser, PermissionKey, UserRole } from "@nelna/shared";
 import { normalizeUsername } from "@nelna/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS } from "../audit/audit.actions";
 import { Prisma } from "../../generated/prisma-client";
 import { getAuthConfig, type AuthConfig } from "./auth.config";
 import {
@@ -45,6 +47,7 @@ type UserWithRoles = Prisma.UserGetPayload<{ include: typeof userWithRolesInclud
 export type RequestMeta = {
   ip?: string;
   userAgent?: string;
+  requestId?: string;
 };
 
 export type AuthTokens = {
@@ -92,6 +95,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly audit: AuditService,
   ) {}
 
   async login(dto: LoginDto, meta: RequestMeta = {}): Promise<AuthResult> {
@@ -105,16 +109,45 @@ export class AuthService {
 
     if (!user) {
       await bcrypt.compare(dto.password, TIMING_SAFE_DUMMY_HASH);
+      await this.audit.append({
+        action: AUDIT_ACTIONS.LOGIN_FAILURE,
+        entityType: "User",
+        reason: "invalid_credentials",
+        requestId: meta.requestId,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        metadata: { usernamePresent: Boolean(username) },
+      });
       throw new InvalidCredentialsException();
     }
 
     if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      await this.audit.append({
+        actorId: user.id,
+        action: AUDIT_ACTIONS.LOGIN_FAILURE,
+        entityType: "User",
+        entityId: user.id,
+        reason: "account_locked",
+        requestId: meta.requestId,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      });
       throw new AccountLockedException(this.minutesUntil(user.lockedUntil));
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
       await this.recordFailedAttempt(user, config);
+      await this.audit.append({
+        actorId: user.id,
+        action: AUDIT_ACTIONS.LOGIN_FAILURE,
+        entityType: "User",
+        entityId: user.id,
+        reason: "invalid_credentials",
+        requestId: meta.requestId,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      });
       throw new InvalidCredentialsException();
     }
 
@@ -124,6 +157,16 @@ export class AuthService {
     });
 
     if (user.status !== "ACTIVE") {
+      await this.audit.append({
+        actorId: user.id,
+        action: AUDIT_ACTIONS.LOGIN_FAILURE,
+        entityType: "User",
+        entityId: user.id,
+        reason: "account_inactive",
+        requestId: meta.requestId,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      });
       throw new AccountInactiveException();
     }
 
@@ -133,6 +176,16 @@ export class AuthService {
 
     const lastLoginAt = new Date();
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt } });
+
+    await this.audit.append({
+      actorId: user.id,
+      action: AUDIT_ACTIONS.LOGIN_SUCCESS,
+      entityType: "User",
+      entityId: user.id,
+      requestId: meta.requestId,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    });
 
     return {
       user: this.toCurrentUser(user, roles, permissions, lastLoginAt),
@@ -245,7 +298,10 @@ export class AuthService {
   }
 
   /** Best-effort: revokes the presented refresh-token family. Never throws. */
-  async logout(refreshTokenRaw: string | undefined): Promise<void> {
+  async logout(
+    refreshTokenRaw: string | undefined,
+    meta: RequestMeta = {},
+  ): Promise<void> {
     if (!refreshTokenRaw) return;
     const tokenHash = hashToken(refreshTokenRaw);
     const stored = await this.prisma.refreshToken
@@ -255,6 +311,16 @@ export class AuthService {
     await revokeRefreshTokenFamily(this.prisma, stored.familyId, stored.userId).catch(
       () => undefined,
     );
+    await this.audit.append({
+      actorId: stored.userId,
+      action: AUDIT_ACTIONS.LOGOUT,
+      entityType: "User",
+      entityId: stored.userId,
+      requestId: meta.requestId,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      metadata: { familyId: stored.familyId },
+    });
   }
 
   /** Revokes all refresh-token families for the user. */
@@ -392,6 +458,16 @@ export class AuthService {
     });
 
     await this.revokeAllSessions(userId);
+
+    await this.audit.append({
+      actorId: userId,
+      action: AUDIT_ACTIONS.PASSWORD_CHANGE,
+      entityType: "User",
+      entityId: userId,
+      requestId: meta.requestId,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    });
 
     const reloaded = await this.prisma.user.findUnique({
       where: { id: userId },
