@@ -37,14 +37,16 @@
   },
   "vars": {
     "NEXT_PUBLIC_API_URL": "/api",
-    "API_INTERNAL_URL": "https://fg-details-to-be-added-for-online.onrender.com"
+    "API_INTERNAL_URL": "https://fg-details-to-be-added-for-online.onrender.com",
+    "NEXT_PRIVATE_MINIMAL_MODE": "1"
   },
   "env": {
     "uat": {
       "name": "fgdetails-uat",
       "workers_dev": true,
       "vars": {
-        "NEXT_PUBLIC_API_URL": "/api"
+        "NEXT_PUBLIC_API_URL": "/api",
+        "NEXT_PRIVATE_MINIMAL_MODE": "1"
       },
       "services": [
         {

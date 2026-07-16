@@ -44,7 +44,12 @@ export function decideVerifiedMiddlewareAction(
   pathname: string,
   session: VerifiedSession,
 ): MiddlewareDecision {
-  if (isApiProxyPath(pathname) || isPublicAppPath(pathname)) {
+  // API proxy never reaches here; change-password is session-gated below.
+  if (isApiProxyPath(pathname)) {
+    return { action: "allow" };
+  }
+
+  if (isPublicAppPath(pathname) && pathname !== "/change-password") {
     return { action: "allow" };
   }
 
@@ -64,7 +69,7 @@ export function decideVerifiedMiddlewareAction(
   }
 
   if (!session.user.mustChangePassword && pathname === "/change-password") {
-    return { action: "redirect", url: "/tasks" };
+    return { action: "redirect", url: postPasswordChangeLandingPath(session.user) };
   }
 
   if (!canAccessRoute(pathname, session.user.roles, session.user.permissions)) {
@@ -75,6 +80,14 @@ export function decideVerifiedMiddlewareAction(
   }
 
   return { action: "allow" };
+}
+
+/** Prefer admin home for SYSTEM_ADMINISTRATOR; otherwise universal tasks dashboard. */
+export function postPasswordChangeLandingPath(user: CurrentUser): string {
+  if (user.roles.includes("SYSTEM_ADMINISTRATOR")) {
+    return "/admin";
+  }
+  return "/tasks";
 }
 
 export function userHasPermission(user: CurrentUser, key: PermissionKey): boolean {

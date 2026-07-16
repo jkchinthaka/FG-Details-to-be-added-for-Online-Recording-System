@@ -1,26 +1,6 @@
 import type { CurrentUser } from "@nelna/shared";
-import {
-  assertProductionApiInternalUrl,
-  normalizeApiInternalUrl,
-} from "@/lib/proxy/api-internal-url";
+import { resolveRuntimeApiInternalUrl } from "@/lib/proxy/api-internal-url";
 import type { VerifiedSession } from "./middleware-logic";
-
-function resolveSessionApiBaseUrl(): string {
-  const raw = process.env.API_INTERNAL_URL?.trim();
-  if (process.env.NODE_ENV === "production") {
-    // Runtime Worker has wrangler vars; do not resolve at module import during next build.
-    return assertProductionApiInternalUrl(raw);
-  }
-  if (raw) {
-    try {
-      return normalizeApiInternalUrl(raw);
-    } catch {
-      /* fall through */
-    }
-  }
-  // Local direct Nest origin only — never treat NEXT_PUBLIC_API_URL=/api as upstream.
-  return "http://localhost:3001";
-}
 
 function collectSetCookie(response: Response): string[] {
   const headers = response.headers as Headers & { getSetCookie?: () => string[] };
@@ -46,7 +26,12 @@ export async function verifySessionFromCookieHeader(
     return { session: { status: "missing" }, setCookieHeaders: [] };
   }
 
-  const apiBaseUrl = resolveSessionApiBaseUrl();
+  let apiBaseUrl: string;
+  try {
+    apiBaseUrl = await resolveRuntimeApiInternalUrl();
+  } catch {
+    return { session: { status: "expired" }, setCookieHeaders: [] };
+  }
 
   const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
     method: "GET",

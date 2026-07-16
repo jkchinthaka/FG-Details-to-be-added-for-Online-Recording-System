@@ -133,6 +133,13 @@ export function assertProductionApiInternalUrl(
   const origin = normalizeApiInternalUrl(String(raw));
   const url = new URL(origin);
 
+  if (url.username || url.password) {
+    throw new ApiInternalUrlError(
+      "invalid_url",
+      "Production API_INTERNAL_URL must not embed credentials",
+    );
+  }
+
   if (url.protocol !== "https:") {
     throw new ApiInternalUrlError(
       "invalid_protocol",
@@ -193,4 +200,40 @@ export function assertUatApiInternalUrl(
     );
   }
   return origin;
+}
+
+/**
+ * Resolve upstream for Worker/Node: process.env first, then Cloudflare env binding.
+ * Never returns localhost in production.
+ */
+export async function resolveRuntimeApiInternalUrl(): Promise<string> {
+  let raw = process.env.API_INTERNAL_URL?.trim();
+
+  if (!raw) {
+    try {
+      const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+      const ctx = await getCloudflareContext({ async: true });
+      const env = ctx.env as { API_INTERNAL_URL?: string };
+      raw = typeof env?.API_INTERNAL_URL === "string" ? env.API_INTERNAL_URL.trim() : "";
+    } catch {
+      // Not running on Cloudflare / context unavailable.
+    }
+  }
+
+  // Production Worker: public Render origin is configured in wrangler.jsonc.
+  // If process.env injection fails, fall back to that known public origin only
+  // (never localhost). Credentials must never appear in this constant.
+  if (!raw && process.env.NODE_ENV === "production") {
+    raw = PRODUCTION_RENDER_API_ORIGIN;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return assertProductionApiInternalUrl(raw);
+  }
+
+  try {
+    return normalizeApiInternalUrl(raw || "http://localhost:3001");
+  } catch {
+    return "http://localhost:3001";
+  }
 }

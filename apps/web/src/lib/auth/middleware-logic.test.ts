@@ -117,6 +117,19 @@ describe("decideVerifiedMiddlewareAction", () => {
     ).toEqual({ action: "allow" });
   });
 
+  it("redirects away from change-password after flag clears (admin lands on /admin)", () => {
+    expect(
+      decideVerifiedMiddlewareAction("/change-password", {
+        status: "ok",
+        user: {
+          ...activeUser,
+          mustChangePassword: false,
+          roles: ["SYSTEM_ADMINISTRATOR"],
+        },
+      }),
+    ).toEqual({ action: "redirect", url: "/admin" });
+  });
+
   it("allows an operator on records", () => {
     expect(
       decideVerifiedMiddlewareAction("/records", { status: "ok", user: activeUser }),

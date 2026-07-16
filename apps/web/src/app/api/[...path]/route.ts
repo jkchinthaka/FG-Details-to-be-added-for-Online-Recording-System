@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   ApiInternalUrlError,
+  PRODUCTION_RENDER_API_ORIGIN,
   assertProductionApiInternalUrl,
   normalizeApiInternalUrl,
 } from "@/lib/proxy/api-internal-url";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
-const DEFAULT_UPSTREAM = "http://localhost:3001";
 const PROXY_TIMEOUT_MS = 30_000;
 
-function resolveUpstreamBase(): string {
-  const raw = process.env.API_INTERNAL_URL?.trim();
-  const isProduction = process.env.NODE_ENV === "production";
+function resolveUpstreamBaseSync(): string {
+  const raw =
+    process.env.API_INTERNAL_URL?.trim() ||
+    (process.env.NODE_ENV === "production" ? PRODUCTION_RENDER_API_ORIGIN : "");
 
-  if (isProduction) {
-    return assertProductionApiInternalUrl(raw);
+  if (process.env.NODE_ENV === "production") {
+    return assertProductionApiInternalUrl(raw || PRODUCTION_RENDER_API_ORIGIN);
   }
-
   try {
-    return normalizeApiInternalUrl(raw || DEFAULT_UPSTREAM);
+    return normalizeApiInternalUrl(raw || "http://localhost:3001");
   } catch {
-    return DEFAULT_UPSTREAM;
+    return "http://localhost:3001";
   }
 }
 
 function buildUpstreamUrl(req: NextRequest, pathSegments: string[]): string {
-  const base = resolveUpstreamBase();
+  const base = resolveUpstreamBaseSync();
   const path = pathSegments.map(encodeURIComponent).join("/");
   const search = req.nextUrl.search;
   return `${base}/${path}${search}`;
@@ -46,100 +45,112 @@ async function proxyRequest(
   req: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ): Promise<NextResponse> {
-  const { path: pathSegments } = await context.params;
-  if (!pathSegments?.length) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
-
-  let upstreamUrl: string;
   try {
-    upstreamUrl = buildUpstreamUrl(req, pathSegments);
-  } catch (error) {
-    const message =
-      error instanceof ApiInternalUrlError
-        ? "API proxy is misconfigured"
-        : "API proxy is misconfigured";
-    return NextResponse.json({ message }, { status: 503 });
-  }
-
-  const method = req.method.toUpperCase();
-  const headers = new Headers();
-
-  const cookie = req.headers.get("cookie");
-  if (cookie) headers.set("cookie", cookie);
-
-  const contentType = req.headers.get("content-type");
-  if (contentType) headers.set("content-type", contentType);
-
-  const accept = req.headers.get("accept");
-  if (accept) headers.set("accept", accept);
-
-  const authorization = req.headers.get("authorization");
-  if (authorization) headers.set("authorization", authorization);
-
-  let body: ArrayBuffer | undefined;
-  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-    body = await req.arrayBuffer();
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-
-  try {
-    const upstream = await fetch(upstreamUrl, {
-      method,
-      headers,
-      body,
-      redirect: "manual",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-
-    const responseHeaders = new Headers();
-    const passThrough = [
-      "content-type",
-      "content-disposition",
-      "cache-control",
-      "www-authenticate",
-      "x-request-id",
-    ];
-    for (const name of passThrough) {
-      const value = upstream.headers.get(name);
-      if (value) responseHeaders.set(name, value);
+    const { path: pathSegments } = await context.params;
+    if (!pathSegments?.length) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
 
-    // Auth and session responses must never be cached at the edge/browser.
-    if (pathSegments[0] === "auth" || !responseHeaders.has("cache-control")) {
-      responseHeaders.set("cache-control", "private, no-store");
+    let upstreamUrl: string;
+    try {
+      upstreamUrl = buildUpstreamUrl(req, pathSegments);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          message: "API proxy is misconfigured",
+          code: "PROXY_MISCONFIGURED",
+          detail: error instanceof ApiInternalUrlError ? error.code : "unknown",
+        },
+        { status: 503 },
+      );
     }
 
-    const setCookies = collectSetCookie(upstream.headers);
-    for (const value of setCookies) {
-      responseHeaders.append("set-cookie", value);
+    const method = req.method.toUpperCase();
+    const headers = new Headers();
+
+    const cookie = req.headers.get("cookie");
+    if (cookie) headers.set("cookie", cookie);
+
+    const contentType = req.headers.get("content-type");
+    if (contentType) headers.set("content-type", contentType);
+
+    const accept = req.headers.get("accept");
+    if (accept) headers.set("accept", accept);
+
+    const authorization = req.headers.get("authorization");
+    if (authorization) headers.set("authorization", authorization);
+
+    let body: ArrayBuffer | undefined;
+    if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+      body = await req.arrayBuffer();
     }
 
-    if (method === "OPTIONS") {
-      return new NextResponse(null, {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+
+    try {
+      const upstream = await fetch(upstreamUrl, {
+        method,
+        headers,
+        body,
+        redirect: "manual",
+        signal: controller.signal,
+        cache: "no-store",
+      });
+
+      const responseHeaders = new Headers();
+      const passThrough = [
+        "content-type",
+        "content-disposition",
+        "cache-control",
+        "www-authenticate",
+        "x-request-id",
+      ];
+      for (const name of passThrough) {
+        const value = upstream.headers.get(name);
+        if (value) responseHeaders.set(name, value);
+      }
+
+      if (pathSegments[0] === "auth" || !responseHeaders.has("cache-control")) {
+        responseHeaders.set("cache-control", "private, no-store");
+      }
+
+      const setCookies = collectSetCookie(upstream.headers);
+      for (const value of setCookies) {
+        responseHeaders.append("set-cookie", value);
+      }
+
+      if (method === "OPTIONS") {
+        return new NextResponse(null, {
+          status: upstream.status,
+          headers: responseHeaders,
+        });
+      }
+
+      const buffer = await upstream.arrayBuffer();
+      return new NextResponse(buffer, {
         status: upstream.status,
         headers: responseHeaders,
       });
+    } catch (error) {
+      const aborted =
+        error instanceof Error &&
+        (error.name === "AbortError" || /aborted/i.test(error.message));
+      return NextResponse.json(
+        {
+          message: aborted ? "Upstream timeout" : "Upstream unavailable",
+          code: aborted ? "UPSTREAM_TIMEOUT" : "UPSTREAM_UNAVAILABLE",
+        },
+        { status: aborted ? 504 : 502 },
+      );
+    } finally {
+      clearTimeout(timer);
     }
-
-    const buffer = await upstream.arrayBuffer();
-    return new NextResponse(buffer, {
-      status: upstream.status,
-      headers: responseHeaders,
-    });
-  } catch (error) {
-    const aborted =
-      error instanceof Error &&
-      (error.name === "AbortError" || /aborted/i.test(error.message));
+  } catch {
     return NextResponse.json(
-      { message: aborted ? "Upstream timeout" : "Upstream unavailable" },
-      { status: aborted ? 504 : 502 },
+      { message: "Proxy handler failure", code: "PROXY_HANDLER_FAILURE" },
+      { status: 500 },
     );
-  } finally {
-    clearTimeout(timer);
   }
 }
 

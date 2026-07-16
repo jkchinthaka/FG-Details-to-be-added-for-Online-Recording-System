@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decideVerifiedMiddlewareAction } from "@/lib/auth/middleware-logic";
-import { isApiProxyPath, isPublicAppPath } from "@/lib/auth/route-access";
+import {
+  isApiProxyPath,
+  isChangePasswordPath,
+  isPublicAppPath,
+} from "@/lib/auth/route-access";
 import { verifySessionFromCookieHeader } from "@/lib/auth/verify-session";
 import { AUTH_COOKIE_NAMES } from "@nelna/shared";
 import { buildLoginRedirectUrl } from "@/lib/auth/session";
@@ -8,13 +12,12 @@ import { buildLoginRedirectUrl } from "@/lib/auth/session";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Same-origin /api proxy must reach NestJS without page auth redirects.
-  // Unauthenticated POST /api/auth/login must not become GET/POST /login?next=...
   if (isApiProxyPath(pathname)) {
     return NextResponse.next();
   }
 
-  if (isPublicAppPath(pathname)) {
+  // Fully public marketing/auth entry pages (not change-password).
+  if (isPublicAppPath(pathname) && !isChangePasswordPath(pathname)) {
     return NextResponse.next();
   }
 
@@ -23,6 +26,9 @@ export async function middleware(request: NextRequest) {
     request.cookies.has(AUTH_COOKIE_NAMES.refreshToken);
 
   if (!hasAnyAuthCookie) {
+    if (isChangePasswordPath(pathname)) {
+      return NextResponse.redirect(new URL(buildLoginRedirectUrl(pathname), request.url));
+    }
     return NextResponse.redirect(new URL(buildLoginRedirectUrl(pathname), request.url));
   }
 

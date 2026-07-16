@@ -6,6 +6,7 @@ import { changePasswordSchema, PASSWORD_MIN_LENGTH } from "@nelna/shared";
 import { Alert, Button, Input } from "@nelna/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError, changePassword } from "@/lib/auth/api";
+import { postPasswordChangeLandingPath } from "@/lib/auth/middleware-logic";
 
 export function ChangePasswordForm() {
   const router = useRouter();
@@ -14,18 +15,20 @@ export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (auth.status === "unauthenticated") {
       router.replace("/login");
-    } else if (auth.status === "authenticated" && !auth.user?.mustChangePassword) {
-      router.replace("/tasks");
+    } else if (auth.status === "authenticated" && auth.user && !auth.user.mustChangePassword) {
+      router.replace(postPasswordChangeLandingPath(auth.user));
     }
-  }, [auth.status, auth.user?.mustChangePassword, router]);
+  }, [auth.status, auth.user, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     setError(null);
 
     if (newPassword !== confirmPassword) {
@@ -42,9 +45,12 @@ export function ChangePasswordForm() {
     setSubmitting(true);
     try {
       const user = await changePassword(parsed.data);
-      await auth.refetch();
+      // Apply returned user immediately so middleware/client never see stale mustChangePassword.
+      auth.applyUser(user);
+      void auth.refetch();
+      setSuccess(true);
       if (!user.mustChangePassword) {
-        router.replace("/tasks");
+        router.replace(postPasswordChangeLandingPath(user));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not change password.");
@@ -87,6 +93,11 @@ export function ChangePasswordForm() {
             {error ? (
               <Alert tone="danger" title="Could not update password">
                 {error}
+              </Alert>
+            ) : null}
+            {success ? (
+              <Alert tone="success" title="Password updated">
+                Redirecting you to the application…
               </Alert>
             ) : null}
 

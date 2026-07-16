@@ -7,9 +7,14 @@ initOpenNextCloudflareForDev();
 
 if (process.env.NODE_ENV === "production") {
   validateCloudflareProxyConfigForProductionBuild();
+  process.env.NEXT_PUBLIC_API_URL ??= "/api";
 }
 
-const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+const connectSrc =
+  apiOrigin.startsWith("http://") || apiOrigin.startsWith("https://")
+    ? `'self' ${apiOrigin}`
+    : "'self'";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@nelna/ui", "@nelna/shared"],
@@ -31,7 +36,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              `connect-src 'self' ${apiOrigin}`,
+              `connect-src ${connectSrc}`,
             ].join("; "),
           },
           { key: "Referrer-Policy", value: "no-referrer" },

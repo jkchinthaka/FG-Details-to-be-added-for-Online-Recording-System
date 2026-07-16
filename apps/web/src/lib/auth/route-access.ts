@@ -71,11 +71,15 @@ export const ROUTE_ACCESS_RULES: RouteAccessRule[] = [
 
 const PUBLIC_PATH_PREFIXES = [
   "/login",
-  "/change-password",
   "/unauthorized",
   "/account-inactive",
   "/offline",
 ];
+
+/** Password-change page is gated by verified session, not fully public. */
+export function isChangePasswordPath(pathname: string): boolean {
+  return pathname === "/change-password" || pathname.startsWith("/change-password/");
+}
 
 /** Same-origin NestJS proxy paths — page middleware must never rewrite these. */
 export function isApiProxyPath(pathname: string): boolean {

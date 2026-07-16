@@ -27,6 +27,8 @@ export type AuthContextValue = {
   user: CurrentUser | null;
   login: (input: LoginInput) => Promise<CurrentUser>;
   logout: () => Promise<void>;
+  /** Apply a verified CurrentUser immediately (e.g. after password change). */
+  applyUser: (user: CurrentUser) => void;
   /** Re-checks the current session against the API (e.g. after a 401 elsewhere in the app). */
   refetch: () => Promise<void>;
   sessionExpiredNotice: boolean;
@@ -104,6 +106,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return currentUser;
   }, []);
 
+  const applyUser = useCallback((currentUser: CurrentUser) => {
+    setSessionExpiredNotice(false);
+    if (currentUser.status !== "ACTIVE") {
+      setUser(currentUser);
+      setStatus("inactive");
+      return;
+    }
+    setUser(currentUser);
+    setStatus("authenticated");
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await apiLogout();
@@ -135,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       login,
       logout,
+      applyUser,
       refetch: loadSession,
       sessionExpiredNotice,
       clearSessionExpiredNotice,
@@ -145,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       login,
       logout,
+      applyUser,
       loadSession,
       sessionExpiredNotice,
       clearSessionExpiredNotice,
