@@ -1,8 +1,13 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+import { validateCloudflareProxyConfigForProductionBuild } from "./src/lib/proxy/validate-wrangler-proxy-config";
 
 // Enables Cloudflare bindings during `next dev` when Wrangler is available.
 initOpenNextCloudflareForDev();
+
+if (process.env.NODE_ENV === "production") {
+  validateCloudflareProxyConfigForProductionBuild();
+}
 
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 

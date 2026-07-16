@@ -1,11 +1,19 @@
 /**
  * Cloudflare Workers configuration for the Nelna FG web app (OpenNext).
  * Connected Cloudflare Worker project name: fgdetails.
- * Do not put secrets here.
+ * Do not put secrets, tokens, DATABASE_URL, or credentials here.
  *
  * Production currently deploys to workers.dev.
  * Add fg.nelna.lk only after nelna.lk becomes an active Cloudflare zone
  * in this account.
+ *
+ * API_INTERNAL_URL is the Render API origin only — do not append /api.
+ * Browser clients call same-origin /api/*; the Worker proxies to
+ * {API_INTERNAL_URL}/{path}.
+ *
+ * UAT (env.uat): MANUAL_ACTION_REQUIRED — set API_INTERNAL_URL to an explicit
+ * UAT Render origin before deploying --env uat. Do not copy the production URL.
+ * Leave UAT API_INTERNAL_URL unset until that origin exists.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -16,33 +24,34 @@
   "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS",
+    "binding": "ASSETS"
   },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "fgdetails",
-    },
+      "service": "fgdetails"
+    }
   ],
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
   "vars": {
     "NEXT_PUBLIC_API_URL": "/api",
+    "API_INTERNAL_URL": "https://fg-details-to-be-added-for-online.onrender.com"
   },
   "env": {
     "uat": {
       "name": "fgdetails-uat",
       "workers_dev": true,
       "vars": {
-        "NEXT_PUBLIC_API_URL": "/api",
+        "NEXT_PUBLIC_API_URL": "/api"
       },
       "services": [
         {
           "binding": "WORKER_SELF_REFERENCE",
-          "service": "fgdetails-uat",
-        },
-      ],
-    },
-  },
+          "service": "fgdetails-uat"
+        }
+      ]
+    }
+  }
 }

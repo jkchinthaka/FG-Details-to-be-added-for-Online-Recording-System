@@ -33,7 +33,18 @@ Production API **refuses to start** without (see `apps/api/src/config/validate-p
 
 Also set: `APP_VERSION`, `APP_BUILD_ID` (short SHA), optional `FILE_STORAGE_PATH`, auth TTLs, cookie domain if split hostnames.
 
-Web: `NEXT_PUBLIC_API_URL` (or project-equivalent) pointing at HTTPS API. See `apps/web/.env.example` and `apps/api/.env.example`.
+Web (Cloudflare Worker — same-origin proxy):
+
+| Variable | Production value |
+|----------|------------------|
+| `NEXT_PUBLIC_API_URL` | `/api` |
+| `API_INTERNAL_URL` | `https://fg-details-to-be-added-for-online.onrender.com` (origin **without** `/api`) |
+
+Configured in `apps/web/wrangler.jsonc` production `vars` (public Render origin only — no secrets). OpenNext production builds **fail** if `API_INTERNAL_URL` is missing, localhost, private, or ends with `/api`.
+
+UAT Worker (`wrangler --env uat`): **MANUAL_ACTION_REQUIRED** — set an explicit UAT API origin; do not copy production. See `docs/deployment/SAME_ORIGIN_API_PROXY.md`.
+
+Also see `apps/web/.env.example` and `apps/api/.env.example`.
 
 ---
 
@@ -42,7 +53,7 @@ Web: `NEXT_PUBLIC_API_URL` (or project-equivalent) pointing at HTTPS API. See `a
 1. Pre-deployment backup (`docs/database/BACKUP_RESTORE_RUNBOOK.md` / `.local-backups/`).  
 2. Confirm `DATABASE_URL` targets **`fg_online`** (never `fg_online_test` in production).  
 3. `pnpm --filter @nelna/api prisma:generate`  
-4. `pnpm --filter @nelna/api prisma:push`  
+4. Production index sync (not `prisma db push`): `pnpm --filter @nelna/api db:indexes:sync`  
 5. Seed **production reference only**: `pnpm --filter @nelna/api prisma:seed:production`  
    - Never set `ENABLE_DEMO_SEED=true` on Render / production.  
    - Demo seed is local-only (`prisma:seed:demo`).  

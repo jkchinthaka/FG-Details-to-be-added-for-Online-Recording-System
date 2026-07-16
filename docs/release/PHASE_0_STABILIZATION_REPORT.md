@@ -20,8 +20,8 @@ Required live evidence is incomplete after re-probe:
 |------|----------|--------|
 | Atlas connection works | Direct `/health/ready` â†’ **503** `db:down`, `storage:down` (~60s) | **FAIL** |
 | API `/health/ready` success | Same | **FAIL** |
-| Proxied `/api/health/live` success | **403** Cloudflare `error code: 1003` | **FAIL** |
-| Proxied `/api/health/ready` success | **403** Cloudflare `error code: 1003` | **FAIL** |
+| Proxied `/api/health/live` success | Prior **403** (`1003`) from missing `API_INTERNAL_URL` → localhost; config fixed in code — **redeploy Worker required** | **FAIL** (pending redeploy evidence) |
+| Proxied `/api/health/ready` success | Same | **FAIL** (pending redeploy evidence) |
 | Frontend/backend same build (`54a6628â€¦`) | Direct `/health` `buildId` = `ac85e6656ad8` (does **not** match `54a66280f28`) | **FAIL** |
 | Exactly one verified active username admin | Blocked â€” production DB unreachable; no authenticated ops access this session | **NOT VERIFIED** |
 | Username login + first password change (live/UAT) | Blocked by DB down / proxy 403; production login not executed | **NOT VERIFIED** |
@@ -135,6 +135,13 @@ Local `db:diagnose` via package script exited without a usable `DATABASE_URL` in
 - `prisma:push` remains **local/development only** (documented); never in Render Start Command
 - Shared rules: `scripts/database/mongo-index-ensure-rules.js` (+ unit tests)
 
+### Cloudflare API proxy (code fix; live evidence pending redeploy)
+
+- Production `wrangler.jsonc` vars: `NEXT_PUBLIC_API_URL=/api`, `API_INTERNAL_URL=https://fg-details-to-be-added-for-online.onrender.com` (no `/api` suffix)
+- UAT env: no production URL — **MANUAL_ACTION_REQUIRED** for explicit UAT origin
+- OpenNext production builds validate wrangler proxy vars (reject missing / localhost / private / `/api` path)
+- See `docs/deployment/SAME_ORIGIN_API_PROXY.md`
+
 ---
 
 ## Designs (unchanged summary)
@@ -182,8 +189,8 @@ Node engine warning: local Node `v24.11.1` vs wanted `>=22.16.0 <23.0.0` (does n
 1. Fix Atlas Network Access for Render egress (see `docs/operations/ATLAS_RENDER_CONNECTIVITY_RUNBOOK.md`).
 2. Confirm Render `DATABASE_URL` â†’ `/fg_online`, credentials, TLS (no invalid-cert bypass).
 3. Confirm live `/health/ready` returns **200** with `db:up` (and storage as required).
-4. Fix Cloudflare Worker `/api` proxy **403 / error 1003** so proxied health returns **200**.
-5. Redeploy **frontend and API** from the same authorized commit (at least `54a6628â€¦`); set `APP_BUILD_ID` from that SHA; confirm both health payloads match.
+4. Redeploy Cloudflare Worker with `API_INTERNAL_URL` set in `wrangler.jsonc` (commit after proxy fix); confirm proxied `/api/health/*` returns **200** (prior root cause: fallback to `localhost:3001` blocked by `global_fetch_strictly_public`).
+5. Redeploy **frontend and API** from the same authorized commit; set `APP_BUILD_ID` from that SHA; confirm both health payloads match.
 6. One-time (with confirmation): indexes â†’ seed â†’ `bootstrap:admin` â†’ `bootstrap:verify`.
 7. Cutover: `users:cutover:dry-run` only until reviewed; `--execute` remains **MANUAL_ACTION_REQUIRED**.
 8. Capture UAT/local evidence for username login + first password change (never production test credentials against prod without explicit approval and readiness).
@@ -193,7 +200,7 @@ Node engine warning: local Node `v24.11.1` vs wanted `>=22.16.0 <23.0.0` (does n
 ## Residual risks
 
 - Production DB still unreachable from Render (`db:down`).
-- Worker proxy returning 403 (`1003`).
+- Worker proxy 403 (`1003`) until Worker redeployed with `API_INTERNAL_URL` (code fixed; live not yet verified).
 - Deployed API `buildId` not on Phase 0 commit.
 - CI still on Node 20; E2E still `continue-on-error: true` (Phase 1).
 - `authVersion` / must-change API guard not yet implemented (Phase 1).

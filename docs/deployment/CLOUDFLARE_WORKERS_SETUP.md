@@ -24,22 +24,24 @@ pnpm --filter @nelna/web cf-typegen
 
 Build shared packages first: `pnpm --filter @nelna/shared build && pnpm --filter @nelna/ui build`.
 
-## Production vars
+## Production vars (`wrangler.jsonc`)
 
 | Variable | Value |
 |----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://fg-api.nelna.lk` |
-| `API_INTERNAL_URL` (optional) | same as above for middleware |
+| `NEXT_PUBLIC_API_URL` | `/api` |
+| `API_INTERNAL_URL` | `https://fg-details-to-be-added-for-online.onrender.com` (no `/api` suffix) |
 
-**Never** set `DATABASE_URL` on the Worker.
+**Never** set `DATABASE_URL`, JWT secrets, or Mongo credentials on the Worker.
+
+Production OpenNext builds validate these vars and fail on localhost/private/`/api` suffix.
 
 ## Domain
 
-Configure DNS for `fg.nelna.lk` → Worker route (see `wrangler.jsonc` `routes` / Cloudflare dashboard). Zone must be on Cloudflare.
+Production currently uses `workers.dev` (`fgdetails`). Configure DNS for `fg.nelna.lk` → Worker route only after the zone is active on Cloudflare.
 
 ## UAT
 
-Use Wrangler env `uat` (`nelna-fg-web-uat`) with UAT API URL. Do not point UAT Worker at production API long-term without an explicit waiver.
+Use Wrangler env `uat` (`fgdetails-uat`). **MANUAL_ACTION_REQUIRED:** set an explicit UAT `API_INTERNAL_URL` before deploy — do not copy the production Render URL.
 
 ## Manual steps still required
 

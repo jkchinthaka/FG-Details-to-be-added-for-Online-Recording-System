@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  ApiInternalUrlError,
+  assertProductionApiInternalUrl,
+  normalizeApiInternalUrl,
+} from "@/lib/proxy/api-internal-url";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -7,13 +12,15 @@ const DEFAULT_UPSTREAM = "http://localhost:3001";
 const PROXY_TIMEOUT_MS = 30_000;
 
 function resolveUpstreamBase(): string {
-  const raw = (process.env.API_INTERNAL_URL ?? DEFAULT_UPSTREAM).trim();
+  const raw = process.env.API_INTERNAL_URL?.trim();
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction) {
+    return assertProductionApiInternalUrl(raw);
+  }
+
   try {
-    const url = new URL(raw);
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      throw new Error("invalid protocol");
-    }
-    return `${url.origin}`;
+    return normalizeApiInternalUrl(raw || DEFAULT_UPSTREAM);
   } catch {
     return DEFAULT_UPSTREAM;
   }
@@ -44,7 +51,17 @@ async function proxyRequest(
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  const upstreamUrl = buildUpstreamUrl(req, pathSegments);
+  let upstreamUrl: string;
+  try {
+    upstreamUrl = buildUpstreamUrl(req, pathSegments);
+  } catch (error) {
+    const message =
+      error instanceof ApiInternalUrlError
+        ? "API proxy is misconfigured"
+        : "API proxy is misconfigured";
+    return NextResponse.json({ message }, { status: 503 });
+  }
+
   const method = req.method.toUpperCase();
   const headers = new Headers();
 

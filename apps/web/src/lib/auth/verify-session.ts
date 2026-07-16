@@ -1,10 +1,26 @@
 import type { CurrentUser } from "@nelna/shared";
+import {
+  assertProductionApiInternalUrl,
+  normalizeApiInternalUrl,
+} from "@/lib/proxy/api-internal-url";
 import type { VerifiedSession } from "./middleware-logic";
 
-const API_BASE_URL =
-  process.env.API_INTERNAL_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:3001";
+function resolveSessionApiBaseUrl(): string {
+  const raw = process.env.API_INTERNAL_URL?.trim();
+  if (process.env.NODE_ENV === "production") {
+    // Runtime Worker has wrangler vars; do not resolve at module import during next build.
+    return assertProductionApiInternalUrl(raw);
+  }
+  if (raw) {
+    try {
+      return normalizeApiInternalUrl(raw);
+    } catch {
+      /* fall through */
+    }
+  }
+  // Local direct Nest origin only — never treat NEXT_PUBLIC_API_URL=/api as upstream.
+  return "http://localhost:3001";
+}
 
 function collectSetCookie(response: Response): string[] {
   const headers = response.headers as Headers & { getSetCookie?: () => string[] };
@@ -30,7 +46,9 @@ export async function verifySessionFromCookieHeader(
     return { session: { status: "missing" }, setCookieHeaders: [] };
   }
 
-  const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+  const apiBaseUrl = resolveSessionApiBaseUrl();
+
+  const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
     method: "GET",
     headers: { cookie: cookieHeader, accept: "application/json" },
     cache: "no-store",
@@ -53,7 +71,7 @@ export async function verifySessionFromCookieHeader(
   }
 
   if (meResponse.status === 401) {
-    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const refreshResponse = await fetch(`${apiBaseUrl}/auth/refresh`, {
       method: "POST",
       headers: { cookie: cookieHeader, accept: "application/json" },
       cache: "no-store",
@@ -64,7 +82,7 @@ export async function verifySessionFromCookieHeader(
     }
     // Re-read me with refreshed cookies merged into the cookie header when possible
     const refreshedCookies = mergeSetCookieIntoHeader(cookieHeader, setCookieHeaders);
-    const retry = await fetch(`${API_BASE_URL}/auth/me`, {
+    const retry = await fetch(`${apiBaseUrl}/auth/me`, {
       method: "GET",
       headers: { cookie: refreshedCookies, accept: "application/json" },
       cache: "no-store",
