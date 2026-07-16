@@ -217,13 +217,25 @@ function buildPrismaMock() {
     inspectionAttachment: {
       deleteMany: jest.fn().mockResolvedValue(undefined),
       createMany: jest.fn().mockResolvedValue(undefined),
+      findMany: jest.fn().mockResolvedValue([]),
+      delete: jest.fn().mockResolvedValue(undefined),
       create: jest
         .fn()
         .mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
           id: "att-1",
           ...data,
         })),
-      update: jest.fn().mockResolvedValue(undefined),
+      update: jest
+        .fn()
+        .mockImplementation(
+          async ({
+            where,
+            data,
+          }: {
+            where: { id: string };
+            data: Record<string, unknown>;
+          }) => ({ id: where.id, ...data }),
+        ),
     },
     correctiveAction: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -262,6 +274,9 @@ function buildPrismaMock() {
 function buildService(prismaMock: ReturnType<typeof buildPrismaMock>) {
   const gridFsMock = {
     upload: jest.fn(),
+    uploadStream: jest.fn(),
+    deleteFile: jest.fn().mockResolvedValue(true),
+    recordReconciliationEvent: jest.fn().mockResolvedValue(undefined),
     ping: jest.fn(),
     openDownloadStream: jest.fn(),
     findFileMetadata: jest.fn(),

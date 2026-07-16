@@ -9,6 +9,9 @@ import {
 export const dynamic = "force-dynamic";
 
 const PROXY_TIMEOUT_MS = 30_000;
+/** Larger ceiling for streamed uploads (evidence) so bounded-memory streaming
+ *  is not cut short on slower connections. */
+const UPLOAD_PROXY_TIMEOUT_MS = 120_000;
 
 function resolveUpstreamBaseSync(): string {
   const raw =
@@ -80,13 +83,27 @@ async function proxyRequest(
     const authorization = req.headers.get("authorization");
     if (authorization) headers.set("authorization", authorization);
 
-    let body: ArrayBuffer | undefined;
-    if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-      body = await req.arrayBuffer();
+    const hasBody = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+    const isMultipart = (contentType ?? "").toLowerCase().startsWith("multipart/");
+
+    // Stream multipart uploads straight through (bounded memory); buffer small
+    // JSON/urlencoded bodies as before.
+    let body: BodyInit | undefined;
+    let duplex: "half" | undefined;
+    if (hasBody) {
+      if (isMultipart && req.body) {
+        body = req.body as unknown as ReadableStream<Uint8Array>;
+        duplex = "half";
+      } else {
+        body = await req.arrayBuffer();
+      }
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+    const timer = setTimeout(
+      () => controller.abort(),
+      isMultipart ? UPLOAD_PROXY_TIMEOUT_MS : PROXY_TIMEOUT_MS,
+    );
 
     try {
       const upstream = await fetch(upstreamUrl, {
@@ -96,7 +113,8 @@ async function proxyRequest(
         redirect: "manual",
         signal: controller.signal,
         cache: "no-store",
-      });
+        ...(duplex ? { duplex } : {}),
+      } as RequestInit & { duplex?: "half" });
 
       const responseHeaders = new Headers();
       const passThrough = [

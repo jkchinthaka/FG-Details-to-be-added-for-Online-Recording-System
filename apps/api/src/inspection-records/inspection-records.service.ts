@@ -19,6 +19,8 @@ import {
   formatRecordNumber,
   isFailureResponse,
   isImmutableVerifiedStatus,
+  isInlineDataUrl,
+  isManagedEvidenceUrl,
   isOverrideToApprovedAllowed,
   isRecordEditable,
   loadingDecisionInputSchema,
@@ -34,6 +36,7 @@ import {
   type ChecklistItemDefinition,
   type ChecklistItemResponse,
   type ChecklistResponseMap,
+  type EvidencePhoto,
   type InspectionRecordDetail,
   type LoadingDecision,
   type PermissionKey,
@@ -87,8 +90,6 @@ import {
   RECORD_HEADER_INCLUDE,
   RESULT_WITH_ATTACHMENTS_INCLUDE,
   decodeDataUrlToBuffer,
-  estimateDataUrlSizeBytes,
-  isDataUrl,
   parseDataUrlMimeType,
   resultStatusFromNormalized,
   toHeader,
@@ -1363,56 +1364,96 @@ export class InspectionRecordsService {
     });
 
     if (response.evidence) {
-      await this.prisma.inspectionAttachment.deleteMany({
-        where: { resultId: result.id },
-      });
-      for (const photo of response.evidence) {
-        if (isDataUrl(photo.url)) {
-          const buffer = decodeDataUrlToBuffer(photo.url);
-          const uploaded = await this.gridFsEvidence.upload({
-            buffer,
-            originalFileName: photo.fileName,
-            mimeType: parseDataUrlMimeType(photo.url),
-            uploadedById: userId,
-            recordId,
-            resultId: result.id,
-            evidenceType: "EVIDENCE",
-          });
-          const attachment = await this.prisma.inspectionAttachment.create({
-            data: {
-              recordId,
-              resultId: result.id,
-              kind: "EVIDENCE",
-              fileUrl: `gridfs://${uploaded.gridFsFileId}`,
-              fileName: photo.fileName,
-              storedFileName: uploaded.storedFileName,
-              mimeType: uploaded.mimeType,
-              sizeBytes: uploaded.sizeBytes,
-              contentSha256: uploaded.contentSha256,
-              gridFsFileId: uploaded.gridFsFileId,
-              gridFsBucket: uploaded.bucketName,
-              uploadCorrelationId: uploaded.correlationId,
-              uploadedById: userId,
-            },
-          });
-          await this.prisma.inspectionAttachment.update({
-            where: { id: attachment.id },
-            data: { fileUrl: `/evidence/${attachment.id}/download` },
-          });
-        } else {
-          await this.prisma.inspectionAttachment.create({
-            data: {
-              recordId,
-              resultId: result.id,
-              kind: "EVIDENCE",
-              fileUrl: photo.url,
-              fileName: photo.fileName,
-              mimeType: parseDataUrlMimeType(photo.url),
-              sizeBytes: estimateDataUrlSizeBytes(photo.url),
-              uploadedById: userId,
-            },
-          });
+      await this.reconcileResultEvidence(recordId, result.id, response.evidence, userId);
+    }
+  }
+
+  /**
+   * FG-FILE-001 — reconciles a result's evidence against the submitted list
+   * WITHOUT ever creating an attachment from an arbitrary external URL and
+   * without converting live uploads through JSON base64.
+   *
+   *  - Managed references (`/evidence/{id}/download`) that already belong to
+   *    this result are kept as-is (they were streamed via the upload endpoint).
+   *  - Inline data URLs (offline capture) are streamed into GridFS and
+   *    validated (magic bytes / size / MIME) before an attachment is created.
+   *  - Any other URL scheme is rejected — no attachment is created from it.
+   *  - Attachments no longer present in the submitted list are removed, and
+   *    their GridFS binaries are deleted so nothing is orphaned.
+   */
+  private async reconcileResultEvidence(
+    recordId: string,
+    resultId: string,
+    evidence: EvidencePhoto[],
+    userId: string,
+  ): Promise<void> {
+    const existing = await this.prisma.inspectionAttachment.findMany({
+      where: { resultId },
+    });
+    const existingById = new Map(existing.map((a) => [a.id, a]));
+    const keepIds = new Set<string>();
+
+    for (const photo of evidence) {
+      if (isManagedEvidenceUrl(photo.url)) {
+        const id = photo.url.split("/")[2];
+        const owned = id ? existingById.get(id) : undefined;
+        if (owned) {
+          keepIds.add(owned.id);
         }
+        // A managed reference that does not belong to this result is ignored
+        // rather than trusted — never adopt a foreign attachment id.
+        continue;
+      }
+
+      if (isInlineDataUrl(photo.url)) {
+        const buffer = decodeDataUrlToBuffer(photo.url);
+        const uploaded = await this.gridFsEvidence.upload({
+          buffer,
+          originalFileName: photo.fileName,
+          mimeType: parseDataUrlMimeType(photo.url),
+          uploadedById: userId,
+          recordId,
+          resultId,
+          evidenceType: "EVIDENCE",
+        });
+        const attachment = await this.prisma.inspectionAttachment.create({
+          data: {
+            recordId,
+            resultId,
+            kind: "EVIDENCE",
+            fileUrl: `gridfs://${uploaded.gridFsFileId}`,
+            fileName: uploaded.originalFileName,
+            storedFileName: uploaded.storedFileName,
+            mimeType: uploaded.mimeType,
+            sizeBytes: uploaded.sizeBytes,
+            contentSha256: uploaded.contentSha256,
+            gridFsFileId: uploaded.gridFsFileId,
+            gridFsBucket: uploaded.bucketName,
+            uploadCorrelationId: uploaded.correlationId,
+            uploadedById: userId,
+          },
+        });
+        const linked = await this.prisma.inspectionAttachment.update({
+          where: { id: attachment.id },
+          data: { fileUrl: `/evidence/${attachment.id}/download` },
+        });
+        keepIds.add(linked.id);
+        continue;
+      }
+
+      // Arbitrary external URL — never store it as evidence.
+      throw new InvalidRecordPayloadException(
+        "Evidence must be uploaded through the evidence endpoint; external URLs are not accepted.",
+      );
+    }
+
+    // Remove attachments that were dropped from the submission and clean up
+    // their GridFS binaries so no orphaned object remains.
+    for (const attachment of existing) {
+      if (keepIds.has(attachment.id)) continue;
+      await this.prisma.inspectionAttachment.delete({ where: { id: attachment.id } });
+      if (attachment.gridFsFileId) {
+        await this.gridFsEvidence.deleteFile(attachment.gridFsFileId);
       }
     }
   }

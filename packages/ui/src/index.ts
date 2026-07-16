@@ -63,6 +63,8 @@ export type { TaskStatusBadgeProps } from "./TaskStatusBadge";
 // Dynamic checklist engine renderer (Prompt 5)
 export { EvidenceUploader } from "./EvidenceUploader";
 export type { EvidenceUploaderProps } from "./EvidenceUploader";
+export { EvidenceUploadProvider, useEvidenceUpload } from "./EvidenceUploadContext";
+export type { EvidenceUploadFn } from "./EvidenceUploadContext";
 export { FailureDetailPanel } from "./FailureDetailPanel";
 export type { FailureDetailPanelProps } from "./FailureDetailPanel";
 export { ChecklistItemCard } from "./ChecklistItemCard";

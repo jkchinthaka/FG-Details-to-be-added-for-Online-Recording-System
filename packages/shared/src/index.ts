@@ -17,3 +17,4 @@ export * from "./reports";
 export * from "./offline-queue";
 export * from "./corrective-actions";
 export * from "./concurrency";
+export * from "./evidence-upload";
