@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nelna FG release manifest",
+  "description": "Immutable release metadata derived from an authorized Git SHA. No secrets.",
+  "type": "object",
+  "required": ["commitSha", "buildId", "applicationVersion", "environment", "deploymentTimestamp"],
+  "properties": {
+    "commitSha": { "type": "string", "minLength": 7 },
+    "buildId": { "type": "string" },
+    "applicationVersion": { "type": "string" },
+    "environment": { "type": "string" },
+    "deploymentTimestamp": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

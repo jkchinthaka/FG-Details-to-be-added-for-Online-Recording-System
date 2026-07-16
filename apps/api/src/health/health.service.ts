@@ -21,6 +21,8 @@ export type HealthResponse = {
   version: string;
   /** Safe build identifier (commit SHA short / CI build number) if provided */
   buildId: string | null;
+  /** Full authorized commit SHA when provided (no secrets) */
+  commitSha: string | null;
   environment: string;
   timestamp: string;
   checks: HealthChecks;
@@ -30,13 +32,18 @@ function appVersion(): string {
   return process.env.APP_VERSION?.trim() || "1.0.0";
 }
 
-function buildId(): string | null {
+function commitSha(): string | null {
   const raw =
-    process.env.APP_BUILD_ID?.trim() ||
+    process.env.GIT_COMMIT_SHA?.trim() ||
     (process.env.RENDER === "true" ? process.env.RENDER_GIT_COMMIT?.trim() : "") ||
-    process.env.GIT_COMMIT_SHA?.trim();
+    process.env.APP_BUILD_ID?.trim();
   if (!raw) return null;
-  // Keep public health payload free of long infra paths — truncate to 12 chars.
+  return raw;
+}
+
+function buildId(): string | null {
+  const raw = commitSha();
+  if (!raw) return null;
   return raw.slice(0, 12);
 }
 
@@ -76,6 +83,7 @@ export class HealthService {
       product: NELNA_BRAND.productName,
       version: appVersion(),
       buildId: buildId(),
+      commitSha: commitSha(),
       environment: process.env.NODE_ENV ?? "development",
       timestamp: new Date().toISOString(),
       checks,
