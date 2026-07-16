@@ -1,6 +1,6 @@
 /**
- * Pure helpers for P0 atomic workflow claims and draft deduplication keys.
- * No I/O — safe for unit tests without MongoDB.
+ * Pure helpers for atomic workflow claims and draft deduplication payloads.
+ * Key-building / reuse policy live in draft-deduplication-strategy.ts.
  */
 
 export type StaleStatePayload = {
@@ -25,43 +25,19 @@ export function duplicateRecordPayload(message: string): DuplicateRecordPayload 
   return { code: "DUPLICATE_RECORD", message };
 }
 
-/** Normalize a business key segment for deterministic draft deduplication. */
-export function normalizeDedupSegment(value: string | null | undefined): string {
-  return (value ?? "").trim().toUpperCase().replace(/\s+/g, " ");
-}
-
-/**
- * Canonical draft deduplication key.
- * Format: DOC|YYYY-MM-DD|SHIFT|AREA|VEHICLE
- * VEHICLE is empty for cleaning records.
- *
- * HUMAN_DECISION_REQUIRED: whether REJECTED/ARCHIVED records keep or clear this
- * key (affects whether a new draft may be opened for the same scope). Technical
- * default: keys apply only while status is DRAFT or RETURNED_FOR_CORRECTION.
- */
-export function buildDraftDeduplicationKey(input: {
-  documentCode: string;
-  recordDateIso: string;
-  shiftCode: string | null | undefined;
-  areaLabel: string | null | undefined;
-  vehicleNumber?: string | null | undefined;
-}): string {
-  const date = input.recordDateIso.slice(0, 10);
-  return [
-    normalizeDedupSegment(input.documentCode),
-    date,
-    normalizeDedupSegment(input.shiftCode),
-    normalizeDedupSegment(input.areaLabel),
-    normalizeDedupSegment(input.vehicleNumber),
-  ].join("|");
-}
-
-/** Statuses that retain an active draft deduplication key. */
-export const ACTIVE_DRAFT_DEDUP_STATUSES = ["DRAFT", "RETURNED_FOR_CORRECTION"] as const;
-
-export function shouldRetainDraftDeduplicationKey(status: string): boolean {
-  return (ACTIVE_DRAFT_DEDUP_STATUSES as readonly string[]).includes(status);
-}
+export {
+  ACTIVE_DRAFT_DEDUP_STATUSES,
+  buildDraftDeduplicationKey,
+  buildOperationalDraftDeduplicationKey,
+  normalizeDedupSegment,
+  resolveDraftDuplicateUnderPolicy,
+  shouldRetainDraftDeduplicationKey,
+  statusesRetainingDraftDeduplicationKey,
+  TECHNICAL_DEFAULT_DRAFT_REUSE_POLICY,
+  type DraftReusePolicy,
+  type DraftDuplicateResolution,
+  type ExistingDraftRecordCheck,
+} from "./draft-deduplication-strategy";
 
 /**
  * Workflow cycle for approval uniqueness (recordId + approvalType + cycle).

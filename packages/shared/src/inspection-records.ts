@@ -23,6 +23,7 @@ import {
 } from "./records";
 import type { UserRole } from "./roles";
 import type { TruckInspectionDetailPayload } from "./truck-inspection";
+import { resolveDraftDuplicateUnderPolicy } from "./draft-deduplication-strategy";
 
 // ---------------------------------------------------------------------------
 // Wire schemas (API request bodies / web form payloads)
@@ -265,35 +266,16 @@ export type DuplicateResolution =
   | { outcome: "resume"; recordId: string }
   | { outcome: "conflict"; reason: string };
 
-/** Duplicate-prevention decision for "create/resume a draft for date + shift
- *  + area": never create a second InspectionRecord while an active one
- *  already exists for the same key. An existing DRAFT/REJECTED record owned
- *  by the requester is resumed instead of duplicated; anything already
- *  submitted, or owned by someone else, is a conflict. */
+/**
+ * Duplicate-prevention decision for "create/resume a draft for date + shift
+ * + area". Delegates ARCHIVED/REJECTED handling to the named FG-DB-001 strategy
+ * (`resolveDraftDuplicateUnderPolicy` + TECHNICAL_DEFAULT_DRAFT_REUSE_POLICY).
+ */
 export function resolveDraftDuplicate(
   existing: ExistingActiveRecordCheck | null,
   requesterId: string,
 ): DuplicateResolution {
-  if (!existing || existing.status === "ARCHIVED") {
-    return { outcome: "create" };
-  }
-
-  if (isActiveBlockingStatus(existing.status)) {
-    return {
-      outcome: "conflict",
-      reason: `A record for this date, shift and area is already ${existing.status.toLowerCase()}.`,
-    };
-  }
-
-  if (existing.createdById !== requesterId) {
-    return {
-      outcome: "conflict",
-      reason:
-        "Another operator already has an active record for this date, shift and area.",
-    };
-  }
-
-  return { outcome: "resume", recordId: existing.id };
+  return resolveDraftDuplicateUnderPolicy(existing, requesterId);
 }
 
 /** Tallies every item in `items` against `responses` into the

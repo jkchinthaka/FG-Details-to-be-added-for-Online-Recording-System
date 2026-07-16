@@ -105,6 +105,7 @@ export function InspectionRecordWorkspace({
   const skipNextAutosave = useRef(false);
   const loadAttempt = useRef(0);
   const submitInFlight = useRef(false);
+  const createDraftInFlight = useRef<Promise<InspectionRecordDetail> | null>(null);
 
   function loadWorkspace() {
     const attempt = ++loadAttempt.current;
@@ -112,7 +113,11 @@ export function InspectionRecordWorkspace({
 
     const load = recordId
       ? fetchInspectionRecord(recordId)
-      : createCleaningDraft(assignmentId ? { taskAssignmentId: assignmentId } : {});
+      : (createDraftInFlight.current ??= createCleaningDraft(
+          assignmentId ? { taskAssignmentId: assignmentId } : {},
+        ).finally(() => {
+          createDraftInFlight.current = null;
+        }));
 
     load
       .then((detail) => {

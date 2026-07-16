@@ -46,6 +46,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { RequestUser } from "../auth/auth.types";
 import {
   LoadingDecisionStatus,
+  Prisma,
   RecordStatus,
   TemplateStatus,
 } from "../../generated/prisma-client";
@@ -150,7 +151,6 @@ export class InspectionRecordsService {
     const shiftCode: WorkShift =
       parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
     const areaLabel = parsed.data.areaLabel ?? DEFAULT_CLEANING_AREA_LABEL;
-
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
 
     const deduplicationKey = buildDraftDeduplicationKey({
@@ -160,46 +160,20 @@ export class InspectionRecordsService {
       areaLabel,
     });
 
-    const existing = await this.prisma.inspectionRecord.findFirst({
-      where: {
-        OR: [
-          { deduplicationKey },
-          {
-            documentCode: DOCUMENT_CODES.DAILY_CLEANING,
-            recordDate: recordDateAtMidnight,
-            shiftId: shift?.id ?? null,
-            areaLabel,
-          },
-        ],
+    const record = await this.createOrResumeOperationalDraft({
+      user,
+      deduplicationKey,
+      legacyScope: {
+        documentCode: DOCUMENT_CODES.DAILY_CLEANING,
+        recordDate: recordDateAtMidnight,
+        shiftId: shift?.id ?? null,
+        areaLabel,
       },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const resolution = resolveDraftDuplicate(
-      existing
-        ? {
-            id: existing.id,
-            status: existing.status as SharedRecordStatus,
-            createdById: existing.createdById,
-          }
-        : null,
-      user.id,
-    );
-
-    let record: RecordWithHeaderRelations;
-    if (resolution.outcome === "conflict") {
-      throw new DuplicateRecordException(resolution.reason);
-    } else if (resolution.outcome === "resume") {
-      record = await this.prisma.inspectionRecord.findUniqueOrThrow({
-        where: { id: resolution.recordId },
-        include: RECORD_HEADER_INCLUDE,
-      });
-    } else {
-      const templateVersion = await this.findPublishedTemplateVersion(
-        DOCUMENT_CODES.DAILY_CLEANING,
-      );
-      try {
-        record = await this.prisma.inspectionRecord.create({
+      create: async () => {
+        const templateVersion = await this.findPublishedTemplateVersion(
+          DOCUMENT_CODES.DAILY_CLEANING,
+        );
+        return this.prisma.inspectionRecord.create({
           data: {
             templateVersionId: templateVersion.id,
             documentCode: DOCUMENT_CODES.DAILY_CLEANING,
@@ -213,32 +187,8 @@ export class InspectionRecordsService {
           },
           include: RECORD_HEADER_INCLUDE,
         });
-      } catch (error) {
-        const raced = await this.prisma.inspectionRecord.findFirst({
-          where: { deduplicationKey },
-          include: RECORD_HEADER_INCLUDE,
-        });
-        if (raced) {
-          const again = resolveDraftDuplicate(
-            {
-              id: raced.id,
-              status: raced.status as SharedRecordStatus,
-              createdById: raced.createdById,
-            },
-            user.id,
-          );
-          if (again.outcome === "resume") {
-            record = raced;
-          } else if (again.outcome === "conflict") {
-            throw new DuplicateRecordException(again.reason);
-          } else {
-            throw error;
-          }
-        } else {
-          throw error;
-        }
-      }
-    }
+      },
+    });
 
     if (parsed.data.taskAssignmentId) {
       await this.linkTaskAssignment(parsed.data.taskAssignmentId, record.id, user.id);
@@ -266,7 +216,6 @@ export class InspectionRecordsService {
       parsed.data.shiftCode ?? detectWorkShiftForHour(colomboHour());
     const areaLabel = parsed.data.areaLabel ?? DEFAULT_TRUCK_AREA_LABEL;
     const shift = await this.prisma.shift.findUnique({ where: { code: shiftCode } });
-
     const resolvedVehicle = await this.resolveVehicleForTruckDraft(user, parsed.data);
 
     const deduplicationKey = buildDraftDeduplicationKey({
@@ -277,50 +226,23 @@ export class InspectionRecordsService {
       vehicleNumber: resolvedVehicle.vehicleNumber,
     });
 
-    const existing = await this.prisma.inspectionRecord.findFirst({
-      where: {
-        OR: [
-          { deduplicationKey },
-          {
-            documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
-            recordDate: recordDateAtMidnight,
-            shiftId: shift?.id ?? null,
-            truckDetail: { vehicleNumber: resolvedVehicle.vehicleNumber },
-          },
-        ],
+    const record = await this.createOrResumeOperationalDraft({
+      user,
+      deduplicationKey,
+      legacyScope: {
+        documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+        recordDate: recordDateAtMidnight,
+        shiftId: shift?.id ?? null,
+        vehicleNumber: resolvedVehicle.vehicleNumber,
       },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const resolution = resolveDraftDuplicate(
-      existing
-        ? {
-            id: existing.id,
-            status: existing.status as SharedRecordStatus,
-            createdById: existing.createdById,
-          }
-        : null,
-      user.id,
-    );
-
-    let record: RecordWithHeaderRelations;
-    if (resolution.outcome === "conflict") {
-      throw new DuplicateRecordException(resolution.reason);
-    } else if (resolution.outcome === "resume") {
-      record = await this.prisma.inspectionRecord.findUniqueOrThrow({
-        where: { id: resolution.recordId },
-        include: RECORD_HEADER_INCLUDE,
-      });
-    } else {
-      const templateVersion = await this.findPublishedTemplateVersion(
-        DOCUMENT_CODES.FREEZER_TRUCK,
-      );
-      const reinspectionOfId = await this.resolveReinspectionTarget(
-        parsed.data.reinspectionOfRecordId,
-      );
-
-      try {
-        record = await this.prisma.inspectionRecord.create({
+      create: async () => {
+        const templateVersion = await this.findPublishedTemplateVersion(
+          DOCUMENT_CODES.FREEZER_TRUCK,
+        );
+        const reinspectionOfId = await this.resolveReinspectionTarget(
+          parsed.data.reinspectionOfRecordId,
+        );
+        return this.prisma.inspectionRecord.create({
           data: {
             templateVersionId: templateVersion.id,
             documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
@@ -348,38 +270,109 @@ export class InspectionRecordsService {
           },
           include: RECORD_HEADER_INCLUDE,
         });
-      } catch (error) {
-        const raced = await this.prisma.inspectionRecord.findFirst({
-          where: { deduplicationKey },
-          include: RECORD_HEADER_INCLUDE,
-        });
-        if (raced) {
-          const again = resolveDraftDuplicate(
-            {
-              id: raced.id,
-              status: raced.status as SharedRecordStatus,
-              createdById: raced.createdById,
-            },
-            user.id,
-          );
-          if (again.outcome === "resume") {
-            record = raced;
-          } else if (again.outcome === "conflict") {
-            throw new DuplicateRecordException(again.reason);
-          } else {
-            throw error;
-          }
-        } else {
-          throw error;
-        }
-      }
-    }
+      },
+    });
 
     if (parsed.data.taskAssignmentId) {
       await this.linkTaskAssignment(parsed.data.taskAssignmentId, record.id, user.id);
     }
 
     return this.buildDetail(record, user);
+  }
+
+  /**
+   * FG-DB-001: create-first with unique-key resolution (no silent invent of scope).
+   * Pre-checks legacy unscoped rows that may still block without a key, then
+   * creates; on duplicate-key races, resumes or conflicts deterministically.
+   */
+  private async createOrResumeOperationalDraft(input: {
+    user: RequestUser;
+    deduplicationKey: string;
+    legacyScope: {
+      documentCode: string;
+      recordDate: Date;
+      shiftId: string | null;
+      areaLabel?: string;
+      vehicleNumber?: string;
+    };
+    create: () => Promise<RecordWithHeaderRelations>;
+  }): Promise<RecordWithHeaderRelations> {
+    const byKey = await this.prisma.inspectionRecord.findFirst({
+      where: { deduplicationKey: input.deduplicationKey },
+      orderBy: { createdAt: "desc" },
+      include: RECORD_HEADER_INCLUDE,
+    });
+
+    const legacy = byKey
+      ? null
+      : await this.prisma.inspectionRecord.findFirst({
+          where: {
+            documentCode: input.legacyScope.documentCode,
+            recordDate: input.legacyScope.recordDate,
+            shiftId: input.legacyScope.shiftId,
+            ...(input.legacyScope.areaLabel
+              ? { areaLabel: input.legacyScope.areaLabel }
+              : {}),
+            ...(input.legacyScope.vehicleNumber
+              ? { truckDetail: { vehicleNumber: input.legacyScope.vehicleNumber } }
+              : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          include: RECORD_HEADER_INCLUDE,
+        });
+
+    const existing = byKey ?? legacy;
+    const prior = resolveDraftDuplicate(
+      existing
+        ? {
+            id: existing.id,
+            status: existing.status as SharedRecordStatus,
+            createdById: existing.createdById,
+          }
+        : null,
+      input.user.id,
+    );
+
+    if (prior.outcome === "conflict") {
+      throw new DuplicateRecordException(prior.reason);
+    }
+    if (prior.outcome === "resume") {
+      return this.prisma.inspectionRecord.findUniqueOrThrow({
+        where: { id: prior.recordId },
+        include: RECORD_HEADER_INCLUDE,
+      });
+    }
+
+    try {
+      return await input.create();
+    } catch (error) {
+      if (!isPrismaUniqueConstraintError(error)) {
+        throw error;
+      }
+      const raced = await this.prisma.inspectionRecord.findFirst({
+        where: { deduplicationKey: input.deduplicationKey },
+        include: RECORD_HEADER_INCLUDE,
+        orderBy: { createdAt: "desc" },
+      });
+      if (!raced) {
+        throw error;
+      }
+      const again = resolveDraftDuplicate(
+        {
+          id: raced.id,
+          status: raced.status as SharedRecordStatus,
+          createdById: raced.createdById,
+        },
+        input.user.id,
+      );
+      if (again.outcome === "resume") {
+        return raced;
+      }
+      if (again.outcome === "conflict") {
+        throw new DuplicateRecordException(again.reason);
+      }
+      throw error;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1262,6 +1255,10 @@ export class InspectionRecordsService {
       );
       return;
     }
+    // Idempotent: retries / resume must not create duplicate task links.
+    if (assignment.recordId === recordId) {
+      return;
+    }
     await this.prisma.taskAssignment.update({
       where: { id: taskAssignmentId },
       data: {
@@ -1518,6 +1515,10 @@ export class InspectionRecordsService {
 
     return created;
   }
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 function formatZodIssues(issues: Array<{ message: string }>): string {

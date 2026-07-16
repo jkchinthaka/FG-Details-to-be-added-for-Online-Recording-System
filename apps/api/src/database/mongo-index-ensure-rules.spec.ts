@@ -8,17 +8,23 @@ const rules = require("../../../../scripts/database/mongo-index-ensure-rules.js"
   CURRENT_VERSION_INDEX_NAME: string;
   USERNAME_PARTIAL_INDEX_NAME: string;
   USERNAME_PRISMA_INDEX_NAME: string;
+  DRAFT_DEDUP_INDEX_NAME: string;
   CURRENT_VERSION_PARTIAL: Record<string, unknown>;
   USERNAME_PARTIAL: Record<string, unknown>;
+  DRAFT_DEDUP_PARTIAL: Record<string, unknown>;
   extractDbName: (url: string) => string | null;
   redactCredentials: (message: string) => string;
   assertProductionDatabaseName: (name: string | null | undefined) => void;
+  assertDatabaseAllowedForDraftDedupIndex: (name: string | null | undefined) => void;
   assertNoDuplicateUsernameGroups: (duplicates: unknown[]) => void;
   isCorrectCurrentVersionPartialIndex: (index: unknown) => boolean;
   isCorrectUsernamePartialIndex: (index: unknown) => boolean;
+  isCorrectDraftDedupIndex: (index: unknown) => boolean;
   findIncompatibleUsernameIndexes: (indexes: unknown[]) => Array<{ name: string }>;
+  findIncompatibleDraftDedupIndexes: (indexes: unknown[]) => Array<{ name: string }>;
   planCurrentVersionIndexAction: (indexes: unknown[]) => string;
   planUsernameIndexAction: (indexes: unknown[]) => string;
+  planDraftDedupIndexAction: (indexes: unknown[]) => string;
 };
 
 describe("mongo-index-ensure-rules", () => {
@@ -71,21 +77,15 @@ describe("mongo-index-ensure-rules", () => {
   });
 
   it("leaves a correct existing partial currentVersionId index unchanged", () => {
-    expect(rules.isCorrectCurrentVersionPartialIndex(correctCurrentVersion)).toBe(
-      true,
-    );
+    expect(rules.isCorrectCurrentVersionPartialIndex(correctCurrentVersion)).toBe(true);
     expect(rules.planCurrentVersionIndexAction([correctCurrentVersion])).toBe(
       "unchanged",
     );
   });
 
   it("plans replace when currentVersionId index is a normal unique index", () => {
-    expect(rules.isCorrectCurrentVersionPartialIndex(normalCurrentVersion)).toBe(
-      false,
-    );
-    expect(rules.planCurrentVersionIndexAction([normalCurrentVersion])).toBe(
-      "replace",
-    );
+    expect(rules.isCorrectCurrentVersionPartialIndex(normalCurrentVersion)).toBe(false);
+    expect(rules.planCurrentVersionIndexAction([normalCurrentVersion])).toBe("replace");
   });
 
   it("plans create when currentVersionId index is missing", () => {
@@ -99,16 +99,14 @@ describe("mongo-index-ensure-rules", () => {
 
   it("detects Prisma users_username_key as incompatible and plans replace", () => {
     const incompatible = rules.findIncompatibleUsernameIndexes([prismaUsername]);
-    expect(incompatible.map((i) => i.name)).toContain(
-      rules.USERNAME_PRISMA_INDEX_NAME,
-    );
+    expect(incompatible.map((i) => i.name)).toContain(rules.USERNAME_PRISMA_INDEX_NAME);
     expect(rules.planUsernameIndexAction([prismaUsername])).toBe("replace");
   });
 
   it("plans replace when both Prisma and partial exist so leftovers are dropped", () => {
-    expect(
-      rules.planUsernameIndexAction([correctUsernamePartial, prismaUsername]),
-    ).toBe("replace");
+    expect(rules.planUsernameIndexAction([correctUsernamePartial, prismaUsername])).toBe(
+      "replace",
+    );
   });
 
   it("repeated planning with correct indexes stays unchanged (idempotent plan)", () => {
@@ -127,5 +125,39 @@ describe("mongo-index-ensure-rules", () => {
       rules.assertNoDuplicateUsernameGroups([{ _id: "dup.user", count: 2 }]),
     ).toThrow(/Refuse: 1 duplicate username group/);
     expect(() => rules.assertNoDuplicateUsernameGroups([])).not.toThrow();
+  });
+
+  const correctDraftDedup = {
+    name: rules.DRAFT_DEDUP_INDEX_NAME,
+    unique: true,
+    key: { deduplicationKey: 1 },
+    partialFilterExpression: rules.DRAFT_DEDUP_PARTIAL,
+  };
+
+  const incorrectDraftDedup = {
+    name: rules.DRAFT_DEDUP_INDEX_NAME,
+    unique: true,
+    sparse: true,
+    key: { deduplicationKey: 1 },
+  };
+
+  it("verifies correct and incorrect draft dedup index definitions", () => {
+    expect(rules.isCorrectDraftDedupIndex(correctDraftDedup)).toBe(true);
+    expect(rules.isCorrectDraftDedupIndex(incorrectDraftDedup)).toBe(false);
+    expect(rules.planDraftDedupIndexAction([correctDraftDedup])).toBe("unchanged");
+    expect(rules.planDraftDedupIndexAction([incorrectDraftDedup])).toBe("replace");
+    expect(rules.planDraftDedupIndexAction([])).toBe("create");
+  });
+
+  it("allows fg_online and fg_online_test for draft dedup scripts only", () => {
+    expect(() =>
+      rules.assertDatabaseAllowedForDraftDedupIndex("fg_online"),
+    ).not.toThrow();
+    expect(() =>
+      rules.assertDatabaseAllowedForDraftDedupIndex("fg_online_test"),
+    ).not.toThrow();
+    expect(() => rules.assertDatabaseAllowedForDraftDedupIndex("other")).toThrow(
+      /Refuse/,
+    );
   });
 });

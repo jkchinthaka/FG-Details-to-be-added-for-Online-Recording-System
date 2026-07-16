@@ -31,7 +31,9 @@ describe("concurrency helpers", () => {
 
   it("retains keys only for active draft statuses", () => {
     expect(shouldRetainDraftDeduplicationKey("DRAFT")).toBe(true);
+    expect(shouldRetainDraftDeduplicationKey("REJECTED")).toBe(true);
     expect(shouldRetainDraftDeduplicationKey("PENDING_CHECK")).toBe(false);
+    expect(shouldRetainDraftDeduplicationKey("ARCHIVED")).toBe(false);
   });
 
   it("exposes STALE_STATE payload shape", () => {
