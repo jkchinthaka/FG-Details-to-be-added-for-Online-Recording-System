@@ -7,7 +7,7 @@
 | Working branch | `cursor/hci-ui-ux-modernization-20260716-2004` |
 | Backup branch | `backup/hci-ui-ux-modernization-20260716-2004` |
 | Starting SHA | `49fc5f4d682681a8f29727d4912ccf26f2d55f18` |
-| Ending SHA | *(filled after commits)* |
+| Ending SHA | `f4a7598fb7f5f35d49c55216ea892af7d277d267` |
 | Technical decision | `HCI_TECHNICAL_CONDITIONAL_PASS` |
 | Human approval | `HUMAN_APPROVAL_REQUIRED` |
 
@@ -55,7 +55,15 @@
 
 ## Deployment
 
-Recorded in `FINAL_HCI_GATE.json`.
+Cloudflare Worker deploy succeeded:
+
+- URL: https://fgdetails.chinthakajayaweera1.workers.dev
+- Version ID: `8fca8df8-cdef-413d-89e0-bae0771c4463`
+- `/login` → 200
+- `/api/health/live` → 200
+- `/api/health/ready` → 200 (`db=up`, `storage=up`)
+
+Live password-change / axe / screenshot E2E not executed in this window (credentials / RUN_E2E).
 
 ## Remaining blockers
 
