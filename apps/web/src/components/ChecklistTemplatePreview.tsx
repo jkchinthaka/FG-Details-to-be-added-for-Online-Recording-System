@@ -12,8 +12,8 @@ type Viewport = "mobile" | "tablet" | "desktop";
 const DEFAULT_VIEWPORT = { id: "desktop" as const, label: "Desktop", width: "100%" };
 
 const VIEWPORTS: Array<{ id: Viewport; label: string; width: string }> = [
-  { id: "mobile", label: "Mobile", width: "390px" },
-  { id: "tablet", label: "Tablet", width: "768px" },
+  { id: "mobile", label: "Mobile", width: "min(100%, 390px)" },
+  { id: "tablet", label: "Tablet", width: "min(100%, 768px)" },
   DEFAULT_VIEWPORT,
 ];
 
