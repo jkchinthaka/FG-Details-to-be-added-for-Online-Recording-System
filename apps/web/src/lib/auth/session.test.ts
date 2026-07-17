@@ -12,6 +12,7 @@ describe("loginFormStateForErrorCode", () => {
     expect(loginFormStateForErrorCode("ACCOUNT_INACTIVE")).toBe("account-inactive");
     expect(loginFormStateForErrorCode("ACCOUNT_LOCKED")).toBe("account-locked");
     expect(loginFormStateForErrorCode("SESSION_EXPIRED")).toBe("session-expired");
+    expect(loginFormStateForErrorCode("TOKEN_REUSE_DETECTED")).toBe("session-expired");
   });
 
   it("falls back to unknown-error for unrecognised codes", () => {
@@ -21,8 +22,9 @@ describe("loginFormStateForErrorCode", () => {
 });
 
 describe("isSessionExpiredCode", () => {
-  it("treats SESSION_EXPIRED and NOT_AUTHENTICATED as session-expiry signals", () => {
+  it("treats SESSION_EXPIRED, TOKEN_REUSE_DETECTED and NOT_AUTHENTICATED as session-expiry signals", () => {
     expect(isSessionExpiredCode("SESSION_EXPIRED")).toBe(true);
+    expect(isSessionExpiredCode("TOKEN_REUSE_DETECTED")).toBe(true);
     expect(isSessionExpiredCode("NOT_AUTHENTICATED")).toBe(true);
   });
 

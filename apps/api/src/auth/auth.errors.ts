@@ -78,6 +78,16 @@ export class SessionExpiredException extends UnauthorizedException {
   }
 }
 
+export class TokenReuseDetectedException extends UnauthorizedException {
+  constructor() {
+    super({
+      code: "TOKEN_REUSE_DETECTED" satisfies AuthErrorCode,
+      message:
+        "This session was ended for security reasons. Please sign in again on this device.",
+    });
+  }
+}
+
 export class NotAuthenticatedException extends UnauthorizedException {
   constructor() {
     super({

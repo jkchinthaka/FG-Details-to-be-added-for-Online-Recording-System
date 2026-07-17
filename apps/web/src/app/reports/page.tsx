@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { REPORT_KIND_LABELS, type ReportKind, type ReportResult } from "@nelna/shared";
 import { Button, Card, EmptyState, Input, LoadingState, Select } from "@nelna/ui";
-import { AppShell } from "@/components/AppShell";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 type KindOption = { kind: ReportKind; title: string };
 
-async function apiJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { credentials: "include" });
+async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+    ...init,
+  });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     throw new Error(body.message ?? `Request failed (${response.status})`);
@@ -19,11 +21,7 @@ async function apiJson<T>(path: string): Promise<T> {
 }
 
 export default function ReportsPage() {
-  return (
-    <AppShell>
-      <ReportsWorkspace />
-    </AppShell>
-  );
+  return <ReportsWorkspace />;
 }
 
 function ReportsWorkspace() {
@@ -35,6 +33,9 @@ function ReportsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  const [exportJobId, setExportJobId] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
 
   useEffect(() => {
     void apiJson<KindOption[]>("/reports/kinds")
@@ -63,12 +64,70 @@ function ReportsWorkspace() {
     }
   }, [fromDate, toDate, kind]);
 
-  function downloadCsv() {
+  async function downloadCsv() {
+    setError(null);
+    setExportStatus(null);
     const qs = new URLSearchParams({ fromDate, toDate });
-    window.open(
+    const response = await fetch(
       `${API_BASE_URL}/reports/run/${encodeURIComponent(kind)}/csv?${qs}`,
-      "_blank",
+      { credentials: "include" },
     );
+    if (response.status === 413) {
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      setExportStatus(body.message ?? "Creating background export…");
+      const idempotencyKey = `web-${kind}-${fromDate}-${toDate}-${Date.now()}`;
+      const job = await apiJson<{
+        id: string;
+        status: string;
+        downloadToken: string | null;
+      }>("/reports/exports", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind,
+          filters: { fromDate, toDate },
+          idempotencyKey,
+        }),
+      });
+      setExportJobId(job.id);
+      setExportStatus(`Export job ${job.status}`);
+      for (let i = 0; i < 30; i += 1) {
+        await new Promise((r) => setTimeout(r, 1000));
+        const status = await apiJson<{
+          status: string;
+          downloadToken: string | null;
+          errorMessage: string | null;
+        }>(`/reports/exports/${job.id}`);
+        setExportStatus(`Export job ${status.status}`);
+        if (status.status === "COMPLETED" && status.downloadToken) {
+          window.open(
+            `${API_BASE_URL}/reports/exports/download/${status.downloadToken}`,
+            "_blank",
+          );
+          return;
+        }
+        if (status.status === "FAILED" || status.status === "CANCELLED") {
+          setError(status.errorMessage ?? "Export failed");
+          return;
+        }
+      }
+      setError("Export is still running. Check again shortly.");
+      return;
+    }
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { message?: string };
+      setError(body.message ?? `CSV export failed (${response.status})`);
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${kind}-${fromDate}_to_${toDate}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   if (loading) return <LoadingState message="Loading reports…" />;
@@ -119,13 +178,19 @@ function ReportsWorkspace() {
             <Button
               type="button"
               variant="secondary"
-              disabled={!report}
-              onClick={downloadCsv}
+              disabled={!report || busy}
+              onClick={() => void downloadCsv()}
             >
               CSV
             </Button>
           </div>
         </div>
+        {exportStatus ? (
+          <p className="mt-3 text-sm" style={{ color: "var(--nelna-text-secondary)" }}>
+            {exportStatus}
+            {exportJobId ? ` (job ${exportJobId})` : null}
+          </p>
+        ) : null}
         {error ? (
           <p className="mt-3 text-sm text-[var(--color-danger)]">{error}</p>
         ) : null}

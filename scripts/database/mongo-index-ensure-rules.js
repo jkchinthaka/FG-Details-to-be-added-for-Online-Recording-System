@@ -16,6 +16,12 @@ const USERNAME_PARTIAL = {
   username: { $exists: true, $type: "string" },
 };
 
+const DRAFT_DEDUP_INDEX_NAME = "inspection_records_deduplicationKey_unique_sparse";
+const DRAFT_DEDUP_PARTIAL = {
+  deduplicationKey: { $exists: true, $type: "string" },
+};
+const DRAFT_DEDUP_ALLOWED_DBS = new Set(["fg_online", "fg_online_test"]);
+
 function extractDbName(url) {
   if (!url || typeof url !== "string" || !url.trim()) {
     return null;
@@ -44,6 +50,64 @@ function assertProductionDatabaseName(databaseName) {
       `Refuse: database must be ${PRODUCTION_DB_NAME} (got ${databaseName ?? "none"})`,
     );
   }
+}
+
+function assertDatabaseAllowedForDraftDedupIndex(databaseName) {
+  if (!DRAFT_DEDUP_ALLOWED_DBS.has(databaseName)) {
+    throw new Error(
+      `Refuse: draft dedup index scripts allow only fg_online or fg_online_test (got ${databaseName ?? "none"})`,
+    );
+  }
+}
+
+function isCorrectDraftDedupIndex(index) {
+  if (!index || index.name !== DRAFT_DEDUP_INDEX_NAME) {
+    return false;
+  }
+  if (index.unique !== true) {
+    return false;
+  }
+  if (!indexKeyEquals(index, { deduplicationKey: 1 })) {
+    return false;
+  }
+  // MongoDB forbids mixing sparse with partialFilterExpression — use partial only.
+  if (index.sparse === true) {
+    return false;
+  }
+  return partialFiltersEqual(index.partialFilterExpression, DRAFT_DEDUP_PARTIAL);
+}
+
+function findIncompatibleDraftDedupIndexes(indexes) {
+  return (indexes || []).filter((index) => {
+    if (!index || index.name === "_id_") {
+      return false;
+    }
+    if (isCorrectDraftDedupIndex(index)) {
+      return false;
+    }
+    const isDedupKey =
+      indexKeyEquals(index, { deduplicationKey: 1 }) ||
+      index.name === DRAFT_DEDUP_INDEX_NAME ||
+      index.name === "inspection_records_deduplicationKey_key";
+    return isDedupKey;
+  });
+}
+
+/**
+ * @returns {"unchanged"|"create"|"replace"}
+ */
+function planDraftDedupIndexAction(existingIndexes) {
+  const indexes = existingIndexes || [];
+  const desired = indexes.find((index) => index.name === DRAFT_DEDUP_INDEX_NAME);
+  const incompatible = findIncompatibleDraftDedupIndexes(indexes);
+
+  if (desired && isCorrectDraftDedupIndex(desired) && incompatible.length === 0) {
+    return "unchanged";
+  }
+  if (!desired && incompatible.length === 0) {
+    return "create";
+  }
+  return "replace";
 }
 
 function stableStringify(value) {
@@ -179,14 +243,21 @@ module.exports = {
   USERNAME_PARTIAL_INDEX_NAME,
   USERNAME_PRISMA_INDEX_NAME,
   USERNAME_PARTIAL,
+  DRAFT_DEDUP_INDEX_NAME,
+  DRAFT_DEDUP_PARTIAL,
+  DRAFT_DEDUP_ALLOWED_DBS,
   extractDbName,
   redactCredentials,
   assertProductionDatabaseName,
+  assertDatabaseAllowedForDraftDedupIndex,
   assertNoDuplicateUsernameGroups,
   partialFiltersEqual,
   isCorrectCurrentVersionPartialIndex,
   isCorrectUsernamePartialIndex,
+  isCorrectDraftDedupIndex,
   findIncompatibleUsernameIndexes,
+  findIncompatibleDraftDedupIndexes,
   planCurrentVersionIndexAction,
   planUsernameIndexAction,
+  planDraftDedupIndexAction,
 };

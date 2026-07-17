@@ -23,7 +23,7 @@ scripts/db        Backup/restore helpers
 
 ## Technology stack
 
-Node 20+, pnpm 9, Next.js, NestJS, Prisma, PostgreSQL, Tailwind, Jest (API), Vitest (web/shared/ui).
+Node **22.16.x**, pnpm **9.12.0** (Corepack `packageManager`), Next.js, NestJS, Prisma, MongoDB Atlas, Tailwind, Jest (API), Vitest (web/shared/ui). CI gates: `docs/ci/CI_GATES.md`.
 
 ## Environment setup
 

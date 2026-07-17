@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-07-16T19:10:00.000Z",
+  "status": "CONDITIONAL_PASS",
+  "summary": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0,
+    "note": "Unit/component accessibility contracts verified. Full page axe crawl deferred to RUN_E2E against local/UAT."
+  },
+  "checks": [
+    "viewport maximumScale removed (zoom/reflow)",
+    "skip link + main landmark",
+    "Input aria-invalid / aria-describedby / field error ids",
+    "FormErrorSummary focusable role=alert",
+    "forced-password chrome hides primary nav",
+    "prefers-reduced-motion token rule"
+  ],
+  "violations": [],
+  "incomplete": [
+    "Full axe crawl of authenticated app routes requires RUN_E2E=1"
+  ],
+  "passes": [
+    "FormErrorSummary accessible contract",
+    "Input field error wiring",
+    "Password gate unit no-loop tests"
+  ],
+  "humanApproval": "HUMAN_USABILITY_REVIEW_REQUIRED"
+}

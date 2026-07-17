@@ -74,6 +74,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/unauthorized",
   "/account-inactive",
   "/offline",
+  "/release",
 ];
 
 /** Password-change page is gated by verified session, not fully public. */
@@ -91,14 +92,14 @@ export function isApiProxyPath(pathname: string): boolean {
  * Used in unit tests so matcher regressions are caught without spinning up Next.
  */
 export const PAGE_MIDDLEWARE_MATCHER =
-  "/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js).*)";
+  "/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.webmanifest|sw.js|release-manifest.json).*)";
 
 export function pathMatchesPageMiddleware(pathname: string): boolean {
   if (!pathname.startsWith("/")) return false;
   const rest = pathname.slice(1);
   // Empty path after "/" is "/", which should match (home).
   if (rest === "") return true;
-  return !/^(?:api|_next\/static|_next\/image|favicon\.ico|icons|manifest\.webmanifest|sw\.js)(?:\/|$)/.test(
+  return !/^(?:api|_next\/static|_next\/image|favicon\.ico|icons|manifest\.webmanifest|sw\.js|release-manifest\.json)(?:\/|$)/.test(
     rest,
   );
 }

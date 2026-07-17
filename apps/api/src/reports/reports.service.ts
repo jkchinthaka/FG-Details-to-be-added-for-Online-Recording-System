@@ -9,10 +9,13 @@ import {
   OFFICIAL_RECORD_APPROVAL_DISCLAIMER,
   REPORT_KIND_LABELS,
   REPORT_KINDS,
+  REPORT_MAX_EXPORT_ROWS,
+  REPORT_SYNC_EXPORT_MAX_ROWS,
   formatRecordNumber,
   reportFiltersSchema,
   reportKindsForRoles,
   toCsvDocument,
+  toCsvRow,
   type PermissionKey,
   type ReportFilters,
   type ReportKind,
@@ -67,55 +70,131 @@ export class ReportsService {
       filters,
       user,
     );
-    const page = filters.page;
-    const pageSize = filters.pageSize;
-    const start = (page - 1) * pageSize;
-    const pageRows = rows.slice(start, start + pageSize);
 
     return {
       kind: reportKind,
       title: REPORT_KIND_LABELS[reportKind],
       generatedAt: new Date().toISOString(),
       filters,
-      page,
-      pageSize,
+      page: filters.page,
+      pageSize: filters.pageSize,
       totalRows,
       columns,
-      rows: pageRows,
+      rows,
     };
   }
 
+  /**
+   * Sync CSV for small result sets only (Worker ~30s proxy budget).
+   * Larger exports must use ReportExportService jobs.
+   */
   async exportCsv(
     user: RequestUser,
     kind: string,
     rawFilters: unknown,
-  ): Promise<{ filename: string; body: string }> {
-    const report = await this.runReport(user, kind, {
+  ): Promise<
+    | { mode: "inline"; filename: string; body: string; generatedAt: string; rowCount: number }
+    | {
+        mode: "too_large";
+        totalRows: number;
+        syncMaxRows: number;
+        message: string;
+      }
+  > {
+    this.assertCanReadReports(user);
+    if (!(REPORT_KINDS as readonly string[]).includes(kind)) {
+      throw new BadRequestException(`Unknown report kind: ${kind}`);
+    }
+    const reportKind = kind as ReportKind;
+    if (!this.allowedKinds(user).includes(reportKind)) {
+      throw new ForbiddenException(`You do not have permission to run report: ${kind}`);
+    }
+    const parsed = reportFiltersSchema.safeParse({
       ...(typeof rawFilters === "object" && rawFilters ? rawFilters : {}),
       page: 1,
-      pageSize: 100,
+      pageSize: REPORT_SYNC_EXPORT_MAX_ROWS,
     });
-    // Cap export pages by iterating until all rows fetched (respect server max page size)
-    let allRows = [...report.rows];
-    let page = 1;
-    while (allRows.length < report.totalRows && page < 50) {
-      page += 1;
-      const next = await this.runReport(user, kind, {
-        ...report.filters,
-        page,
-        pageSize: 100,
-      });
-      if (next.rows.length === 0) break;
-      allRows = allRows.concat(next.rows);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.issues.map((i) => i.message).join("; "));
     }
+    const filters = this.applyRoleScope(user, parsed.data);
+    const materialised = await this.materialiseReportRows(
+      reportKind,
+      filters,
+      REPORT_SYNC_EXPORT_MAX_ROWS + 1,
+    );
+    if (materialised.totalRows > REPORT_SYNC_EXPORT_MAX_ROWS) {
+      return {
+        mode: "too_large",
+        totalRows: materialised.totalRows,
+        syncMaxRows: REPORT_SYNC_EXPORT_MAX_ROWS,
+        message:
+          "Report exceeds the synchronous export limit. Create a background export job instead.",
+      };
+    }
+    const generatedAt = new Date().toISOString();
     const body = toCsvDocument(
-      report.columns,
-      allRows.map((row) => report.columns.map((col) => row[col] ?? "")),
+      materialised.columns,
+      materialised.rows.map((row) => materialised.columns.map((col) => row[col] ?? "")),
     );
     return {
-      filename: `${kind}-${report.filters.fromDate}_to_${report.filters.toDate}.csv`,
+      mode: "inline",
+      filename: `${kind}-${filters.fromDate}_to_${filters.toDate}.csv`,
       body,
+      generatedAt,
+      rowCount: materialised.rows.length,
     };
+  }
+
+  /** Materialise up to `limit` rows for CSV/job use (bounded). */
+  async materialiseReportRows(
+    kind: ReportKind,
+    filters: ReportFilters,
+    limit: number,
+    user?: RequestUser,
+  ): Promise<{ columns: string[]; rows: ReportRow[]; totalRows: number }> {
+    const capped = Math.min(Math.max(1, limit), REPORT_MAX_EXPORT_ROWS);
+    const pageFilters: ReportFilters = {
+      ...filters,
+      page: 1,
+      pageSize: capped,
+    };
+    return this.computeReport(
+      kind,
+      pageFilters,
+      user ??
+        ({
+          id: "system",
+          permissions: ["reports:read", "audit:read"],
+          roles: ["SYSTEM_ADMINISTRATOR"],
+        } as RequestUser),
+      { exportMode: true, exportLimit: capped },
+    );
+  }
+
+  assertCanReadReportsPublic(user: RequestUser): void {
+    this.assertCanReadReports(user);
+  }
+
+  isKindAllowed(user: RequestUser, kind: ReportKind): boolean {
+    return this.allowedKinds(user).includes(kind);
+  }
+
+  applyRoleScopePublic(user: RequestUser, filters: ReportFilters): ReportFilters {
+    return this.applyRoleScope(user, filters);
+  }
+
+  /** Stream CSV rows to an Express response (bounded). */
+  writeCsvStream(
+    res: { write: (chunk: string) => boolean; end: () => void },
+    columns: string[],
+    rows: ReportRow[],
+  ): void {
+    res.write(`${toCsvRow(columns)}\r\n`);
+    for (const row of rows) {
+      res.write(`${toCsvRow(columns.map((col) => row[col] ?? ""))}\r\n`);
+    }
+    res.end();
   }
 
   async buildRecordPdf(
@@ -265,8 +344,14 @@ export class ReportsService {
     kind: ReportKind,
     filters: ReportFilters,
     user: RequestUser,
+    options?: { exportMode?: boolean; exportLimit?: number },
   ): Promise<{ rows: ReportRow[]; totalRows: number; columns: string[] }> {
     const where = this.dateFilter(filters);
+    const page = filters.page;
+    const pageSize = options?.exportMode
+      ? Math.min(options.exportLimit ?? REPORT_MAX_EXPORT_ROWS, REPORT_MAX_EXPORT_ROWS)
+      : filters.pageSize;
+    const skip = options?.exportMode ? 0 : (page - 1) * pageSize;
 
     switch (kind) {
       case "daily_record_completion": {
@@ -277,30 +362,38 @@ export class ReportsService {
           orderBy: { recordDate: "asc" },
         });
         const columns = ["recordDate", "status", "count"];
-        const rows = grouped.map((g) => ({
+        const allRows = grouped.map((g) => ({
           recordDate: g.recordDate.toISOString().slice(0, 10),
           status: g.status,
           count: g._count._all,
         }));
-        return { columns, rows, totalRows: rows.length };
+        const rows = options?.exportMode
+          ? allRows.slice(0, pageSize)
+          : allRows.slice(skip, skip + pageSize);
+        return { columns, rows, totalRows: allRows.length };
       }
       case "daily_failed_items": {
-        const results = await this.prisma.inspectionResult.findMany({
-          where: {
-            status: filters.failureType
-              ? (filters.failureType as "FAIL" | "UNACCEPTABLE")
-              : { in: ["FAIL", "UNACCEPTABLE"] },
-            record: where,
-          },
-          select: {
-            status: true,
-            issueReason: true,
-            item: { select: { label: true, id: true } },
-            record: { select: { recordDate: true, documentCode: true, id: true } },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 5000,
-        });
+        const resultWhere = {
+          status: filters.failureType
+            ? (filters.failureType as "FAIL" | "UNACCEPTABLE")
+            : { in: ["FAIL", "UNACCEPTABLE"] as Array<"FAIL" | "UNACCEPTABLE"> },
+          record: where,
+        };
+        const [totalRows, results] = await Promise.all([
+          this.prisma.inspectionResult.count({ where: resultWhere }),
+          this.prisma.inspectionResult.findMany({
+            where: resultWhere,
+            select: {
+              status: true,
+              issueReason: true,
+              item: { select: { label: true, id: true } },
+              record: { select: { recordDate: true, documentCode: true, id: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            skip,
+            take: pageSize,
+          }),
+        ]);
         const columns = [
           "recordDate",
           "documentCode",
@@ -319,19 +412,27 @@ export class ReportsService {
           issueReason: r.issueReason,
           recordId: r.record.id,
         }));
-        return { columns, rows, totalRows: rows.length };
+        return { columns, rows, totalRows };
       }
       case "pending_checks": {
-        return this.listStatusRows({
-          ...where,
-          status: { in: ["PENDING_CHECK", "SUBMITTED", "RESUBMITTED"] },
-        });
+        return this.listStatusRows(
+          {
+            ...where,
+            status: { in: ["PENDING_CHECK", "SUBMITTED", "RESUBMITTED"] },
+          },
+          skip,
+          pageSize,
+        );
       }
       case "pending_verifications": {
-        return this.listStatusRows({
-          ...where,
-          status: { in: ["PENDING_VERIFICATION", "CHECKED"] },
-        });
+        return this.listStatusRows(
+          {
+            ...where,
+            status: { in: ["PENDING_VERIFICATION", "CHECKED"] },
+          },
+          skip,
+          pageSize,
+        );
       }
       case "cleaning_compliance": {
         return this.complianceRows({
@@ -357,10 +458,14 @@ export class ReportsService {
         });
       }
       case "truck_inspections": {
-        return this.listStatusRows({
-          ...where,
-          documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
-        });
+        return this.listStatusRows(
+          {
+            ...where,
+            documentCode: DOCUMENT_CODES.FREEZER_TRUCK,
+          },
+          skip,
+          pageSize,
+        );
       }
       case "truck_pass_fail_trend": {
         const trucks = await this.prisma.truckInspectionDetail.groupBy({
@@ -369,24 +474,32 @@ export class ReportsService {
           _count: { _all: true },
         });
         const columns = ["loadingDecision", "count"];
-        const rows = trucks.map((t) => ({
+        const allRows = trucks.map((t) => ({
           loadingDecision: t.loadingDecision,
           count: t._count._all,
         }));
-        return { columns, rows, totalRows: rows.length };
+        return this.pageRows(columns, allRows, skip, pageSize);
       }
       case "blocked_trucks": {
-        const blocked = await this.prisma.truckInspectionDetail.findMany({
-          where: { loadingDecision: "LOADING_BLOCKED", record: where },
-          select: {
-            freezerTruckNumber: true,
-            vehicleNumber: true,
-            loadingDecision: true,
-            record: { select: { id: true, recordDate: true, status: true } },
-          },
-          orderBy: { record: { recordDate: "desc" } },
-          take: 5000,
-        });
+        const blockedWhere = {
+          loadingDecision: "LOADING_BLOCKED" as const,
+          record: where,
+        };
+        const [totalRows, blocked] = await Promise.all([
+          this.prisma.truckInspectionDetail.count({ where: blockedWhere }),
+          this.prisma.truckInspectionDetail.findMany({
+            where: blockedWhere,
+            select: {
+              freezerTruckNumber: true,
+              vehicleNumber: true,
+              loadingDecision: true,
+              record: { select: { id: true, recordDate: true, status: true } },
+            },
+            orderBy: { record: { recordDate: "desc" } },
+            skip,
+            take: pageSize,
+          }),
+        ]);
         const columns = [
           "recordDate",
           "freezerTruckNumber",
@@ -403,7 +516,7 @@ export class ReportsService {
           status: b.record.status,
           recordId: b.record.id,
         }));
-        return { columns, rows, totalRows: rows.length };
+        return { columns, rows, totalRows };
       }
       case "common_failure_reasons": {
         const failed = await this.prisma.inspectionResult.groupBy({
@@ -560,22 +673,41 @@ export class ReportsService {
     }
   }
 
+  private pageRows(
+    columns: string[],
+    allRows: ReportRow[],
+    skip: number,
+    pageSize: number,
+  ): { rows: ReportRow[]; totalRows: number; columns: string[] } {
+    return {
+      columns,
+      totalRows: allRows.length,
+      rows: allRows.slice(skip, skip + pageSize),
+    };
+  }
+
   private async listStatusRows(
     where: Prisma.InspectionRecordWhereInput,
+    skip: number,
+    pageSize: number,
   ): Promise<{ rows: ReportRow[]; totalRows: number; columns: string[] }> {
-    const records = await this.prisma.inspectionRecord.findMany({
-      where,
-      select: {
-        id: true,
-        documentCode: true,
-        status: true,
-        recordDate: true,
-        areaLabel: true,
-        createdBy: { select: { fullName: true, employeeCode: true } },
-      },
-      orderBy: { recordDate: "desc" },
-      take: 5000,
-    });
+    const [totalRows, records] = await Promise.all([
+      this.prisma.inspectionRecord.count({ where }),
+      this.prisma.inspectionRecord.findMany({
+        where,
+        select: {
+          id: true,
+          documentCode: true,
+          status: true,
+          recordDate: true,
+          areaLabel: true,
+          createdBy: { select: { fullName: true, employeeCode: true } },
+        },
+        orderBy: { recordDate: "desc" },
+        skip,
+        take: pageSize,
+      }),
+    ]);
     const columns = [
       "recordDate",
       "documentCode",
@@ -594,7 +726,7 @@ export class ReportsService {
       fullName: r.createdBy.fullName,
       recordId: r.id,
     }));
-    return { columns, rows, totalRows: rows.length };
+    return { columns, rows, totalRows };
   }
 
   private async complianceRows(

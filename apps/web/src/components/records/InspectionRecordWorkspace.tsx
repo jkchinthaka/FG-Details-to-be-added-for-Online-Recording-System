@@ -19,9 +19,11 @@ import {
   Button,
   Card,
   ChecklistRenderer,
+  EvidenceUploadProvider,
   LoadingState,
   StickySubmitBar,
 } from "@nelna/ui";
+import type { EvidenceUploadFn } from "@nelna/ui";
 import {
   InspectionRecordApiError,
   createCleaningDraft,
@@ -29,6 +31,7 @@ import {
   saveInspectionDraft,
   submitInspectionRecord,
 } from "@/lib/inspection-records/api";
+import { uploadEvidence } from "@/lib/inspection-records/evidence-api";
 import {
   clearDraft,
   formatDraftSavedAt,
@@ -105,6 +108,7 @@ export function InspectionRecordWorkspace({
   const skipNextAutosave = useRef(false);
   const loadAttempt = useRef(0);
   const submitInFlight = useRef(false);
+  const createDraftInFlight = useRef<Promise<InspectionRecordDetail> | null>(null);
 
   function loadWorkspace() {
     const attempt = ++loadAttempt.current;
@@ -112,7 +116,11 @@ export function InspectionRecordWorkspace({
 
     const load = recordId
       ? fetchInspectionRecord(recordId)
-      : createCleaningDraft(assignmentId ? { taskAssignmentId: assignmentId } : {});
+      : (createDraftInFlight.current ??= createCleaningDraft(
+          assignmentId ? { taskAssignmentId: assignmentId } : {},
+        ).finally(() => {
+          createDraftInFlight.current = null;
+        }));
 
     load
       .then((detail) => {
@@ -149,6 +157,14 @@ export function InspectionRecordWorkspace({
     state.status === "ready" || state.status === "success" ? state.detail : null;
   const activeRecordId = detail?.header.id ?? null;
   const editable = state.status === "ready" && detail !== null && detail.editable;
+
+  // FG-FILE-001: stream evidence to the dedicated multipart endpoint (with
+  // progress) while online + editable; otherwise the uploader falls back to
+  // offline data-URL capture that is validated + streamed on submit.
+  const evidenceUploader = useMemo<EvidenceUploadFn | null>(() => {
+    if (!activeRecordId || !editable) return null;
+    return (files, onProgress) => uploadEvidence(activeRecordId, files, { onProgress });
+  }, [activeRecordId, editable]);
 
   // Autosave (debounced API save) + a best-effort localStorage backup on
   // every change, so a flaky connection never loses in-progress work.
@@ -359,15 +375,17 @@ export function InspectionRecordWorkspace({
 
       {phase === "review" && counts ? <ReviewCountsCard counts={counts} /> : null}
 
-      <ChecklistRenderer
-        version={detail!.version}
-        responses={responses}
-        onResponsesChange={setResponses}
-        disabled={!editable}
-        showValidationSummary={phase === "review"}
-        showMarkAllAcceptable={editable && phase === "editing"}
-        showClearAll={editable && phase === "editing"}
-      />
+      <EvidenceUploadProvider uploadFiles={evidenceUploader}>
+        <ChecklistRenderer
+          version={detail!.version}
+          responses={responses}
+          onResponsesChange={setResponses}
+          disabled={!editable}
+          showValidationSummary={phase === "review"}
+          showMarkAllAcceptable={editable && phase === "editing"}
+          showClearAll={editable && phase === "editing"}
+        />
+      </EvidenceUploadProvider>
 
       {editable ? (
         <StickySubmitBar draftHint={formatDraftSavedAt(draftSavedAt)}>

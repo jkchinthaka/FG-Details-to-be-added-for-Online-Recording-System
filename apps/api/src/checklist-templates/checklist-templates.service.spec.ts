@@ -51,6 +51,7 @@ function makeVersion(overrides: Record<string, unknown> = {}) {
     templateId: "template-1",
     versionNumber: 1,
     status: "DRAFT",
+    workflowVersion: 0,
     notes: null,
     publishedAt: null,
     publishedById: null,
@@ -80,15 +81,7 @@ function makeTemplate(overrides: Record<string, unknown> = {}) {
 }
 
 function buildPrismaMock() {
-  const tx = {
-    checklistItem: { update: jest.fn().mockResolvedValue(undefined) },
-    checklistItemOption: {
-      deleteMany: jest.fn().mockResolvedValue(undefined),
-      createMany: jest.fn().mockResolvedValue(undefined),
-    },
-  };
-
-  return {
+  const prismaMock = {
     checklistTemplate: {
       findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
@@ -101,6 +94,7 @@ function buildPrismaMock() {
       findUniqueOrThrow: jest.fn(),
       create: jest.fn(),
       update: jest.fn().mockResolvedValue(undefined),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     checklistSection: {
       create: jest.fn().mockResolvedValue(undefined),
@@ -114,16 +108,21 @@ function buildPrismaMock() {
       deleteMany: jest.fn().mockResolvedValue(undefined),
       createMany: jest.fn().mockResolvedValue(undefined),
     },
-    $transaction: jest.fn(async (arg: unknown) => {
-      if (typeof arg === "function") {
-        return arg(tx);
-      }
-      if (Array.isArray(arg)) {
-        return Promise.all(arg);
-      }
-      return undefined;
-    }),
+    auditLog: {
+      create: jest.fn().mockResolvedValue(undefined),
+    },
+    $transaction: jest.fn(),
   };
+  prismaMock.$transaction.mockImplementation(async (arg: unknown) => {
+    if (typeof arg === "function") {
+      return (arg as (tx: typeof prismaMock) => unknown)(prismaMock);
+    }
+    if (Array.isArray(arg)) {
+      return Promise.all(arg);
+    }
+    return undefined;
+  });
+  return prismaMock;
 }
 
 function buildService(prismaMock: ReturnType<typeof buildPrismaMock>) {
@@ -615,9 +614,9 @@ describe("ChecklistTemplatesService", () => {
       );
       const service = buildService(prismaMock);
 
-      await expect(service.archiveVersion("NMS/PPU/CL/24", 1)).rejects.toBeInstanceOf(
-        VersionAlreadyArchivedException,
-      );
+      await expect(
+        service.archiveVersion("NMS/PPU/CL/24", 1, "user-1"),
+      ).rejects.toBeInstanceOf(VersionAlreadyArchivedException);
     });
 
     it("clears the template's currentVersionId when archiving the current version", async () => {
@@ -631,7 +630,7 @@ describe("ChecklistTemplatesService", () => {
         .mockResolvedValueOnce(makeVersion({ status: "ARCHIVED" }));
       const service = buildService(prismaMock);
 
-      await service.archiveVersion("NMS/PPU/CL/24", 1);
+      await service.archiveVersion("NMS/PPU/CL/24", 1, "user-1");
 
       expect(prismaMock.checklistTemplate.update).toHaveBeenCalledWith({
         where: { id: "template-1" },

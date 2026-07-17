@@ -18,16 +18,20 @@ export class InspectionRecordApiError extends Error {
    *  (see `RecordValidationException`) — lets the UI jump straight back into
    *  the form instead of just showing a generic error toast. */
   readonly validationErrors?: ChecklistValidationError[];
+  /** Stable API error code when present (e.g. DUPLICATE_RECORD, STALE_STATE). */
+  readonly code?: string;
 
   constructor(
     status: number,
     message: string,
     validationErrors?: ChecklistValidationError[],
+    code?: string,
   ) {
     super(message);
     this.name = "InspectionRecordApiError";
     this.status = status;
     this.validationErrors = validationErrors;
+    this.code = code;
   }
 }
 
@@ -71,11 +75,21 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     try {
       const body = (await response.json()) as {
         message?: string;
+        code?: string;
         errors?: ChecklistValidationError[];
       };
       if (body.message) message = body.message;
       if (body.errors) validationErrors = body.errors;
-    } catch {
+      if (body.code) {
+        throw new InspectionRecordApiError(
+          response.status,
+          message,
+          validationErrors,
+          body.code,
+        );
+      }
+    } catch (error) {
+      if (error instanceof InspectionRecordApiError) throw error;
       // Non-JSON error body — fall back to the generic message above.
     }
     throw new InspectionRecordApiError(response.status, message, validationErrors);
@@ -84,23 +98,33 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-/** Creates (or resumes) today's Daily Cleaning Verification draft for the current operator. */
+/** Creates (or resumes) today's Daily Cleaning Verification draft for the current operator.
+ *  Safe to retry: the API resumes the canonical draft or returns DUPLICATE_RECORD. */
 export function createCleaningDraft(
   input: CreateCleaningDraftInput,
+  options?: { idempotencyKey?: string },
 ): Promise<InspectionRecordDetail> {
   return apiFetch<InspectionRecordDetail>("/inspection-records/cleaning/draft", {
     method: "POST",
     body: JSON.stringify(input),
+    headers: options?.idempotencyKey
+      ? { "Idempotency-Key": options.idempotencyKey }
+      : undefined,
   });
 }
 
-/** Creates (or resumes) a Freezer Truck Inspection Before Loading draft for the selected/manually-entered vehicle. */
+/** Creates (or resumes) a Freezer Truck Inspection Before Loading draft.
+ *  Safe to retry: the API resumes the canonical draft or returns DUPLICATE_RECORD. */
 export function createTruckDraft(
   input: CreateTruckDraftInput,
+  options?: { idempotencyKey?: string },
 ): Promise<InspectionRecordDetail> {
   return apiFetch<InspectionRecordDetail>("/inspection-records/truck/draft", {
     method: "POST",
     body: JSON.stringify(input),
+    headers: options?.idempotencyKey
+      ? { "Idempotency-Key": options.idempotencyKey }
+      : undefined,
   });
 }
 

@@ -221,7 +221,8 @@ export class ChecklistTemplatesController {
   archiveVersion(
     @Param("code") code: string,
     @Param("versionNumber", ParseIntPipe) versionNumber: number,
+    @CurrentUser() user: RequestUser,
   ): Promise<ChecklistTemplateVersionDefinition> {
-    return this.service.archiveVersion(decodeURIComponent(code), versionNumber);
+    return this.service.archiveVersion(decodeURIComponent(code), versionNumber, user.id);
   }
 }

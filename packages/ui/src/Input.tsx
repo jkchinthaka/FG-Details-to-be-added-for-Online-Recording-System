@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 import { slugify } from "./internal/slugify";
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -9,15 +9,10 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
 };
 
 /** Single-line text field with label, hint and error slots. */
-export function Input({
-  label,
-  hint,
-  error,
-  hideLabel = false,
-  className,
-  id,
-  ...rest
-}: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, hint, error, hideLabel = false, className, id, ...rest },
+  ref,
+) {
   const inputId = id ?? `nelna-input-${slugify(label)}`;
   const hintId = `${inputId}-hint`;
   const errorId = `${inputId}-error`;
@@ -34,6 +29,7 @@ export function Input({
         {label}
       </label>
       <input
+        ref={ref}
         id={inputId}
         className={[
           "nelna-control",
@@ -59,4 +55,4 @@ export function Input({
       ) : null}
     </div>
   );
-}
+});

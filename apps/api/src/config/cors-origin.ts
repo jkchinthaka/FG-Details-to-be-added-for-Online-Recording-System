@@ -57,3 +57,12 @@ export function isCorsOriginAllowed(
 }
 
 export { PRODUCTION_FRONTEND_ORIGIN, LOCAL_DEV_ORIGINS };
+
+/** Primary configured browser origin for CSRF / mutation checks. */
+export function resolveCorsOrigin(env: NodeJS.ProcessEnv = process.env): string {
+  const configured = (env.API_CORS_ORIGIN ?? "").trim();
+  if (env.NODE_ENV === "production") {
+    return configured || PRODUCTION_FRONTEND_ORIGIN;
+  }
+  return configured || LOCAL_DEV_ORIGINS[0];
+}

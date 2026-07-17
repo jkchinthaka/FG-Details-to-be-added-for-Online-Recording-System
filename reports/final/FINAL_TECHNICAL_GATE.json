@@ -1,0 +1,37 @@
+{
+  "phase": "final-remediation",
+  "branch": "cursor/full-remediation-20260716-2241",
+  "startingSha": "2c316b091aa1ad969ae385a5c37f8f7783d52846",
+  "endingSha": "8c6104940a3c5f8acaf6b7b3c39ab5bdc453ce85",
+  "technicalDecision": "TECHNICAL_CONDITIONAL_PASS",
+  "formalDecision": "NO_GO",
+  "mainUpdated": false,
+  "gates": {
+    "sharedBuild": "PASS",
+    "uiBuild": "PASS",
+    "apiPrismaGenerate": "PASS",
+    "apiTypecheck": "PASS",
+    "apiUnitTests": "PASS",
+    "apiBuild": "PASS",
+    "webTypecheck": "PASS",
+    "webUnitTests": "PASS",
+    "secretScan": "PASS",
+    "opennextBuild": "NOT_RUN_THIS_WINDOW",
+    "integrationDbGated": "SKIPPED_NO_LOCAL_REPLICA",
+    "playwrightE2E": "NOT_RUN_REQUIRES_RUN_E2E",
+    "axeFullCrawl": "CONDITIONAL",
+    "perfSmokeIsolated": "HARNESS_ADDED_NOT_EXECUTED_AGAINST_LIVE",
+    "liveRestore": "NOT_EXECUTED",
+    "productionDeploy": "NOT_EXECUTED"
+  },
+  "humanApprovalsRequired": [
+    "UAT",
+    "IT",
+    "QA",
+    "Food Safety",
+    "Business owner",
+    "Pilot",
+    "Approved business rules",
+    "Real restore PASS"
+  ]
+}

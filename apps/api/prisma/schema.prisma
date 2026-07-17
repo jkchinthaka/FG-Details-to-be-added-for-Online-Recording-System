@@ -63,6 +63,7 @@ enum ApprovalType {
   RETURN
   REJECT
   VOID
+  COMPLETE
   AMEND
   LOADING_DECISION
   CORRECTIVE_ACTION_VERIFICATION
@@ -233,6 +234,7 @@ model User {
   notifications              Notification[]
   auditLogs                  AuditLog[]
   taskAssignments            TaskAssignment[]
+  reportExportJobs           ReportExportJob[]
 
   @@index([status])
   @@map("users")
@@ -296,15 +298,25 @@ model RefreshToken {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
   userId            String    @db.ObjectId
   user              User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  /// Rotation chain identifier — all tokens from one login/refresh lineage share this.
+  familyId          String
+  /// Device/browser session identifier (stable across rotation within a family).
+  sessionId         String
   tokenHash         String    @unique
   issuedAt          DateTime  @default(now())
   expiresAt         DateTime
+  /// Set atomically when the token is consumed during a successful rotation.
+  consumedAt        DateTime?
   revokedAt         DateTime?
   replacedByTokenId String?   @db.ObjectId
+  /// Set when a consumed token is presented again (compromise signal).
+  reuseDetectedAt   DateTime?
   userAgent         String?
   ipAddress         String?
 
   @@index([userId])
+  @@index([familyId])
+  @@index([sessionId])
   @@index([expiresAt])
   @@map("refresh_tokens")
 }
@@ -404,6 +416,10 @@ model ChecklistTemplateVersion {
   template      ChecklistTemplate @relation("TemplateVersions", fields: [templateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   versionNumber Int
   status        TemplateStatus    @default(DRAFT)
+  /**
+   * Optimistic concurrency for publish/archive claims.
+   */
+  workflowVersion Int             @default(0)
   notes         String?
   publishedById String?           @db.ObjectId
   publishedBy   User?             @relation("TemplateVersionPublishedBy", fields: [publishedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -509,6 +525,18 @@ model InspectionRecord {
   templateVersion   ChecklistTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   documentCode      String
   status            RecordStatus             @default(DRAFT)
+  /**
+   * Optimistic concurrency token. Incremented on every successful workflow
+   * state mutation. Claims use id + expected status + expected version.
+   */
+  workflowVersion   Int                      @default(0)
+  /**
+   * Canonical draft uniqueness key (see buildDraftDeduplicationKey).
+   * Sparse unique index enforced via scripts/database/ensure-draft-dedup-index.js.
+   * Cleared when status leaves active draft set — HUMAN_DECISION_REQUIRED for
+   * REJECTED/ARCHIVED reuse policy.
+   */
+  deduplicationKey  String?
   recordDate        DateTime
   shiftId           String?                  @db.ObjectId
   shift             Shift?                   @relation(fields: [shiftId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -552,6 +580,7 @@ model InspectionRecord {
   @@index([status])
   @@index([templateVersionId])
   @@index([reinspectionOfId])
+  @@index([deduplicationKey])
   @@map("inspection_records")
 }
 
@@ -746,6 +775,10 @@ model TruckInspectionDetail {
    *  a critical-failure recommendation (`LOADING_BLOCKED`) can never be
    *  overridden to an "approved" outcome. */
   loadingDecision LoadingDecisionStatus @default(PENDING)
+  /**
+   * Optimistic concurrency for loading-decision mutations.
+   */
+  workflowVersion Int                   @default(0)
   decidedById     String?               @db.ObjectId
   decidedBy       User?                 @relation("TruckLoadingDecidedBy", fields: [decidedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   decidedAt       DateTime?
@@ -762,17 +795,24 @@ model TruckInspectionDetail {
 // ---------------------------------------------------------------------------
 
 model ApprovalRecord {
-  id           String           @id @default(auto()) @map("_id") @db.ObjectId
-  recordId     String           @db.ObjectId
-  record       InspectionRecord @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  approvalType ApprovalType
-  decision     ApprovalDecision @default(PENDING)
-  decidedById  String?          @db.ObjectId
-  decidedBy    User?            @relation("ApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  decidedAt    DateTime?
-  comments     String?
-  createdAt    DateTime         @default(now())
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  recordId      String           @db.ObjectId
+  record        InspectionRecord @relation(fields: [recordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvalType  ApprovalType
+  /**
+   * Distinguishes repeated approvals after return/resubmit cycles.
+   * Technical uniqueness: @@unique([recordId, approvalType, workflowCycle]).
+   * Business cycle meaning: HUMAN_DECISION_REQUIRED.
+   */
+  workflowCycle Int              @default(1)
+  decision      ApprovalDecision @default(PENDING)
+  decidedById   String?          @db.ObjectId
+  decidedBy     User?            @relation("ApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  decidedAt     DateTime?
+  comments      String?
+  createdAt     DateTime         @default(now())
 
+  @@unique([recordId, approvalType, workflowCycle])
   @@index([recordId, approvalType])
   @@map("approval_records")
 }
@@ -787,6 +827,10 @@ model CorrectiveAction {
   title       String
   description String
   status      CorrectiveActionStatus @default(OPEN)
+  /**
+   * Optimistic concurrency for CA status transitions.
+   */
+  workflowVersion Int                    @default(0)
   priority    Priority               @default(MEDIUM)
 
   rootCause             String?
@@ -946,4 +990,36 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// FG-PERF-001 — background / large report CSV export jobs (append-only lifecycle).
+model ReportExportJob {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// Client-supplied idempotency key (unique per requester).
+  idempotencyKey  String
+  requesterId     String    @db.ObjectId
+  requester       User      @relation(fields: [requesterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  kind            String
+  /// Redacted filter snapshot (no secrets).
+  filtersJson     Json
+  status          String
+  progressPercent Int       @default(0)
+  rowCount        Int?
+  errorCode       String?
+  errorMessage    String?
+  /// CSV payload when COMPLETED (bounded; large exports remain capped).
+  resultCsv       String?
+  filename        String?
+  downloadToken   String?   @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
+  expiresAt       DateTime
+  cancelledAt     DateTime?
+
+  @@unique([requesterId, idempotencyKey])
+  @@index([status, expiresAt])
+  @@index([requesterId, createdAt])
+  @@map("report_export_jobs")
 }

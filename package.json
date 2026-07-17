@@ -6,7 +6,8 @@
   "author": "Chinthaka Jayaweera",
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=22.16.0 <23.0.0"
+    "node": ">=22.16.0 <22.17.0",
+    "pnpm": ">=9.12.0 <10.0.0"
   },
   "scripts": {
     "dev": "pnpm run --parallel --filter @nelna/web --filter @nelna/api dev",
@@ -18,12 +19,22 @@
     "test": "pnpm --filter @nelna/shared test && pnpm --filter @nelna/ui test && pnpm --filter @nelna/api test && pnpm --filter @nelna/web test",
     "test:integration": "pnpm --filter @nelna/api test -- db-integration db-constraints",
     "test:e2e": "pnpm --filter @nelna/e2e test",
+    "ci:secret-scan": "node scripts/ci/secret-scan.js",
+    "ci:audit": "pnpm audit --prod --audit-level=critical",
+    "dr:test": "node --test scripts/disaster-recovery/fg-dr-001.test.js",
+    "dr:verify-backup": "node scripts/disaster-recovery/verify-backup.js",
+    "dr:restore-dry-run": "node scripts/disaster-recovery/restore-isolated.js",
+    "dr:reconcile": "node scripts/disaster-recovery/reconcile-all.js",
+    "db:reconcile-integrity": "node scripts/database/reconcile-integrity.js",
+    "perf:smoke": "node scripts/perf/run-profile.mjs",
     "db:test:up": "docker compose -f docker-compose.test.yml up -d --wait",
     "db:test:down": "docker compose -f docker-compose.test.yml down -v",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview:web": "pnpm --filter @nelna/shared build && pnpm --filter @nelna/ui build && pnpm --filter @nelna/web preview",
-    "release:verify-alignment": "pnpm --filter @nelna/api exec -- ts-node --transpile-only ../../scripts/release/verify-release-alignment.ts"
+    "release:generate-manifest": "node scripts/release/generate-release-manifest.js",
+    "release:verify-alignment": "pnpm --filter @nelna/api exec -- ts-node --transpile-only ../../scripts/release/verify-release-alignment.ts",
+    "release:smoke": "pnpm release:verify-alignment"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

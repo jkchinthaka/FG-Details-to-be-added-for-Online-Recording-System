@@ -31,6 +31,8 @@ export { Alert } from "./Alert";
 export type { AlertProps, AlertTone } from "./Alert";
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
+export { ConfirmationDialog } from "./ConfirmationDialog";
+export type { ConfirmationDialogProps } from "./ConfirmationDialog";
 export { Drawer } from "./Drawer";
 export type { DrawerProps, DrawerSide } from "./Drawer";
 export { ToastProvider, useToast } from "./Toast";
@@ -43,6 +45,8 @@ export { LoadingState } from "./LoadingState";
 export type { LoadingStateProps } from "./LoadingState";
 export { ProgressIndicator } from "./ProgressIndicator";
 export type { ProgressIndicatorProps } from "./ProgressIndicator";
+export { FormErrorSummary } from "./FormErrorSummary";
+export type { FormErrorSummaryProps } from "./FormErrorSummary";
 
 // Layout
 export { PageHeader } from "./PageHeader";
@@ -63,6 +67,8 @@ export type { TaskStatusBadgeProps } from "./TaskStatusBadge";
 // Dynamic checklist engine renderer (Prompt 5)
 export { EvidenceUploader } from "./EvidenceUploader";
 export type { EvidenceUploaderProps } from "./EvidenceUploader";
+export { EvidenceUploadProvider, useEvidenceUpload } from "./EvidenceUploadContext";
+export type { EvidenceUploadFn } from "./EvidenceUploadContext";
 export { FailureDetailPanel } from "./FailureDetailPanel";
 export type { FailureDetailPanelProps } from "./FailureDetailPanel";
 export { ChecklistItemCard } from "./ChecklistItemCard";

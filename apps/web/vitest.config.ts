@@ -8,8 +8,14 @@ export default defineConfig({
   esbuild: {
     jsx: "automatic",
   },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("development"),
+  },
   test: {
     environment: "jsdom",
+    env: {
+      NODE_ENV: "development",
+    },
     setupFiles: ["./vitest.setup.ts"],
     exclude: ["**/node_modules/**", "**/.next/**"],
   },
@@ -17,5 +23,6 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom"],
   },
 });

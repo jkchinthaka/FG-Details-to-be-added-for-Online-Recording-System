@@ -24,21 +24,21 @@
   "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "fgdetails"
-    }
+      "service": "fgdetails",
+    },
   ],
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "vars": {
     "NEXT_PUBLIC_API_URL": "/api",
     "API_INTERNAL_URL": "https://fg-details-to-be-added-for-online.onrender.com",
-    "NEXT_PRIVATE_MINIMAL_MODE": "1"
+    "NEXT_PRIVATE_MINIMAL_MODE": "1",
   },
   "env": {
     "uat": {
@@ -46,14 +46,14 @@
       "workers_dev": true,
       "vars": {
         "NEXT_PUBLIC_API_URL": "/api",
-        "NEXT_PRIVATE_MINIMAL_MODE": "1"
+        "NEXT_PRIVATE_MINIMAL_MODE": "1",
       },
       "services": [
         {
           "binding": "WORKER_SELF_REFERENCE",
-          "service": "fgdetails-uat"
-        }
-      ]
-    }
-  }
+          "service": "fgdetails-uat",
+        },
+      ],
+    },
+  },
 }

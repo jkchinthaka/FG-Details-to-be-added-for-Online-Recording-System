@@ -49,13 +49,31 @@
   --nelna-text: var(--nelna-text-primary);
   --nelna-text-muted: var(--nelna-text-secondary);
   --nelna-focus: var(--nelna-primary);
+  --nelna-focus-ring: 0 0 0 3px rgba(39, 116, 58, 0.35);
+  --nelna-focus-outline: 2px solid var(--nelna-primary);
 
-  /* ---- Shape & sizing ---- */
+  /* ---- Typography scale ---- */
+  --nelna-text-xs: 0.75rem;
+  --nelna-text-sm: 0.875rem;
+  --nelna-text-md: 1rem;
+  --nelna-text-lg: 1.125rem;
+  --nelna-text-xl: 1.25rem;
+  --nelna-leading-tight: 1.25;
+  --nelna-leading-normal: 1.5;
+
+  /* ---- Spacing scale ---- */
+  --nelna-space-1: 0.25rem;
+  --nelna-space-2: 0.5rem;
+  --nelna-space-3: 0.75rem;
+  --nelna-space-4: 1rem;
+  --nelna-space-5: 1.25rem;
+  --nelna-space-6: 1.5rem;
+  --nelna-space-8: 2rem;
   --nelna-radius-sm: 8px;
   --nelna-radius: 12px;
   --nelna-radius-lg: 18px;
-  --nelna-touch-min: 48px;
-  --nelna-touch-comfortable: 44px;
+  --nelna-touch-min: 44px;
+  --nelna-touch-comfortable: 48px;
 
   /* ---- Typography ---- */
   --nelna-font-sans: "Source Sans 3", "Segoe UI", sans-serif;
@@ -87,6 +105,37 @@
 .nelna-focusable:focus-visible {
   outline: 3px solid var(--nelna-focus);
   outline-offset: 2px;
+}
+
+.nelna-skip-link {
+  position: absolute;
+  left: var(--nelna-space-4);
+  top: var(--nelna-space-4);
+  z-index: 100;
+  padding: var(--nelna-space-3) var(--nelna-space-4);
+  border-radius: var(--nelna-radius-sm);
+  background: var(--nelna-primary);
+  color: var(--nelna-white);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.nelna-skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid var(--nelna-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @keyframes nelna-spin {

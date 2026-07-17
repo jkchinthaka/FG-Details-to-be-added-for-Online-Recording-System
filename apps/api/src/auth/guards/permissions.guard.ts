@@ -24,10 +24,10 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const mode =
-      this.reflector.getAllAndOverride<PermissionsMode | undefined>(PERMISSIONS_MODE_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? "any";
+      this.reflector.getAllAndOverride<PermissionsMode | undefined>(
+        PERMISSIONS_MODE_KEY,
+        [context.getHandler(), context.getClass()],
+      ) ?? "any";
 
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user;

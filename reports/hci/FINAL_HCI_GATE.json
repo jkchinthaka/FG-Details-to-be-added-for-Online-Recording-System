@@ -1,0 +1,35 @@
+{
+  "findingSet": ["FG-AUTH-002", "FG-AUTH-003", "FG-ACC-001", "FG-ACC-002", "FG-UX-001", "FG-UX-002", "FG-UI-001"],
+  "branch": "cursor/full-remediation-20260716-2241",
+  "verdict": "HCI_TECHNICAL_CONDITIONAL_PASS",
+  "humanGate": "HUMAN_USABILITY_REVIEW_REQUIRED",
+  "axe": {
+    "critical": 0,
+    "serious": 0,
+    "status": "CONDITIONAL_PASS",
+    "path": "reports/hci/accessibility/axe-results.json"
+  },
+  "responsive": {
+    "viewportsDocumented": [
+      "320x568",
+      "360x800",
+      "390x844",
+      "412x915",
+      "768x1024",
+      "1024x768",
+      "1366x768",
+      "1920x1080"
+    ],
+    "screenshots": "PENDING_RUN_E2E",
+    "path": "reports/hci/responsive/responsive-report.md"
+  },
+  "notes": [
+    "Forced-password shell chromeless",
+    "Password UX strengthened",
+    "Zoom restored",
+    "Accessible form error contracts",
+    "Template preview modernized",
+    "Review queue humanized",
+    "Design tokens / skip link / reduced motion"
+  ]
+}

@@ -1,64 +1,157 @@
+# FG-CI-001 — Mandatory release quality gates.
+# CI uses only isolated test credentials and fg_online_test. Never production.
+# continue-on-error is forbidden on mandatory gates.
+
 name: CI
 
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, main, "cursor/full-remediation-*"]
   pull_request:
     branches: [develop, main]
+  workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22.16.0"
+  # Isolated test DB only — never fg_online / production Atlas.
+  DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
+  RUN_DB_INTEGRATION: "1"
+  JWT_ACCESS_SECRET: test-only-access-secret-min-32-chars-xx
+  JWT_REFRESH_SECRET: test-only-refresh-secret-min-32-chars-x
+  COOKIE_SECURE: "false"
+  SEED_ADMIN_EMAIL: admin@test.nelna.local
+  SEED_ADMIN_PASSWORD: TestOnly!Admin123
+  SEED_ADMIN_EMPLOYEE_CODE: TST-ADMIN
+  SEED_OPERATOR_EMAIL: operator@test.nelna.local
+  SEED_OPERATOR_PASSWORD: TestOnly!Operator123
+  SEED_OPERATOR_EMPLOYEE_CODE: TST-OP
+  SEED_SUPERVISOR_EMAIL: supervisor@test.nelna.local
+  SEED_SUPERVISOR_PASSWORD: TestOnly!Sup12345
+  SEED_SUPERVISOR_EMPLOYEE_CODE: TST-SUP
+  SEED_QA_EMAIL: qa@test.nelna.local
+  SEED_QA_PASSWORD: TestOnly!Qa12345
+  SEED_QA_EMPLOYEE_CODE: TST-QA
 
 jobs:
   quality:
-    name: Format · Lint · Typecheck · Unit · Build
+    name: Quality (format · lint · typecheck · unit · prisma · builds)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
+        # Pins pnpm from package.json packageManager (corepack-compatible).
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @nelna/shared build
-      - run: pnpm --filter @nelna/ui build
-      - run: pnpm --filter @nelna/api prisma:generate
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Verify Node 22.16.x
+        run: |
+          node -e "const v=process.versions.node; if(!/^22\.16\./.test(v)){console.error('Expected Node 22.16.x, got',v); process.exit(1)} console.log('Node',v)"
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate release manifest from Git SHA
+        run: |
+          export GIT_COMMIT_SHA="${GITHUB_SHA}"
+          export APP_BUILD_ID="${GITHUB_SHA}"
+          node scripts/release/generate-release-manifest.js --service=nelna-fg-monorepo --environment=test
+          mkdir -p reports/ci
+          cp reports/release/release-manifest.json reports/ci/release-manifest.json
+
+      - name: Shared build
+        run: pnpm --filter @nelna/shared build
+
+      - name: UI build
+        run: pnpm --filter @nelna/ui build
+
+      - name: Prisma generate
+        run: pnpm --filter @nelna/api prisma:generate
+
       - name: Prisma validate
         working-directory: apps/api
         run: pnpm exec prisma validate
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Release-manifest unit tests
+        run: pnpm --filter @nelna/shared exec vitest run src/release-manifest.test.ts --reporter=junit --outputFile=../../reports/ci/junit-release-manifest.xml
+
+      - name: Evidence upload unit tests (shared)
+        run: pnpm --filter @nelna/shared exec vitest run src/evidence-upload.test.ts --reporter=junit --outputFile=../../reports/ci/junit-evidence-upload.xml
+
+      - name: Shared + UI + Web unit tests
+        run: |
+          mkdir -p reports/ci
+          pnpm --filter @nelna/shared test -- --reporter=default --reporter=junit --outputFile=../../reports/ci/junit-shared.xml
+          pnpm --filter @nelna/ui test -- --reporter=default --reporter=junit --outputFile=../../reports/ci/junit-ui.xml
+          pnpm --filter @nelna/web test -- --reporter=default --reporter=junit --outputFile=../../reports/ci/junit-web.xml
+
+      - name: API unit tests (excl. DB-gated integration)
+        working-directory: apps/api
         env:
-          DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
+          RUN_DB_INTEGRATION: "0"
+        run: |
+          mkdir -p ../../reports/ci coverage
+          pnpm exec jest --ci --coverage --testPathIgnorePatterns="db-integration|db-constraints|fg-conc-001|fg-db-001|fg-auth-001" --json --outputFile=../../reports/ci/api-unit-results.json
+
+      - name: Evidence upload API unit tests
+        working-directory: apps/api
+        env:
+          RUN_DB_INTEGRATION: "0"
+        run: pnpm exec jest --ci --testPathPattern="evidence\\.service\\.spec|gridfs-evidence\\.service\\.spec"
+
+      - name: API build
+        run: pnpm --filter @nelna/api build
+
+      - name: OpenNext Cloudflare build
+        run: |
+          export GIT_COMMIT_SHA="${GITHUB_SHA}"
+          export APP_BUILD_ID="${GITHUB_SHA}"
+          pnpm --filter @nelna/web exec opennextjs-cloudflare build
+
+      - name: Secret scan (tracked files)
+        run: node scripts/ci/secret-scan.js
+
+      - name: Dependency audit (prod, fail on critical)
+        run: |
+          mkdir -p reports/ci
+          pnpm audit --prod --json > reports/ci/pnpm-audit-prod.json || true
+          pnpm audit --prod --audit-level=critical
+
+      - name: Upload safe CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
+            reports/ci/**
+            reports/release/release-manifest.json
+            apps/api/coverage/**
+          if-no-files-found: warn
+          retention-days: 14
 
   mongodb-integration:
-    name: MongoDB integration
+    name: MongoDB integration (replica set · fg_online_test)
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
-      RUN_DB_INTEGRATION: "1"
-      JWT_ACCESS_SECRET: test-only-access-secret-min-32-chars-xx
-      JWT_REFRESH_SECRET: test-only-refresh-secret-min-32-chars-x
-      COOKIE_SECURE: "false"
-      SEED_ADMIN_EMAIL: admin@test.nelna.local
-      SEED_ADMIN_PASSWORD: TestOnly!Admin123
-      SEED_ADMIN_EMPLOYEE_CODE: TST-ADMIN
-      SEED_OPERATOR_EMAIL: operator@test.nelna.local
-      SEED_OPERATOR_PASSWORD: TestOnly!Operator123
-      SEED_OPERATOR_EMPLOYEE_CODE: TST-OP
-      SEED_SUPERVISOR_EMAIL: supervisor@test.nelna.local
-      SEED_SUPERVISOR_PASSWORD: TestOnly!Sup12345
-      SEED_SUPERVISOR_EMPLOYEE_CODE: TST-SUP
-      SEED_QA_EMAIL: qa@test.nelna.local
-      SEED_QA_PASSWORD: TestOnly!Qa12345
-      SEED_QA_EMPLOYEE_CODE: TST-QA
     steps:
       - uses: actions/checkout@v4
+
       - name: Start MongoDB replica set (fg_online_test only)
         run: |
           docker run -d --rm --name mongo-test -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
@@ -70,33 +163,59 @@ jobs:
           done
           echo "MongoDB replica set failed to initialize" >&2
           exit 1
+
       - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @nelna/shared build
       - run: pnpm --filter @nelna/api prisma:generate
+
       - name: Push schema and seed test DB
         working-directory: apps/api
         run: |
           pnpm exec prisma db push
           node ../../scripts/database/ensure-sparse-current-version-index.js
+          node ../../scripts/database/ensure-draft-dedup-index.js
           pnpm exec prisma db seed
-      - name: Integration tests
+
+      - name: API integration tests
         working-directory: apps/api
-        run: pnpm test -- --runInBand --testPathPattern="db-integration|db-constraints"
+        run: |
+          mkdir -p ../../reports/ci
+          pnpm exec jest --runInBand --ci --testPathPattern="db-integration|db-constraints" --json --outputFile=../../reports/ci/api-integration-results.json
+
+      - name: Concurrency tests (FG-CONC-001)
+        working-directory: apps/api
+        run: pnpm exec jest --runInBand --ci --testPathPattern="fg-conc-001"
+
+      - name: Draft dedup tests (FG-DB-001)
+        working-directory: apps/api
+        run: pnpm exec jest --runInBand --ci --testPathPattern="fg-db-001"
+
+      - name: Refresh-token security tests (FG-AUTH-001)
+        working-directory: apps/api
+        run: pnpm exec jest --runInBand --ci --testPathPattern="fg-auth-001"
+
+      - name: Upload safe integration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-reports
+          path: reports/ci/api-integration-results.json
+          if-no-files-found: warn
+          retention-days: 14
 
   e2e:
-    name: Playwright E2E
+    name: Playwright E2E + accessibility smoke
     runs-on: ubuntu-latest
     needs: [quality]
     env:
-      DATABASE_URL: mongodb://127.0.0.1:27017/fg_online_test?replicaSet=rs0&directConnection=true
-      JWT_ACCESS_SECRET: test-only-access-secret-min-32-chars-xx
-      JWT_REFRESH_SECRET: test-only-refresh-secret-min-32-chars-x
-      COOKIE_SECURE: "false"
       API_CORS_ORIGIN: http://localhost:3000
       NEXT_PUBLIC_API_URL: /api
       API_INTERNAL_URL: http://localhost:3001
@@ -104,21 +223,11 @@ jobs:
       E2E_BASE_URL: http://localhost:3000
       E2E_OPERATOR_USERNAME: tst-op
       E2E_OPERATOR_PASSWORD: TestOnly!Operator123
-      SEED_ADMIN_EMAIL: admin@test.nelna.local
-      SEED_ADMIN_PASSWORD: TestOnly!Admin123
-      SEED_ADMIN_EMPLOYEE_CODE: TST-ADMIN
-      SEED_OPERATOR_EMAIL: operator@test.nelna.local
-      SEED_OPERATOR_PASSWORD: TestOnly!Operator123
-      SEED_OPERATOR_EMPLOYEE_CODE: TST-OP
-      SEED_SUPERVISOR_EMAIL: supervisor@test.nelna.local
-      SEED_SUPERVISOR_PASSWORD: TestOnly!Sup12345
-      SEED_SUPERVISOR_EMPLOYEE_CODE: TST-SUP
-      SEED_QA_EMAIL: qa@test.nelna.local
-      SEED_QA_PASSWORD: TestOnly!Qa12345
-      SEED_QA_EMPLOYEE_CODE: TST-QA
-      # Keep E2E_OPERATOR_EMAIL for backwards compatibility in docs only — unused by tests.
+      # Canary must stay off — see docs/ci/CANARY_E2E_BLOCK_PROOF.md
+      E2E_CANARY_FAIL: "0"
     steps:
       - uses: actions/checkout@v4
+
       - name: Start MongoDB replica set (fg_online_test only)
         run: |
           docker run -d --rm --name mongo-test -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
@@ -130,29 +239,39 @@ jobs:
           done
           echo "MongoDB replica set failed to initialize" >&2
           exit 1
+
       - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @nelna/shared build
       - run: pnpm --filter @nelna/ui build
       - run: pnpm --filter @nelna/api prisma:generate
+
       - name: Push schema and seed
         working-directory: apps/api
         run: |
           pnpm exec prisma db push
           node ../../scripts/database/ensure-sparse-current-version-index.js
+          node ../../scripts/database/ensure-draft-dedup-index.js
           pnpm exec prisma db seed
+
       - run: pnpm --filter @nelna/api build
       - run: pnpm --filter @nelna/web build
+
       - name: Start API
         working-directory: apps/api
         run: pnpm start &
+
       - name: Start Web
         working-directory: apps/web
         run: pnpm start &
+
       - name: Wait for health
         run: |
           for i in $(seq 1 60); do
@@ -161,10 +280,63 @@ jobs:
           done
           echo "Services failed to start" >&2
           exit 1
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/e2e/package.json', 'pnpm-lock.yaml') }}
+
       - name: Install Playwright browser
         working-directory: apps/e2e
         run: pnpm exec playwright install --with-deps chromium
-      - name: Run E2E
+
+      - name: Run Playwright E2E (blocking)
         working-directory: apps/e2e
         run: pnpm test
-        continue-on-error: true
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure
+          path: |
+            apps/e2e/test-results/**
+            apps/e2e/playwright-report/**
+            apps/e2e/junit-e2e.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Playwright JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-junit
+          path: apps/e2e/junit-e2e.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+  ci-pass:
+    name: CI PASS
+    runs-on: ubuntu-latest
+    needs: [quality, mongodb-integration, e2e]
+    steps:
+      - name: All mandatory gates passed
+        run: |
+          echo "FG-CI-001 mandatory gates passed:"
+          echo "  - quality (format, lint, typecheck, unit, prisma, builds, secret scan, audit, release-manifest)"
+          echo "  - mongodb-integration (integration, concurrency, refresh-token, draft-dedup)"
+          echo "  - e2e (Playwright + accessibility smoke)"
+          echo "Deploy jobs may proceed only after this job succeeds."
+
+  deploy-gate:
+    name: Deploy gate (requires CI PASS)
+    runs-on: ubuntu-latest
+    needs: [ci-pass]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - name: Block deploy without CI PASS
+        run: |
+          echo "CI PASS confirmed for ${GITHUB_REF}."
+          echo "External Render/Cloudflare deploys must wait for this workflow success."
+          echo "Do not promote builds from failed or cancelled runs."

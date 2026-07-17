@@ -275,8 +275,11 @@ describe("UsersService", () => {
       prismaMock.refreshToken.findMany.mockResolvedValue([
         {
           id: "rt-1",
+          familyId: "family-1",
+          sessionId: "session-1",
           issuedAt: new Date("2026-01-02T00:00:00.000Z"),
           expiresAt: new Date("2026-01-03T00:00:00.000Z"),
+          consumedAt: null,
           revokedAt: null,
           userAgent: "test-agent",
           ipAddress: "127.0.0.1",
