@@ -1,0 +1,45 @@
+{
+  "decision": "HIGH_RISK_REMEDIATION_CONDITIONAL_PASS",
+  "workingBranch": "cursor/high-risk-remediation-verification-20260717-1313",
+  "startingSha": "1e433245f9d3fddacaadc2d0a826b5f540c73425",
+  "isolatedMongo": {
+    "environment": "ISOLATED",
+    "transactionsSupported": true,
+    "productionDatabaseUsed": false,
+    "databaseName": "fg_online_test",
+    "host": "127.0.0.1",
+    "port": 27027
+  },
+  "criticalDbTests": {
+    "executed": 38,
+    "passed": 38,
+    "failed": 0,
+    "skipped": 0
+  },
+  "gates": {
+    "concurrency": "PASS",
+    "draftDeduplication": "PASS",
+    "evidenceUnit": "PASS",
+    "refreshReplay": "PASS",
+    "appShell": "PASS",
+    "accessibilityViewport": "PASS",
+    "ciConfig": "PASS",
+    "formatCheckRepoWide": "FAIL_PREEXISTING",
+    "openNextBuildThisWindow": "NOT_RERUN"
+  },
+  "humanDecisionRequired": [
+    "administrator_operational_authority",
+    "emergency_override",
+    "duplicate_draft_business_key_scope",
+    "repeated_truck_visit_semantics",
+    "evidence_retention",
+    "audit_retention"
+  ],
+  "mainUpdated": false,
+  "productionDeployed": false,
+  "blockers": [
+    "REPO_WIDE_PRETTIER_DEBT",
+    "SW_NAVIGATION_CACHE_RESIDUAL",
+    "ADMIN_SOD_POLICY_UNRESOLVED"
+  ]
+}
