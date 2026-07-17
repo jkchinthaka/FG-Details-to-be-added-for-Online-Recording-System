@@ -326,7 +326,10 @@ export class AuthService {
   /** Revokes all refresh-token families for the user. */
   async revokeAllSessions(userId: string): Promise<void> {
     await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
+      where: {
+        userId,
+        OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
+      },
       data: { revokedAt: new Date() },
     });
   }
@@ -569,6 +572,9 @@ export class AuthService {
         sessionId,
         tokenHash: hashToken(refreshToken),
         expiresAt: new Date(Date.now() + config.refreshTokenTtlMs),
+        // Explicit nulls so MongoDB null filters match (unset ≠ null in Prisma).
+        consumedAt: null,
+        revokedAt: null,
         ...boundedMeta,
       },
     });

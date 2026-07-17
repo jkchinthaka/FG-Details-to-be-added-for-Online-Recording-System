@@ -451,7 +451,10 @@ describe("AuthService", () => {
       expect(result.tokens.refreshToken).not.toBe(token);
       expect(prismaMock.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ id: "rt-1", consumedAt: null }),
+          where: expect.objectContaining({
+            id: "rt-1",
+            AND: expect.any(Array),
+          }),
           data: { consumedAt: expect.any(Date) },
         }),
       );
@@ -605,7 +608,11 @@ describe("AuthService", () => {
       await service.logout(token);
 
       expect(prismaMock.refreshToken.updateMany).toHaveBeenCalledWith({
-        where: { familyId: "family-1", userId: "user-1", revokedAt: null },
+        where: expect.objectContaining({
+          familyId: "family-1",
+          userId: "user-1",
+          AND: expect.any(Array),
+        }),
         data: { revokedAt: expect.any(Date) },
       });
     });

@@ -32,6 +32,19 @@ export function boundRequestMeta(meta: RequestMeta = {}): {
 }
 
 /**
+ * Prisma MongoDB treats missing optional fields differently from explicit
+ * `null`. Fresh refresh-token rows historically omitted consumedAt/revokedAt,
+ * so `field: null` alone does not match. Accept either form.
+ */
+export function mongoNullOrUnset(
+  field: "consumedAt" | "revokedAt",
+): Prisma.RefreshTokenWhereInput {
+  return {
+    OR: [{ [field]: null }, { [field]: { isSet: false } }],
+  } as Prisma.RefreshTokenWhereInput;
+}
+
+/**
  * Atomically consume a refresh token for rotation. Exactly one concurrent
  * caller may succeed; losers receive count=0 and must not proceed.
  */
@@ -42,9 +55,11 @@ export async function claimRefreshTokenForRotation(
   const result = await prisma.refreshToken.updateMany({
     where: {
       id: tokenId,
-      consumedAt: null,
-      revokedAt: null,
-      expiresAt: { gt: new Date() },
+      AND: [
+        mongoNullOrUnset("consumedAt"),
+        mongoNullOrUnset("revokedAt"),
+        { expiresAt: { gt: new Date() } },
+      ],
     },
     data: { consumedAt: new Date() },
   });
@@ -63,7 +78,10 @@ export async function revokeFamilyForReuse(
   const now = new Date();
   await prisma.$transaction([
     prisma.refreshToken.updateMany({
-      where: { familyId: stored.familyId, revokedAt: null },
+      where: {
+        familyId: stored.familyId,
+        AND: [mongoNullOrUnset("revokedAt")],
+      },
       data: { revokedAt: now, reuseDetectedAt: now },
     }),
     prisma.refreshToken.update({
@@ -102,7 +120,11 @@ export async function revokeRefreshTokenFamily(
   userId: string,
 ): Promise<number> {
   const result = await prisma.refreshToken.updateMany({
-    where: { familyId, userId, revokedAt: null },
+    where: {
+      familyId,
+      userId,
+      AND: [mongoNullOrUnset("revokedAt")],
+    },
     data: { revokedAt: new Date() },
   });
   return result.count;

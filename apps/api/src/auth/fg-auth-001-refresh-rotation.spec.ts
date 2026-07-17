@@ -22,7 +22,10 @@ const shouldRun =
 const describeIntegration = shouldRun ? describe : describe.skip;
 
 describeIntegration("FG-AUTH-001 refresh rotation (integration)", () => {
-  const prisma = new PrismaClient();
+  const databaseUrl = process.env.DATABASE_URL!;
+  const prisma = new PrismaClient({
+    datasources: { db: { url: databaseUrl } },
+  });
   const jwtService = new JwtService();
   let service: AuthService;
   let userId: string;
@@ -32,6 +35,10 @@ describeIntegration("FG-AUTH-001 refresh rotation (integration)", () => {
   jest.setTimeout(60_000);
 
   beforeAll(async () => {
+    if (dbName !== "fg_online_test" || /mongodb\.net|onrender\.com/i.test(databaseUrl)) {
+      throw new Error("FG-AUTH-001 refused: DATABASE_URL is not isolated fg_online_test");
+    }
+
     process.env.JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? "test-access-secret";
     process.env.JWT_REFRESH_SECRET =
       process.env.JWT_REFRESH_SECRET ?? "test-refresh-secret";
@@ -51,6 +58,7 @@ describeIntegration("FG-AUTH-001 refresh rotation (integration)", () => {
       data: {
         employeeCode: `AUTH001-${Date.now()}`,
         username,
+        email: `${username}@fg-online-test.local`,
         fullName: "AUTH001 Test User",
         passwordHash,
         mustChangePassword: false,
@@ -136,7 +144,10 @@ describeIntegration("FG-AUTH-001 refresh rotation (integration)", () => {
     await service.logout(loginA.tokens.refreshToken);
 
     const stillActiveB = await prisma.refreshToken.findFirst({
-      where: { familyId: rowB!.familyId, revokedAt: null },
+      where: {
+        familyId: rowB!.familyId,
+        OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
+      },
     });
     expect(stillActiveB).toBeTruthy();
 

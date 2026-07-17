@@ -167,7 +167,10 @@ export class UsersService {
       include: USER_WITH_RELATIONS_INCLUDE,
     });
     await this.prisma.refreshToken.updateMany({
-      where: { userId: id, revokedAt: null },
+      where: {
+        userId: id,
+        OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
+      },
       data: { revokedAt: new Date() },
     });
     await this.recordAudit(actorId, "USER_ACTIVATED", id, {});
@@ -190,7 +193,10 @@ export class UsersService {
       include: USER_WITH_RELATIONS_INCLUDE,
     });
     await this.prisma.refreshToken.updateMany({
-      where: { userId: id, revokedAt: null },
+      where: {
+        userId: id,
+        OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
+      },
       data: { revokedAt: new Date() },
     });
     await this.recordAudit(actorId, "USER_DEACTIVATED", id, {});
@@ -241,7 +247,10 @@ export class UsersService {
         data: { authVersion: { increment: 1 } },
       }),
       this.prisma.refreshToken.updateMany({
-        where: { userId: id, revokedAt: null },
+        where: {
+          userId: id,
+          OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
+        },
         data: { revokedAt: new Date() },
       }),
     ]);
@@ -315,7 +324,10 @@ export class UsersService {
     });
 
     await this.prisma.refreshToken.updateMany({
-      where: { userId: id, revokedAt: null },
+      where: {
+        userId: id,
+        OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
+      },
       data: { revokedAt: new Date() },
     });
 
