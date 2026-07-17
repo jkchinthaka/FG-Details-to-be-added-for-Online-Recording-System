@@ -2,6 +2,11 @@
   "decision": "HIGH_RISK_REMEDIATION_CONDITIONAL_PASS",
   "workingBranch": "cursor/high-risk-remediation-verification-20260717-1313",
   "startingSha": "1e433245f9d3fddacaadc2d0a826b5f540c73425",
+  "endingSha": "1402b44e0bd7f86771a1d2c31ca14718d0ef2a53",
+  "commitsCreated": [
+    "26b9855878394ea56aa4ddbc89dec53cd60e6861",
+    "1402b44e0bd7f86771a1d2c31ca14718d0ef2a53"
+  ],
   "isolatedMongo": {
     "environment": "ISOLATED",
     "transactionsSupported": true,

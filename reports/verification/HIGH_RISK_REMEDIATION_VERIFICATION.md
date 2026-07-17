@@ -8,6 +8,7 @@
 | --- | --- |
 | Working branch | `cursor/high-risk-remediation-verification-20260717-1313` |
 | Starting SHA | `1e433245f9d3fddacaadc2d0a826b5f540c73425` |
+| Ending SHA | `1402b44e0bd7f86771a1d2c31ca14718d0ef2a53` |
 | Source tip | `cursor/full-remediation-20260716-2241` |
 | Uncommitted 34-file state at gate start | **Not present** (working tree clean; remediation already committed) |
 | Emergency backups | `../fg-remediation-uncommitted-backup.patch` (empty), `../fg-remediation-staged-backup.patch` (empty), `../fg-remediation-HEAD-commit-backup.patch` |
